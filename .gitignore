@@ -220,6 +220,8 @@ __marimo__/
 # Interview content factory outputs and local inspection files
 .DS_Store
 /tmp/
+/inbox/*
+!/inbox/.gitkeep
 
 /generated/catalogs/*
 !/generated/catalogs/.gitkeep

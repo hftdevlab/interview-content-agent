@@ -140,7 +140,7 @@ resume the drafting and independent-review loop:
 ```bash
 contentctl feedback \
   --id code-example \
-  --file feedback.md \
+  --file inbox/feedback.md \
   --continue
 ```
 
