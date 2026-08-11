@@ -35,7 +35,7 @@ jobs:
 
       - name: Upload review PDFs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: review-pdfs
           path: generated/pdf-preview/*.pdf
