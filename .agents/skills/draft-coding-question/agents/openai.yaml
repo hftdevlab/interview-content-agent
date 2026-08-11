@@ -1,0 +1,4 @@
+interface:
+  display_name: "Draft Coding Question"
+  short_description: "Draft complete C++ coding interview content"
+  default_prompt: "Use $draft-coding-question to draft this C++ coding interview question."

@@ -1,0 +1,105 @@
+schema_version: 1
+
+id: a6-coherence-and-false-sharing
+title: Cache coherence and false sharing
+module: A
+difficulty: applied
+target_length: { min_words: 1400, max_words: 2400 }
+
+chapter_focus: >
+  That coherence operates on whole cache lines with no knowledge of your
+  variables, so two threads sharing nothing logically can still contend on
+  hardware — and that this cost is invisible to every profiler you will reach for.
+
+reader_range: >
+  From engineers who have written multithreaded code without thinking about the
+  hardware, through to those who know the term false sharing and cannot explain
+  the mechanism.
+
+reader_starting_point: >
+  The reader knows cache lines are the unit of transfer (a5) and can measure
+  (a4). They think of thread safety as a correctness property only.
+
+opening_scenario: >
+  A feed handler is split across four threads, one per symbol group, on the
+  theory that four cores will process four times the messages. Each thread has
+  its own counter tracking messages processed, and the four counters are
+  declared together in one small struct for tidiness. Throughput on four threads
+  is barely better than on one, and on some runs it is worse. Nothing is shared,
+  nothing is locked, and the profiler shows time spread evenly across the
+  increment instruction in all four threads.
+
+industry_usage_anchor: >
+  Every multi-threaded component in a trading system — feed handlers, queue
+  indices, per-thread statistics — is exposed to this, and padding shared
+  structures is standard defensive practice at latency-sensitive firms. It is a
+  common interview question because a candidate either knows the mechanism or
+  visibly does not.
+
+primary_artifact_mode: code
+depth_pointers:            # contract 3.13
+  - MESI and coherence protocol detail -> Sorin, Hill & Wood; vendor architecture manual
+  # atomics/mutex implementation deliberately NOT here — it belongs to b1,
+  # the chapter that owns the concept. See contract 3.13, placement rule.
+include_quizzes: true
+include_measurement_plan: true
+
+core_claims_to_establish:
+  - id: claim-a6-01
+    type: normative
+    statement: >
+      Cache coherence maintains a consistent view of memory across cores at
+      cache-line granularity, and a write requires exclusive ownership of the line.
+  - id: claim-a6-02
+    type: judgment
+    statement: >
+      Because ownership is per line, two threads writing different variables in
+      the same line ping-pong ownership between cores despite sharing no data.
+  - id: claim-a6-03
+    type: judgment
+    statement: >
+      False sharing is invisible to sampling profilers: the cost appears as a
+      slow ordinary instruction, with nothing to attribute it to.
+  - id: claim-a6-04
+    type: judgment
+    statement: >
+      The fix is to separate contended variables onto distinct lines, and the
+      cost of the fix is memory, which is why padding everything is not free.
+  - id: claim-a6-05
+    type: judgment
+    statement: >
+      Read-only sharing is not a problem; the cost arises specifically from writes.
+
+reader_misconceptions:
+  - "If the threads don't share variables, they don't interfere."
+  - "The profiler would show me if this were happening."
+  - "Adding threads adds throughput."
+  - "Atomics are the expensive part, so plain counters are safe."
+  - "Padding everything is a cheap insurance policy."
+
+correctness_properties:
+  - False sharing is a performance defect only; it never changes program semantics.
+
+operational_and_recovery_concerns:
+  - Poor scaling with thread count is the operational symptom; per-thread throughput should be tracked, not just aggregate.
+
+measurement_questions:
+  - Does per-thread throughput fall as threads are added, and by how much?
+  - What happens to the same workload when the shared struct is padded?
+  - Which lines are actually contended, according to the hardware counters your platform exposes?
+
+when_not_to_use:
+  - Padding structures that are not written concurrently.
+  - Padding in memory-constrained contexts where the structure is replicated many times.
+  - Reaching for padding before establishing that scaling is the problem.
+
+scope_exclusions:
+  - Memory ordering and the C++ memory model (b1-cpp-memory-model)
+  - NUMA and cross-socket effects (c5-numa-placement)
+  - Layout for single-threaded scan efficiency (a5-cache-locality-and-layout)
+
+interview_competencies:
+  - Explain the coherence mechanism well enough to predict which writes are expensive.
+  - Spot false sharing in a struct declaration.
+  - Explain why a profiler will not find it.
+  - Argue against padding where it is not warranted.

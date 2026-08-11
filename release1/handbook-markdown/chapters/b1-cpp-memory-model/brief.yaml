@@ -1,0 +1,130 @@
+schema_version: 1
+
+id: b1-cpp-memory-model
+title: C++ memory-model foundations
+display_title: "What the Other Thread Can See"
+module: B
+difficulty: applied
+target_length: { min_words: 1800, max_words: 3000 }
+
+chapter_focus: >
+  That memory ordering is about VISIBILITY between threads, not about speed —
+  and that every ordering in a correct program can be derived from asking what
+  one thread must be guaranteed to observe of another's writes.
+
+reader_range: >
+  From engineers who have used mutexes and never atomics, through to those who
+  can recite release/acquire but cannot say what breaks without it.
+
+reader_starting_point: >
+  The reader knows cache coherence keeps cores consistent (a6) and can measure
+  (a4). They likely believe the hardware "just works" and that atomics are
+  simply thread-safe variables.
+
+opening_scenario: >
+  A feed handler writes a parsed message into a shared slot and then sets a
+  ready flag. The strategy thread spins until the flag is set, then reads the
+  slot. It works perfectly in testing on the developer's x86 laptop, passes
+  code review, and runs in production for weeks. Then the team rebuilds with a
+  different optimisation level, or ports a component to an ARM host, and the
+  strategy starts occasionally reading a message that was never written.
+
+industry_usage_anchor: >
+  Every lock-free handoff in a trading system rests on this: the feed-to-strategy
+  ring buffer, the order gateway queue, per-thread statistics published to a
+  monitoring thread. Memory ordering is among the most reliably asked deep C++
+  interview topics at latency-sensitive firms, because it cannot be bluffed.
+
+primary_artifact_mode: code
+include_quizzes: true
+include_measurement_plan: false
+
+core_claims_to_establish:
+  - id: claim-b1-01
+    type: normative
+    statement: >
+      Two threads accessing the same memory location where at least one access
+      is a write, without synchronisation, is a data race and the behaviour of
+      the whole program is undefined.
+  - id: claim-b1-02
+    type: normative
+    statement: >
+      A release store and an acquire load on the same atomic object establish
+      happens-before: everything sequenced before the release is visible to the
+      thread that observes that value through the acquire.
+  - id: claim-b1-03
+    type: judgment
+    statement: >
+      Two reorderers must be constrained, not one. The compiler reorders even on
+      hardware that does not, so ordering annotations are needed on x86.
+  - id: claim-b1-04
+    type: normative
+    statement: >
+      memory_order_relaxed guarantees atomicity and modification order for that
+      one object, and nothing about the visibility of any other memory.
+  - id: claim-b1-05
+    type: judgment
+    statement: >
+      seq_cst adds a single total order across all seq_cst operations, which
+      release/acquire does not provide; the cases needing it are rarer than its
+      use suggests, and it is not free.
+  - id: claim-b1-06
+    type: judgment
+    statement: >
+      volatile is not a threading tool. It constrains neither the hardware nor
+      other memory, and using it for synchronisation is a data race.
+
+reader_misconceptions:
+  - "Atomics are just thread-safe variables."
+  - "x86 is strongly ordered, so I do not need orderings."
+  - "volatile makes a variable safe to share between threads."
+  - "seq_cst everywhere is safe and I will tune it later if profiling says so."
+  - "A data race means a torn read; the worst case is a stale value."
+
+correctness_properties:
+  - No two threads access the same location without synchronisation where one writes.
+  - Every publish of data is paired with a matching acquire on the consuming side.
+  - The program's correctness argument does not depend on the target architecture.
+
+sequencing_hazards:
+  - id: seq-b1-01
+    order:
+      - write the payload
+      - release-store the flag or index that publishes it
+    failure_if_violated: >
+      Publishing before the payload is written, or publishing with a relaxed
+      store, permits the consumer to observe the flag and read a slot the
+      producer has not finished writing. On x86 the hardware will not reorder
+      the stores but the compiler may, so the bug is invisible in testing and
+      appears on recompilation or on a weakly ordered target.
+    detectability: silent
+
+operational_and_recovery_concerns:
+  - Memory-ordering bugs do not produce clean failures; they produce rare wrong values.
+  - Any lock-free structure needs its ordering argument written down next to the code, or it will be broken by a later edit.
+
+when_not_to_use:
+  - Reaching for atomics where a mutex is simpler and the path is not hot.
+  - Weakening from seq_cst without a derivation.
+
+scope_exclusions:
+  - Queue implementation (b2-spsc-ring-buffer)
+  - Progress guarantees (b3-progress-guarantees)
+  - Testing methodology (b7-testing-concurrent-code)
+  - Coherence mechanism (a6-coherence-and-false-sharing)
+
+depth_pointers:
+  - id: dp-b1-01
+    topic: How atomics and mutexes are built from hardware instructions
+    why: >
+      Explains why an uncontended atomic is nearly free and a contended one is
+      not, and what a mutex does when it cannot acquire. Category 2 per contract
+      3.13 — not required for typical interview answers, a plus to understand.
+    sources: Herlihy and Shavit; vendor instruction-set manual
+    note: Owed to this chapter; raised by a6 Quiz 1 and recorded in curriculum.yaml.
+
+interview_competencies:
+  - Derive the required orderings from a visibility requirement rather than reciting them.
+  - Say precisely what breaks under relaxed, and why x86 hides it.
+  - Explain what relaxed does and does not guarantee.
+  - State when seq_cst is actually needed.

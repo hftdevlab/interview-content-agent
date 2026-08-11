@@ -1,0 +1,103 @@
+schema_version: 1
+
+id: a3-latency-throughput
+title: Latency, tail latency, jitter, and throughput
+module: A
+difficulty: foundation
+target_length: { min_words: 1200, max_words: 2000 }
+
+chapter_focus: >
+  That the tail is the product: a trading system is judged on its worst
+  microseconds, not its average ones, and almost every design tradeoff in this
+  handbook is a tail-versus-average or latency-versus-throughput decision.
+
+reader_range: >
+  From engineers who have only ever reported average response times, through to
+  those refreshing the vocabulary before an interview.
+
+reader_starting_point: >
+  The reader has the system map from a1 and knows what tick-to-trade means.
+  They probably think of performance as a single number.
+
+opening_scenario: >
+  Two systems are benchmarked side by side on the same feed. System A has a
+  median tick-to-trade a third lower than system B. The desk runs system B.
+  The reason is in the shape of the distributions: system A is faster almost
+  always and occasionally very slow, and the occasions correlate with exactly
+  the market conditions the firm makes money in. An average hid the only thing
+  that mattered.
+
+industry_usage_anchor: >
+  Every performance conversation in this industry is conducted in percentiles.
+  A candidate who reports a mean latency in an interview has told the room they
+  have not worked on a latency-sensitive system.
+
+primary_artifact_mode: none
+# Illustrative snippets permitted per contract 3.14: short examples showing a
+# mean-optimised pattern and its deterministic alternative (vector growth,
+# periodic work on the hot path, wall-clock branching). Property only, no mechanism.
+include_quizzes: true
+include_measurement_plan: true
+
+core_claims_to_establish:
+  - id: claim-a3-01
+    type: judgment
+    statement: >
+      Latency distributions in these systems are heavily right-skewed, so the
+      mean sits where almost no sample is and describes neither mode.
+  - id: claim-a3-02
+    type: judgment
+    statement: >
+      Tail events correlate with high market activity, which is when the
+      system's decisions are most valuable, so the tail is over-weighted in
+      economic terms relative to its frequency.
+  - id: claim-a3-03
+    type: judgment
+    statement: >
+      Latency and throughput are distinct and often opposed; batching is the
+      canonical trade that improves one and harms the other.
+  - id: claim-a3-04
+    type: judgment
+    statement: >
+      Jitter is variance in latency, and a system with higher but more
+      predictable latency is sometimes preferable to a faster erratic one.
+  - id: claim-a3-05
+    type: judgment
+    statement: >
+      Coordinated omission causes a measurement harness that waits for a
+      response before sending the next request to systematically under-report
+      the tail.
+
+reader_misconceptions:
+  - "Average latency is a reasonable summary of performance."
+  - "The 99th percentile is an edge case affecting one request in a hundred."
+  - "Faster is always better."
+  - "Latency and throughput are the same thing measured differently."
+  - "If the benchmark says the median improved, the change was good."
+
+correctness_properties: []
+
+operational_and_recovery_concerns:
+  - Latency must be reported as a distribution with percentiles, never as a single number.
+  - Percentiles cannot be averaged across time buckets or hosts; the underlying samples must be merged.
+  - Tail metrics need to be correlated with market activity to be interpretable.
+
+measurement_questions:
+  - What does your latency distribution actually look like when plotted, rather than summarised?
+  - Does your harness wait for a response before sending the next request, and what does that do to the tail?
+  - Do your tail events cluster in time, and what were market conditions during those clusters?
+
+when_not_to_use:
+  - Optimising the tail of a path that is not on the critical path.
+  - Chasing percentiles beyond the point where another component dominates.
+
+scope_exclusions:
+  - How to measure (a4-measurement-and-profiling)
+  - Specific sources of jitter (c4-thread-affinity, c1-virtual-memory)
+  - Batching mechanics (d4-parsing-batching-backpressure)
+
+interview_competencies:
+  - Report performance in percentiles without being prompted.
+  - Explain why the tail matters more than its frequency suggests in this domain.
+  - Describe the latency-throughput tradeoff with a concrete example.
+  - Recognise coordinated omission in a described benchmark.

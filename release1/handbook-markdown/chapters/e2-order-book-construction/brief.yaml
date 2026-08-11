@@ -1,0 +1,104 @@
+schema_version: 1
+id: e2-order-book-construction
+title: Order-book representation and construction
+display_title: "The Structure Everything Reads"
+module: E
+difficulty: applied
+order: 1
+target_length: { min_words: 1800, max_words: 2800 }
+chapter_focus: >
+  That the representation follows from the ACCESS PATTERN, and the deciding
+  factor at these sizes is how many cache lines an operation touches rather than
+  its asymptotic complexity.
+reader_starting_point: >
+  The reader can decode a feed (d1), knows when the book is trustworthy (d3), and
+  understands that layout decides cost (a5). They would reach for std::map.
+opening_scenario: >
+  A team builds their book as a std::map from price to level, one for each side.
+  The complexity is right, the code is short, and it is obviously correct. At
+  production message rates the book update becomes the largest single component
+  of tick-to-trade, and the profile shows the time spread across map internals
+  with no single function to blame.
+industry_usage_anchor: >
+  The order book is the central data structure of the market-data path and is
+  read on every strategy decision. Book representation is a common interview
+  question because the reasoning is testable on a whiteboard.
+primary_artifact_mode: code
+include_quizzes: true
+include_measurement_plan: true
+core_claims_to_establish:
+  - id: claim-e2-00a
+    type: judgment
+    statement: >
+      Market data comes at three detail levels — L1 top of book, L2 aggregated
+      depth, L3 order by order — and aggregation runs only from L3 to L2 to L1,
+      so queue position is unavailable from L2 at any cost.
+  - id: claim-e2-00b
+    type: judgment
+    statement: >
+      An order-by-order book is a price ladder of intrusive doubly-linked FIFO
+      lists plus an order-id index; the index makes cancellation constant time
+      and the backward link makes the unlink constant time.
+  - id: claim-e2-00c
+    type: normative
+    statement: >
+      Under price-time priority, reducing size at the same price keeps queue
+      position while increasing size or changing price loses it, because the
+      latter would jump ahead of orders that arrived first.
+  - id: claim-e2-01
+    type: judgment
+    statement: The dominant access is reading the top of book, and updates cluster near the top, so a structure that is fast near the touch and mediocre deep is the right shape.
+  - id: claim-e2-02
+    type: judgment
+    statement: Node-based ordered containers lose here on locality rather than on complexity, because each level is a pointer chase into separately allocated memory.
+  - id: claim-e2-03
+    type: judgment
+    statement: A price-indexed array gives constant-time update and top-of-book at the cost of memory and a bounded price range.
+  - id: claim-e2-04
+    type: judgment
+    statement: A sorted array of active levels is contiguous and often wins despite linear insertion, because the shifted region near the top is small.
+  - id: claim-e2-05
+    type: judgment
+    statement: Best bid and offer should be maintained incrementally rather than recomputed, because they are read far more often than they change.
+  - id: claim-e2-06
+    type: judgment
+    statement: Cheap invariant checks — crossed book, negative size, unknown level removal — catch desynchronisation that no local check on the data itself would reveal.
+reader_misconceptions:
+  - "O(log n) beats O(n), so a tree beats an array."
+  - "The book is deep, so deep-level performance matters."
+  - "Recomputing the best price on each update is cheap."
+  - "A crossed book means the market is crossed."
+correctness_properties:
+  - The book never publishes a state that was not a state the venue described.
+  - Best bid is strictly below best offer within a single venue's book.
+  - Removing a level that does not exist is an error, not a no-op.
+sequencing_hazards:
+  - id: seq-e2-01
+    order:
+      - apply every message in the packet
+      - update the cached top of book
+      - publish to consumers
+    failure_if_violated: >
+      A packet often contains a delete and an add that together move a level. Publishing
+      between them exposes a transient state that never existed at the venue — commonly a
+      crossed or empty book — and a strategy reading it may act on a price that was never real.
+    detectability: timing-dependent
+measurement_questions:
+  - How many cache lines does one update touch in each representation?
+  - What is the distribution of update depth from the top of book?
+  - Does the ranking change when the working set exceeds the last-level cache?
+when_not_to_use:
+  - A price-indexed array where the price range is unbounded or the instrument count makes the memory prohibitive.
+  - An order-based book where the strategy never uses queue position.
+scope_exclusions:
+  - Feed decoding (d1-market-data-and-protocols)
+  - Gap recovery (d3-sequence-and-gap-recovery)
+  - Layout fundamentals (a5-cache-locality-and-layout)
+interview_competencies:
+  - Distinguish L1, L2, and L3 and say what queue position costs to obtain.
+  - Describe the ladder-plus-intrusive-list structure and what each component buys.
+  - State the modify rule and the fairness reasoning behind it.
+  - Reason about book representations in cache lines rather than complexity.
+  - Explain why updates cluster near the top and what that implies.
+  - Describe incremental best-price maintenance.
+  - Say what a crossed book means and what to do about it.

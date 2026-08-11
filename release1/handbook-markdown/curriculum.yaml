@@ -1,0 +1,508 @@
+schema_version: 1
+handbook: quant-systems-engineering-domain-bridge
+release: 1
+
+# Release 1 scope: 30 chapters, modules A-E.
+# Deferred to release 2: f1-backtesting-methodology, f2-columnar-storage.
+#   Author decision, round 4. Both are research infrastructure; the other 30 are
+#   execution infrastructure. They were the two weakest nodes in the dependency
+#   graph and nothing in release 1 depends on them.
+
+# IDs are STABLE, OPAQUE HANDLES. They do not encode reading order.
+#   Cross-references in chapter text use [id]; the build resolves them to the
+#   chapter's number and title. Reading order comes from the `order` field, so
+#   the curriculum can be resequenced without rewriting every cross-reference.
+#   Module B was resequenced in round 8 and its ids no longer run in order.
+#
+# Ordering rules:
+#   - publication order is derived from the dependency graph, then hand-adjusted
+#   - `prerequisites` must reference ids that appear earlier in this file
+#   - difficulty: foundation | applied | specialist
+#   - status: planned | pilot | drafting | approved | published
+#   - `deviation` marks where this file differs from PROJECT_PLAN_REVISED.md section 3
+
+front_matter:
+  - id: preface
+    title: "Before You Start: Where C++ Engineers Fit in Electronic Trading"
+    path: front-matter/preface.md
+    note: >
+      Orients the reader's career situation, not a technical topic. Exempt from the
+      chapter contract per contract section 0. Re-reviewed whenever the curriculum changes.
+
+modules:
+  A: System context, domain model, and performance reasoning
+  B: C++ concurrency and communication
+  C: Memory and machine topology
+  D: Networks, protocols, and time
+  E: Orders, books, risk, and correctness
+  F: Research and storage  (deferred to release 2)
+
+chapters:
+
+  # ---------------- Module A ----------------
+
+  - id: a1-system-data-flow
+    title: From Exchange Packet to Trade — Anatomy of an Electronic Trading System
+    module: A
+    difficulty: foundation
+    front_matter: true          # chapter 1; exempt from chapter contract, see contract section 0
+    prerequisites: []
+    status: drafted
+    outcomes:
+      - Name each stage from wire to order acknowledgement and state what it owns.
+      - Identify which stages are on the critical path and which are not.
+    trading_connection: Establishes the system boundary every later chapter refers to.
+
+  - id: a2-order-lifecycle
+    title: Order lifecycle and state machines
+    display_title: "The Order You Cannot See"
+    module: A
+    difficulty: foundation
+    prerequisites: [a1-system-data-flow]
+    status: drafted
+    deviation: >
+      Moved from Module E (#25) to Module A. It has no systems prerequisites and it
+      supplies the vocabulary that the Module D protocol chapters assume.
+    outcomes:
+      - Draw the order state machine including rejects, cancels, and unacknowledged states.
+      - Explain why an order can be in an unknown state and what the system must do then.
+    trading_connection: The domain model that motivates protocol, risk, and recovery design.
+
+  - id: a3-latency-throughput
+    title: Latency, tail latency, jitter, and throughput
+    display_title: "The Worst Microsecond of the Day"
+    module: A
+    difficulty: foundation
+    prerequisites: [a1-system-data-flow]
+    status: drafted
+    outcomes:
+      - Distinguish median, tail, jitter, and throughput and say which one a given design harms.
+      - Explain why a mean latency number is close to useless in this domain.
+    trading_connection: Defines the objective function used by every optimisation chapter.
+
+  - id: a4-measurement-and-profiling
+    title: Measurement, benchmarking, and performance diagnosis
+    display_title: "The Regression the Profiler Cannot See"
+    module: A
+    difficulty: applied
+    prerequisites: [a3-latency-throughput]
+    status: drafted
+    outcomes:
+      - Design a measurement that answers a stated question rather than producing a number.
+      - Recognise benchmark artefacts, warm-up effects, and coordinated omission.
+    trading_connection: Prevents cargo-cult optimisation in all later chapters.
+
+  - id: a5-cache-locality-and-layout
+    title: CPU cache locality and data-oriented layout
+    display_title: "Fetching a Kilobyte to Read a Price"
+    module: A
+    difficulty: applied
+    prerequisites: [a3-latency-throughput]
+    status: drafted
+    outcomes:
+      - Predict the cache behaviour of a given struct layout and access pattern.
+      - Restructure an array-of-structs hot path and justify the change.
+    trading_connection: Book updates, order tables, and instrument metadata are all layout problems.
+
+  - id: a6-coherence-and-false-sharing
+    title: Cache coherence and false sharing
+    display_title: "Four Threads, One Core's Worth of Work"
+    module: A
+    difficulty: applied
+    prerequisites: [a5-cache-locality-and-layout]
+    status: drafted
+    outcomes:
+      - Explain coherence traffic well enough to predict which shared writes are expensive.
+      - Detect and fix false sharing without blindly padding every struct.
+    trading_connection: The dominant hidden cost in multi-threaded feed and order paths.
+
+  # ---------------- Module B ----------------
+
+  - id: b0-threads-atomics-locks
+    title: "Threads, atomics, and locks: the tools of concurrency"
+    display_title: "The Counter That Lost Count"
+    module: B
+    difficulty: foundation
+    order: 1
+    prerequisites: [a1-system-data-flow]
+    status: drafted
+    deviation: >
+      New chapter, added round 8. Module B previously opened on the memory model,
+      which assumed atomics vocabulary it never taught and presented the hardest
+      topic in the book as the entry point. This chapter supplies the primitives
+      (atomicity, mutex, condition variable, load/store, fetch_add, exchange,
+      compare_exchange) so b1 can be about visibility rather than about syntax.
+    outcomes:
+      - Explain why an increment on a shared counter loses updates.
+      - Write a correct compare-exchange loop and explain the expected-value semantics.
+      - Choose between a mutex and an atomic from the shape of the invariant.
+    trading_connection: Every shared counter, position figure, and queue index in the system.
+
+  - id: b1-cpp-memory-model
+    title: C++ memory-model foundations
+    display_title: "What the Other Thread Can See"
+    order: 3
+    depth_pointer_status: delivered   # dp-b1-01, atomics/mutex implementation
+    owed_depth_pointer: >
+      How atomics and mutexes are built from hardware instructions — atomic RMW,
+      exclusive line ownership, futex-style sleeping in the contended case.
+      Category 2 per contract 3.13: mention and point out, do not teach.
+      Sources: Herlihy & Shavit; vendor instruction-set manual.
+      Raised by a6 Quiz 1 (atomics are not what makes false sharing expensive),
+      which leaves the reader with the question this chapter must answer.
+    module: B
+    difficulty: applied
+    prerequisites: [b0-threads-atomics-locks, a6-coherence-and-false-sharing]
+    status: drafted
+    outcomes:
+      - State what release/acquire guarantees and what it does not.
+      - Explain why x86 store-ordering does not make memory ordering free.
+    trading_connection: The correctness basis for every inter-thread handoff in the system.
+
+  - id: b2-spsc-ring-buffer
+    title: SPSC ring buffers
+    display_title: "The Handoff That Cannot Block"
+    module: B
+    order: 4
+    difficulty: applied
+    prerequisites: [b1-cpp-memory-model, a6-coherence-and-false-sharing]
+    status: drafted
+    outcomes:
+      - Implement a correct bounded SPSC queue and justify each memory ordering.
+      - Explain what the design does when the queue is full and why that is a policy decision.
+    trading_connection: The standard feed-handler to strategy handoff.
+
+  - id: b3-progress-guarantees
+    title: Blocking, lock-free, and wait-free progress guarantees
+    display_title: "When One Thread Stops, What Happens to the Rest"
+    module: B
+    order: 5
+    difficulty: applied
+    prerequisites: [b2-spsc-ring-buffer]
+    status: drafted
+    outcomes:
+      - Classify an algorithm by progress guarantee and say what it implies under preemption.
+      - Explain why lock-free is not automatically faster than a lock.
+    trading_connection: Determines worst-case behaviour when a thread is descheduled mid-burst.
+
+  - id: b4-mpsc-and-contention
+    title: MPSC queues and contention
+    display_title: "When Everyone Wants the Same Cache Line"
+    module: B
+    order: 6
+    difficulty: applied
+    prerequisites: [b3-progress-guarantees]
+    status: drafted
+    outcomes:
+      - Reason about contention cost as producer count grows.
+      - Choose between one MPSC queue and N SPSC queues, with a stated tradeoff.
+    trading_connection: Multiple strategies or sessions feeding one order gateway.
+
+  - id: b5-waiting-strategies
+    title: Busy spinning, blocking, and hybrid waiting
+    display_title: "Waiting for the Market to Move"
+    module: B
+    order: 2
+    difficulty: applied
+    prerequisites: [b0-threads-atomics-locks, a4-measurement-and-profiling]
+    status: drafted
+    outcomes:
+      - Quantify the tradeoff between wake-up latency and burned CPU.
+      - Design a hybrid wait and state when it degrades.
+    trading_connection: Directly sets the wake-up component of tick-to-trade latency.
+
+  - id: b6-hot-path-dispatch
+    title: Dispatch and polymorphism on the hot path
+    display_title: "The Cost of Asking Which Strategy"
+    module: B
+    order: 7
+    difficulty: applied
+    prerequisites: [a5-cache-locality-and-layout, a4-measurement-and-profiling]
+    status: drafted
+    deviation: Reframes the original "C++ polymorphism" topic around dispatch cost, per plan section 3.
+    outcomes:
+      - Compare virtual dispatch, CRTP, variant, and type-erased designs on real criteria.
+      - Explain when devirtualisation happens and when the indirect branch actually matters.
+    trading_connection: Strategy and handler dispatch in the inner loop.
+
+  - id: b7-testing-concurrent-code
+    title: Testing concurrent and lock-free code
+    carries_module_review: true      # contract 3.15 — final chapter of Module B
+    display_title: "The Bug That Passes Every Test"
+    module: B
+    order: 8
+    difficulty: applied
+    prerequisites: [b2-spsc-ring-buffer, a4-measurement-and-profiling]
+    status: drafted
+    deviation: >
+      New chapter, not in PROJECT_PLAN_REVISED.md. The plan covers deterministic replay for
+      incident reconstruction but has no chapter on establishing that a concurrent primitive
+      is correct. Pilot b2 needs this immediately.
+    outcomes:
+      - Build a stress harness that can actually fail, and know what a passing run proves.
+      - Apply ThreadSanitizer and understand its limits on hand-rolled atomics.
+    trading_connection: The only defence against a queue bug that appears once a month in production.
+
+  # ---------------- Module C ----------------
+
+  - id: c1-virtual-memory
+    title: Virtual memory, page faults, huge pages, and TLBs
+    display_title: "The Latency Spike at 09:30"
+    module: C
+    order: 1
+    difficulty: applied
+    prerequisites: [a5-cache-locality-and-layout]
+    status: drafted
+    outcomes:
+      - Explain why a first-touch page fault shows up as a latency spike.
+      - State when huge pages help and when they do nothing.
+    trading_connection: A common source of unexplained tail latency at session start.
+
+  - id: c2-preallocation-and-pools
+    title: Preallocation and object pools
+    display_title: "Never Ask the Allocator During Market Hours"
+    module: C
+    order: 2
+    difficulty: applied
+    prerequisites: [c1-virtual-memory]
+    status: drafted
+    outcomes:
+      - Design a pool with bounded capacity and a defined exhaustion policy.
+      - Explain why "no allocation on the hot path" is about determinism, not speed alone.
+    trading_connection: Order objects, message buffers, and book nodes.
+
+  - id: c3-arenas-and-allocators
+    title: Arenas, slabs, and custom allocators
+    display_title: "Free Everything at Once"
+    module: C
+    order: 3
+    difficulty: specialist
+    prerequisites: [c2-preallocation-and-pools]
+    status: drafted
+    outcomes:
+      - Choose between arena, slab, and general allocator for a stated lifetime pattern.
+      - Recognise when a custom allocator is not worth its maintenance cost.
+    trading_connection: Per-session and per-message-batch lifetimes.
+
+  - id: c4-thread-affinity
+    title: Thread affinity and scheduler interaction
+    display_title: "Where Your Thread Actually Runs"
+    module: C
+    order: 5
+    difficulty: applied
+    prerequisites: [a4-measurement-and-profiling, b5-waiting-strategies]
+    status: drafted
+    outcomes:
+      - Pin threads deliberately and explain what pinning does not solve.
+      - Identify interference from interrupts, timers, and sibling hyperthreads.
+    trading_connection: Jitter control on the critical path.
+
+  - id: c5-numa-placement
+    carries_module_review: true      # contract 3.15 — closes Module C
+    title: NUMA-aware placement
+    display_title: "The Server Upgrade That Made Things Worse"
+    module: C
+    order: 6
+    difficulty: specialist
+    prerequisites: [c4-thread-affinity, c1-virtual-memory, a6-coherence-and-false-sharing]
+    status: drafted
+    outcomes:
+      - Explain first-touch allocation and predict where a buffer physically lands.
+      - Decide whether a given system is NUMA-limited before optimising for it.
+    trading_connection: NIC, feed handler, and strategy placement on multi-socket hosts.
+
+  - id: c6-mmap-and-zero-copy
+    title: mmap, shared memory, and zero-copy claims
+    display_title: "Counting the Copies"
+    module: C
+    order: 4
+    difficulty: applied
+    prerequisites: [c1-virtual-memory]
+    status: drafted
+    outcomes:
+      - Count the copies in a data path rather than trusting the label "zero-copy".
+      - State the failure and latency modes mmap introduces.
+    trading_connection: Capture files, shared-memory transports, and replay input.
+
+  # ---------------- Module D ----------------
+
+  - id: d1-market-data-and-protocols
+    title: Market data and exchange protocols
+    display_title: "Reading the Wire"
+    module: D
+    order: 1
+    difficulty: foundation
+    prerequisites: [a1-system-data-flow, a2-order-lifecycle]
+    status: drafted
+    outcomes:
+      - Distinguish incremental, snapshot, and reference-data channels.
+      - Read a binary protocol specification and identify its framing and state assumptions.
+    trading_connection: The input contract for the entire market-data path.
+
+  - id: d2-tcp-udp-multicast
+    title: TCP, UDP, and multicast in trading systems
+    display_title: "Why the Exchange Does Not Reply to You"
+    module: D
+    order: 2
+    difficulty: applied
+    prerequisites: [d1-market-data-and-protocols]
+    status: drafted
+    outcomes:
+      - Explain why market data is multicast and order entry is not.
+      - Describe what TCP does to tail latency under loss.
+    trading_connection: Transport choice per channel.
+
+  - id: d3-sequence-and-gap-recovery
+    title: Sequence numbers, gap detection, and recovery
+    display_title: "The Book That Is Silently Wrong"
+    module: D
+    order: 3
+    difficulty: applied
+    prerequisites: [d2-tcp-udp-multicast]
+    status: drafted
+    outcomes:
+      - Design gap detection and recovery that does not stall live packet reception.
+      - Trace the state of a book through a gap, a retransmission, and a snapshot resync.
+    trading_connection: The correctness boundary of every market-data consumer.
+
+  - id: d4-parsing-batching-backpressure
+    title: Hot-path networking, batching, and overload
+    display_title: "When the Market Outruns You"
+    module: D
+    order: 4
+    difficulty: applied
+    prerequisites: [d2-tcp-udp-multicast, a3-latency-throughput]
+    status: drafted
+    outcomes:
+      - Define the system's behaviour when input rate exceeds processing rate.
+      - Explain why batching improves throughput and harms latency, with a stated crossover.
+    trading_connection: Behaviour during the market events that matter most.
+
+  - id: d5-clocks-and-timestamps
+    title: Clock synchronisation, timestamp semantics, and time domains
+    display_title: "Whose Clock Was That?"
+    module: D
+    order: 5
+    difficulty: applied
+    prerequisites: [a3-latency-throughput, d2-tcp-udp-multicast]
+    status: drafted
+    outcomes:
+      - Name which clock produced a timestamp and what it can legitimately be compared to.
+      - Explain why cross-host latency measurements need synchronised clocks.
+    trading_connection: Latency attribution, regulatory timestamping, and replay ordering.
+
+  - id: d6-kernel-bypass
+    carries_module_review: true      # contract 3.15 — closes Module D
+    title: Kernel bypass and user-space networking
+    display_title: "Taking the Kernel Out of the Path"
+    module: D
+    order: 6
+    difficulty: specialist
+    prerequisites: [d2-tcp-udp-multicast, c6-mmap-and-zero-copy, a4-measurement-and-profiling]
+    status: drafted
+    outcomes:
+      - Explain what the kernel path costs and which part bypass removes.
+      - State the operational cost of bypass before recommending it.
+    trading_connection: The last large latency reduction available on the receive path.
+
+  - id: d7-websocket-and-http
+    appendix: true                   # read after Module D; not in the numbered sequence
+    title: WebSocket, HTTP polling, and venue APIs
+    display_title: "The Control Plane"
+    module: D
+    order: 99
+    difficulty: foundation
+    prerequisites: [d2-tcp-udp-multicast]
+    status: drafted
+    priority: low
+    deviation: Retained but explicitly deprioritised, per plan section 3.
+    outcomes:
+      - Place these protocols on the control plane rather than the latency-critical data plane.
+      - Explain why crypto venue APIs differ from traditional exchange feeds.
+    trading_connection: Venue APIs, admin interfaces, and monitoring.
+
+  # ---------------- Module E ----------------
+
+  - id: e1-idempotency-and-duplicates
+    title: Idempotency, duplicate handling, and retry semantics
+    display_title: "Sending It Twice"
+    module: E
+    order: 2
+    difficulty: applied
+    prerequisites: [a2-order-lifecycle, d3-sequence-and-gap-recovery]
+    status: drafted
+    outcomes:
+      - Design a client order ID scheme that survives reconnects and restarts.
+      - Explain why a naive retry can double a position.
+    trading_connection: The difference between a recoverable incident and a financial loss.
+
+  - id: e2-order-book-construction
+    title: Order-book representation and construction
+    display_title: "The Structure Everything Reads"
+    module: E
+    order: 1
+    difficulty: applied
+    prerequisites: [d3-sequence-and-gap-recovery, a5-cache-locality-and-layout]
+    status: drafted
+    outcomes:
+      - Choose a book representation from the access pattern the strategy actually needs.
+      - Rebuild a book from snapshot plus increments without a gap in coverage.
+    trading_connection: The core data structure of the market-data path.
+
+  - id: e3-pretrade-risk-engine
+    title: Pre-trade risk-engine foundations
+    display_title: "The Check You Cannot Skip"
+    module: E
+    order: 3
+    difficulty: applied
+    prerequisites: [a2-order-lifecycle, a3-latency-throughput]
+    status: drafted
+    outcomes:
+      - Enumerate the checks that must run before an order leaves the system.
+      - Explain why risk state must be updated on send, not on acknowledgement.
+    trading_connection: The mandatory latency you cannot optimise away.
+
+  - id: e4-deterministic-replay
+    carries_module_review: true      # contract 3.15 — closes Module E and release 1
+    title: Deterministic replay and incident reconstruction
+    display_title: "What Did It See, and Why Did It Do That?"
+    module: E
+    order: 4
+    difficulty: applied
+    prerequisites: [d3-sequence-and-gap-recovery, d5-clocks-and-timestamps, e1-idempotency-and-duplicates]
+    status: drafted
+    outcomes:
+      - Identify every source of nondeterminism in a trading process.
+      - Design a capture format that makes an incident reproducible offline.
+    trading_connection: Post-incident analysis and regression testing.
+
+  # ---------------- Module F ----------------
+
+  - id: f1-backtesting-methodology
+    title: Backtesting methodology and common biases
+    module: F
+    difficulty: applied
+    prerequisites: [e4-deterministic-replay, e2-order-book-construction]
+    status: deferred
+    release: 2
+    deferral_note: >
+      Author decision, round 4. Research infrastructure rather than execution
+      infrastructure; nothing in release 1 depends on it.
+    outcomes:
+      - Name the biases that make a backtest optimistic and how each is introduced.
+      - Explain why simulation fidelity is bounded by the captured data.
+    trading_connection: The bridge between research and the execution system.
+
+  - id: f2-columnar-storage
+    title: Columnar storage and market-data file formats
+    module: F
+    difficulty: applied
+    prerequisites: [a5-cache-locality-and-layout, f1-backtesting-methodology]
+    status: deferred
+    release: 2
+    deferral_note: >
+      Author decision, round 4. Depends on f1, which is itself deferred.
+    outcomes:
+      - Explain why columnar layout suits research queries and not the live path.
+      - Choose a storage format from stated query and retention requirements.
+    trading_connection: Historical data for research and replay.

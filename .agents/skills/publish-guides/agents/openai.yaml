@@ -1,0 +1,4 @@
+interface:
+  display_name: "Publish Interview Guides"
+  short_description: "Validate and package approved interview guides"
+  default_prompt: "Use $publish-guides to build validated release artifacts from approved content."

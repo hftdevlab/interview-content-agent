@@ -1,0 +1,103 @@
+schema_version: 1
+id: c4-thread-affinity
+title: Thread affinity and scheduler interaction
+display_title: "Where Your Thread Actually Runs"
+module: C
+difficulty: applied
+order: 5
+target_length: { min_words: 1600, max_words: 2600 }
+
+chapter_focus: >
+  That pinning removes the scheduler's freedom to move your thread but not the
+  machine's ability to interfere with it — isolation is the larger half of the job.
+
+reader_starting_point: >
+  The reader knows waiting strategies (b5), measurement (a4), and page behaviour
+  (c1). They may have called a pinning API and assumed it finished the job.
+
+opening_scenario: >
+  A team pins their feed handler and strategy threads to dedicated cores and
+  measures again. The median improves and the tail does not. The threads are
+  exactly where they were told to be, they are not being migrated, and every few
+  seconds one of them takes a spike of tens of microseconds for no reason visible
+  in the process at all.
+
+industry_usage_anchor: >
+  Core assignment is part of the deployment specification at latency-sensitive
+  firms, alongside interrupt routing and kernel isolation parameters. It is a
+  standard interview topic because the naive answer stops at the pinning call.
+
+primary_artifact_mode: code
+include_quizzes: true
+include_measurement_plan: true
+
+core_claims_to_establish:
+  - id: claim-c4-01
+    type: judgment
+    statement: >
+      An unpinned thread can be migrated between cores, and migration costs a cold
+      cache on the new core plus the coherence traffic of pulling its working set over.
+  - id: claim-c4-02
+    type: judgment
+    statement: >
+      Pinning fixes placement and does nothing about interference: timer interrupts,
+      device interrupts, kernel threads, and other processes can still run on that core.
+  - id: claim-c4-03
+    type: normative
+    statement: >
+      Hyperthread siblings share a physical core's execution resources, so two hot
+      threads pinned to siblings compete in a way two threads on separate cores do not.
+  - id: claim-c4-04
+    type: judgment
+    statement: >
+      Logical CPU numbering does not map predictably to physical topology, so core
+      choice must be derived from the machine's reported topology rather than assumed.
+  - id: claim-c4-05
+    type: judgment
+    statement: >
+      Full isolation requires keeping other work off the core as well as keeping your
+      thread on it, which is a system configuration task rather than a code change.
+
+reader_misconceptions:
+  - "I pinned the thread, so it has the core to itself."
+  - "CPU 0 and CPU 1 are two different cores."
+  - "Pinning is a performance optimisation rather than a variance one."
+  - "If the process is not doing anything else, the core is idle."
+
+correctness_properties:
+  - Thread placement is asserted at startup rather than assumed.
+  - The core map is derived from reported topology, not hardcoded from a previous machine.
+
+measurement_questions:
+  - Does the thread stay where it was pinned, and does its migration count remain zero?
+  - What else is scheduled on that core, and how often?
+  - Does the tail change when the sibling hyperthread is left idle?
+
+operational_and_recovery_concerns:
+  - The core map is deployment configuration with a hardware dependency and needs an owner.
+  - Topology and CPU numbering change with hardware refresh and firmware settings.
+  - A process that starts with the wrong affinity should fail loudly rather than run slowly.
+
+when_not_to_use:
+  - Before measurement establishes that variance is the problem.
+  - On shared or virtualised hosts where a core cannot be dedicated.
+  - Cold paths and background work, which should be kept off the isolated cores instead.
+
+scope_exclusions:
+  - NUMA placement (c5-numa-placement)
+  - Spinning and blocking (b5-waiting-strategies)
+  - Page faults as a jitter source (c1-virtual-memory)
+
+depth_pointers:
+  - id: dp-c4-01
+    topic: Linux scheduler internals and the isolation mechanisms
+    why: >
+      Explains what the scheduler is actually doing when it migrates a thread and what
+      the isolation parameters change about it.
+    sources: Linux kernel documentation; Arpaci-Dusseau and Arpaci-Dusseau, Operating Systems - Three Easy Pieces
+
+interview_competencies:
+  - Explain what migration costs.
+  - Say what pinning does not fix, unprompted.
+  - Recognise the hyperthread sibling trap.
+  - Describe the isolation work beyond the pinning call.

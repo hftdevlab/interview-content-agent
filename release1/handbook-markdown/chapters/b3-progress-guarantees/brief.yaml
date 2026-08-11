@@ -1,0 +1,111 @@
+schema_version: 1
+
+id: b3-progress-guarantees
+title: Blocking, lock-free, and wait-free progress guarantees
+display_title: "When One Thread Stops, What Happens to the Rest"
+module: B
+difficulty: applied
+target_length: { min_words: 1600, max_words: 2600 }
+
+chapter_focus: >
+  That progress guarantees describe what happens to OTHER threads when one is
+  descheduled — they are a statement about worst-case behaviour under
+  preemption, not a claim about speed.
+
+reader_range: >
+  From engineers who think lock-free means fast, through to those who can define
+  the terms but cannot say when a mutex is the better choice.
+
+reader_starting_point: >
+  The reader has built an SPSC queue (b2) and understands memory ordering (b1).
+  They probably believe lock-free is a performance technique.
+
+opening_scenario: >
+  A strategy thread takes a mutex to update shared position state. Two seconds
+  after an economic release, mid-burst, the scheduler preempts it while it holds
+  the lock — perhaps because an interrupt arrived, perhaps because its timeslice
+  expired. The feed handler and the order gateway both need that lock. Neither
+  can proceed until the strategy thread is scheduled again, which may be a full
+  timeslice away. Nothing crashed, no code is slow, and the system has stopped
+  trading for a period nobody chose.
+
+industry_usage_anchor: >
+  This is why hot-path structures in trading systems avoid locks: not because
+  locks are slow, but because a preempted lock holder stalls everyone else at
+  exactly the wrong moment. It is a standard interview topic, and the strong
+  answer distinguishes worst-case progress from average-case speed.
+
+primary_artifact_mode: code
+include_quizzes: true
+include_measurement_plan: false
+
+core_claims_to_establish:
+  - id: claim-b3-01
+    type: normative
+    statement: >
+      Blocking means a suspended thread can prevent others from progressing;
+      lock-free means some thread always makes progress; wait-free means every
+      thread completes its operation in a bounded number of its own steps.
+  - id: claim-b3-02
+    type: judgment
+    statement: >
+      The guarantees describe behaviour under preemption and failure, not
+      throughput; a mutex is frequently faster than a lock-free structure under
+      low contention.
+  - id: claim-b3-03
+    type: judgment
+    statement: >
+      A compare-and-swap retry loop is lock-free but not wait-free, because an
+      individual thread can be made to retry indefinitely by other threads
+      succeeding.
+  - id: claim-b3-04
+    type: judgment
+    statement: >
+      The SPSC ring buffer from b2 is wait-free: each operation completes in a
+      fixed number of steps regardless of what the other thread does.
+  - id: claim-b3-05
+    type: judgment
+    statement: >
+      Lock-free code is harder to write, harder to test, and harder to change,
+      so the guarantee must be needed rather than merely available.
+
+reader_misconceptions:
+  - "Lock-free means faster."
+  - "Lock-free means no waiting."
+  - "If I use atomics, my code is lock-free."
+  - "Wait-free is just lock-free done properly."
+  - "Locks are for people who cannot write lock-free code."
+
+correctness_properties:
+  - A structure claimed lock-free has no execution in which all threads are stalled by one suspended thread.
+  - A structure claimed wait-free has a bound on the steps of any single operation.
+
+operational_and_recovery_concerns:
+  - Latency spikes with no hot function and no obvious cause are often a preempted lock holder.
+  - Priority inversion needs to be recognisable in production symptoms, not only in a textbook.
+
+when_not_to_use:
+  - Lock-free on a cold path where a mutex is simpler and correct.
+  - Wait-free where lock-free suffices and the complexity is significant.
+  - Any of it before establishing the path is contended and on the critical path.
+
+scope_exclusions:
+  - Memory ordering (b1-cpp-memory-model)
+  - SPSC implementation (b2-spsc-ring-buffer)
+  - MPSC contention (b4-mpsc-and-contention)
+  - Waiting strategy when empty (b5-waiting-strategies)
+
+depth_pointers:
+  - id: dp-b3-01
+    topic: Safe memory reclamation for lock-free structures — hazard pointers, epochs, RCU
+    why: >
+      Explains how a lock-free structure can free memory another thread may still
+      be reading. Not usually asked directly, but it is the reason production
+      lock-free containers are far more complex than textbook ones.
+    sources: Herlihy and Shavit
+
+interview_competencies:
+  - Define the three guarantees in terms of what happens when a thread stops.
+  - Explain why lock-free is not a speed claim.
+  - Classify a CAS retry loop and justify it.
+  - Argue for a mutex where one is appropriate.

@@ -1,0 +1,104 @@
+schema_version: 1
+
+id: a5-cache-locality-and-layout
+title: CPU cache locality and data-oriented layout
+module: A
+difficulty: applied
+target_length: { min_words: 1400, max_words: 2400 }
+
+chapter_focus: >
+  That memory is fetched in cache lines, not in variables, so the layout of your
+  data determines how much of each fetch you actually use — and that ratio is
+  usually a bigger lever than the code operating on it.
+
+reader_range: >
+  From engineers who have never thought about layout, through to those who know
+  the term data-oriented design and want the reasoning behind it.
+
+reader_starting_point: >
+  The reader understands tail latency (a3) and how to measure (a4). They write
+  idiomatic C++ with fields grouped by conceptual belonging.
+
+opening_scenario: >
+  A strategy scans its table of live orders on every book update, checking each
+  order's price against the new best bid. There are two thousand orders. Each
+  one is a struct holding a price, a quantity, a client ID, a symbol string, a
+  timestamp, and a handful of flags — a couple of hundred bytes. The scan reads
+  one field of each. The machine fetches every byte of all two thousand structs
+  to deliver the two thousand prices the strategy asked for, and almost all of
+  that traffic is discarded on arrival.
+
+industry_usage_anchor: >
+  Order tables, instrument metadata, and book levels are all scanned on the hot
+  path, and layout is how firms make those scans cheap. Layout questions are
+  common in interviews because the reasoning is testable on a whiteboard without
+  needing a machine.
+
+primary_artifact_mode: code
+depth_pointers:            # contract 3.13
+  - virtual address translation, page tables, TLB -> [c1], [c5], OSTEP
+  - prefetcher specifics -> vendor optimisation manual
+include_quizzes: true
+include_measurement_plan: true
+
+core_claims_to_establish:
+  - id: claim-a5-01
+    type: normative
+    statement: >
+      Memory is transferred between cache and DRAM in fixed-size lines, so the
+      unit of cost is the line, not the variable.
+  - id: claim-a5-02
+    type: judgment
+    statement: >
+      A scan that touches one field of a large struct wastes most of every line
+      it fetches, and restructuring so that scanned fields are contiguous
+      removes that waste.
+  - id: claim-a5-03
+    type: judgment
+    statement: >
+      Hardware prefetchers reward predictable sequential access and cannot help
+      pointer chasing, which is why linked structures are expensive beyond their
+      instruction count.
+  - id: claim-a5-04
+    type: judgment
+    statement: >
+      Struct-of-arrays is not universally better; it wins for scans over few
+      fields and loses for operations touching a whole record.
+  - id: claim-a5-05
+    type: judgment
+    statement: >
+      Field ordering and padding affect struct size and therefore how many
+      records fit in a line, at no cost beyond declaring fields thoughtfully.
+
+reader_misconceptions:
+  - "Reading one field costs one field."
+  - "The cache will figure it out."
+  - "Struct-of-arrays is the fast layout, so I should always use it."
+  - "std::map and std::unordered_map are fine because their complexity is good."
+  - "Layout only matters for very large datasets."
+
+correctness_properties:
+  - Layout changes must not alter observable behaviour.
+
+operational_and_recovery_concerns:
+  - Layout choices are tied to an access pattern; when the access pattern changes the layout should be revisited.
+
+measurement_questions:
+  - How many cache lines does one pass of your hot scan actually touch?
+  - What fraction of each fetched line does the scan use?
+  - Does the improvement hold when the working set is larger than the last-level cache?
+
+when_not_to_use:
+  - When the working set is small enough to stay resident regardless of layout.
+  - When the access pattern touches whole records rather than single fields.
+  - When the restructuring cost exceeds a measured benefit.
+
+scope_exclusions:
+  - Coherence between cores and false sharing (a6-coherence-and-false-sharing)
+  - NUMA placement (c5-numa-placement)
+  - Allocation strategy (c2-preallocation-and-pools)
+
+interview_competencies:
+  - Reason about a struct layout in terms of lines touched per scan.
+  - Choose between array-of-structs and struct-of-arrays from a stated access pattern.
+  - Explain why pointer chasing defeats the prefetcher.

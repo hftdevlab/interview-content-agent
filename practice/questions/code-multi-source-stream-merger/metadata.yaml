@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "question_id": "code-multi-source-stream-merger",
+  "language": "C++20",
+  "starter_target": "stream_merger_starter",
+  "solution_target": "stream_merger_solution",
+  "test_target": "stream_merger_test"
+}
+

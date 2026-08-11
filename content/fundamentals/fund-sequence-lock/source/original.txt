@@ -1,0 +1,4 @@
+Implement a small sequence-counted quote snapshot. Explain how readers and
+writers use an odd/even version counter, how C++ memory ordering makes the
+portable version correct, why a plain non-atomic payload is undefined behavior,
+and when a mutex or immutable snapshot is a better design.

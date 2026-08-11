@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 714 366" width="714" height="366" role="img" aria-label="A pool: an array of objects, a parallel array of free indices used as a stack, and a free_count marking the boundary between available and stale entries">
+<!--
+  figure: fig-c2-1
+  purpose: Show that acquire and release are a stack push and pop over indices, with no search and no list traversal.
+  critical distinction: The objects never move; only indices are pushed and popped. Entries beyond free_count are stale, not free.
+  forbidden implication: Must not suggest the free list is a linked list traversed on allocation, and must not suggest object addresses change.
+-->
+<style>
+  .t   { font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; fill:#1f2328; }
+  .lbl { font-size:13px; }
+  .ann { font-size:11px; fill:#6b7280; }
+  .ttl { font-size:14px; font-weight:600; }
+  .mono{ font-family: ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
+  .box { fill:#f3f4f6; stroke:#9aa4b2; stroke-width:1.2; }
+  .acc { fill:#dbeafe; stroke:#1a6fb5; stroke-width:1.5; }
+  .wrn { fill:#fde8d7; stroke:#b5501a; stroke-width:1.5; }
+  .ghost { fill:#ffffff; stroke:#9aa4b2; stroke-width:1.2; stroke-dasharray:4 3; }
+  .arw { stroke:#1f2328; stroke-width:1.4; fill:none; marker-end:url(#a); }
+  .arwA{ stroke:#1a6fb5; stroke-width:1.8; fill:none; marker-end:url(#aA); }
+  .arwW{ stroke:#b5501a; stroke-width:1.8; fill:none; marker-end:url(#aW); }
+</style>
+<defs>
+  <marker id="a"  markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#1f2328"/></marker>
+  <marker id="aA" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#1a6fb5"/></marker>
+  <marker id="aW" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#b5501a"/></marker>
+</defs>
+
+<text class="t ttl" x="12" y="22">A pool is storage plus a stack of free indices.</text>
+
+<text class="t ann" x="12" y="48">storage[] — the objects themselves, never move</text>
+<rect class="box" x="12"  y="56" width="80" height="40"/><text class="t mono" x="52"  y="81" text-anchor="middle">obj 0</text>
+<rect class="acc" x="94"  y="56" width="80" height="40"/><text class="t mono" x="134" y="81" text-anchor="middle">obj 1</text>
+<rect class="box" x="176" y="56" width="80" height="40"/><text class="t mono" x="216" y="81" text-anchor="middle">obj 2</text>
+<rect class="acc" x="258" y="56" width="80" height="40"/><text class="t mono" x="298" y="81" text-anchor="middle">obj 3</text>
+<rect class="box" x="340" y="56" width="80" height="40"/><text class="t mono" x="380" y="81" text-anchor="middle">obj 4</text>
+<text class="t ann" x="436" y="72">shaded = handed out</text>
+<text class="t ann" x="436" y="88">plain = available</text>
+
+<text class="t ann" x="12" y="140">free_list[] — indices of available slots, used as a stack</text>
+<rect class="box" x="12"  y="148" width="60" height="36"/><text class="t mono" x="42"  y="171" text-anchor="middle">4</text>
+<rect class="box" x="74"  y="148" width="60" height="36"/><text class="t mono" x="104" y="171" text-anchor="middle">2</text>
+<rect class="box" x="136" y="148" width="60" height="36"/><text class="t mono" x="166" y="171" text-anchor="middle">0</text>
+<rect class="ghost" x="198" y="148" width="60" height="36"/><text class="t mono" x="228" y="171" text-anchor="middle" fill="#9aa4b2">3</text>
+<rect class="ghost" x="260" y="148" width="60" height="36"/><text class="t mono" x="290" y="171" text-anchor="middle" fill="#9aa4b2">1</text>
+
+<path class="arwA" d="M198 206 L198 190"/>
+<text class="t ann" x="204" y="212" fill="#1a6fb5">free_count = 3</text>
+<text class="t ann" x="204" y="228" fill="#1a6fb5">everything left of here is available</text>
+<text class="t ann" x="330" y="171">stale entries — never read</text>
+
+<line x1="12" y1="250" x2="702" y2="250" stroke="#9aa4b2" stroke-width="1"/>
+
+<rect class="acc" x="12" y="266" width="336" height="86"/>
+<text class="t lbl" x="26" y="288">acquire()</text>
+<text class="t mono" x="26" y="308">index = free_list[--free_count]</text>
+<text class="t ann"  x="26" y="326">pop: decrement, then read. Returns slot 0 here,</text>
+<text class="t ann"  x="26" y="342">leaving free_count = 2. One decrement, one read.</text>
+
+<rect class="box" x="358" y="266" width="336" height="86"/>
+<text class="t lbl" x="372" y="288">release(p)</text>
+<text class="t mono" x="372" y="308">free_list[free_count++] = index</text>
+<text class="t ann"  x="372" y="326">push: write, then increment. Order within the</text>
+<text class="t ann"  x="372" y="342">list never matters — any free slot will do.</text>
+
+</svg>

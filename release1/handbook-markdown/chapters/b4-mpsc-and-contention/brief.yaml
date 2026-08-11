@@ -1,0 +1,119 @@
+schema_version: 1
+
+id: b4-mpsc-and-contention
+title: MPSC queues and contention
+display_title: "When Everyone Wants the Same Cache Line"
+module: B
+difficulty: applied
+target_length: { min_words: 1800, max_words: 2800 }
+
+chapter_focus: >
+  That adding producers changes the problem qualitatively, not quantitatively:
+  the shared claim point becomes a contended cache line whose cost grows with
+  producer count, and the design choice is where to put that contention.
+
+reader_range: >
+  From engineers who assume an SPSC queue generalises, through to those choosing
+  between one MPSC queue and several SPSC queues in a real design.
+
+reader_starting_point: >
+  The reader has built an SPSC ring buffer (b2), knows the memory model (b1) and
+  progress guarantees (b3), and understands coherence traffic (a6).
+
+opening_scenario: >
+  An order gateway starts with one strategy feeding it over an SPSC ring buffer.
+  The desk adds a second strategy, then a third, then a fourth. The obvious move
+  is to let them all push to the same queue, so someone changes the producer
+  index from a plain store to a fetch_add and the code compiles and appears to
+  work. It is now broken in two separate ways, and throughput per producer falls
+  as each new strategy is added.
+
+industry_usage_anchor: >
+  Multiple strategies feeding one order gateway, multiple feed handlers feeding
+  one book builder, and many threads publishing to one logging or telemetry sink
+  are all MPSC problems. The design question — one shared queue or several
+  private ones — comes up in system design interviews as well as in code.
+
+primary_artifact_mode: code
+include_quizzes: true
+include_measurement_plan: true
+
+core_claims_to_establish:
+  - id: claim-b4-01
+    type: judgment
+    statement: >
+      Replacing the SPSC producer store with fetch_add does not produce a correct
+      MPSC queue, because producers can claim slots in one order and finish
+      writing them in another.
+  - id: claim-b4-02
+    type: judgment
+    statement: >
+      A correct MPSC design needs per-slot readiness state, so the consumer can
+      tell a claimed slot from a written one.
+  - id: claim-b4-03
+    type: judgment
+    statement: >
+      The shared claim point is a single cache line written by every producer, so
+      coherence traffic grows with producer count and per-producer throughput falls.
+  - id: claim-b4-04
+    type: judgment
+    statement: >
+      N private SPSC queues remove the contention entirely and move the cost to
+      the consumer, which must poll several queues and choose between them.
+  - id: claim-b4-05
+    type: judgment
+    statement: >
+      The two designs differ semantically, not just in performance: one MPSC queue
+      defines a global order across producers, and N SPSC queues do not.
+
+reader_misconceptions:
+  - "An MPSC queue is an SPSC queue with an atomic increment."
+  - "Contention is a constant overhead, not something that scales with threads."
+  - "N SPSC queues are strictly better because there is no contention."
+  - "The consumer can just check whether the index moved."
+
+correctness_properties:
+  - The consumer never reads a slot that has been claimed but not written.
+  - No message is lost or duplicated regardless of producer interleaving.
+  - Full-queue behaviour is defined and does not corrupt claimed slots.
+
+sequencing_hazards:
+  - id: seq-b4-01
+    order:
+      - claim the slot with an atomic increment
+      - write the payload
+      - release-store the slot's ready marker
+    failure_if_violated: >
+      Marking a slot ready before the payload is written, or letting the consumer
+      infer readiness from the shared index alone, allows the consumer to read a
+      slot another producer has claimed but not yet filled. With one producer the
+      index alone was sufficient; with several it is not, and the resulting bug
+      appears only when two producers interleave.
+    detectability: timing-dependent
+
+measurement_questions:
+  - How does per-producer throughput change as producers are added?
+  - At what producer count does the contended design lose to N private queues?
+  - Does the consumer become the bottleneck in the N-queue design, and at what N?
+
+operational_and_recovery_concerns:
+  - Per-producer throughput, not aggregate, is the metric that reveals contention.
+  - With N queues, per-queue occupancy is needed to detect one producer starving.
+  - Fairness between producers is a policy that must be chosen and monitored.
+
+when_not_to_use:
+  - MPSC where the producers could each own a private queue.
+  - N SPSC queues where a global order across producers is required.
+  - Either, where a mutex-protected queue on a cold path would do.
+
+scope_exclusions:
+  - SPSC implementation (b2-spsc-ring-buffer)
+  - Progress guarantees (b3-progress-guarantees)
+  - Consumer waiting strategy (b5-waiting-strategies)
+  - Testing methodology (b7-testing-concurrent-code)
+
+interview_competencies:
+  - Explain why fetch_add alone is insufficient.
+  - Describe per-slot readiness and why it is needed.
+  - Reason about contention growth with producer count.
+  - Choose between one MPSC queue and N SPSC queues from stated requirements, including ordering.

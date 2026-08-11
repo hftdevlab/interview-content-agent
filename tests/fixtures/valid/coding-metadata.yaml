@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "code-valid-fixture",
+  "type": "coding",
+  "title": "Merge several ordered record sources",
+  "status": "needs_human_review",
+  "difficulty": 3,
+  "expected_duration_minutes": 40,
+  "categories": ["algorithms"],
+  "tags": ["heap", "ordering"],
+  "prerequisites": [],
+  "related_questions": [],
+  "source": {
+    "input_type": "text",
+    "confidentiality": "public",
+    "original_company_removed": true,
+    "original_files": ["source/original.txt"]
+  },
+  "review": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "last_updated": "2026-07-29",
+  "content_file": "question.md",
+  "practice": {
+    "path": "practice/questions/code-valid-fixture",
+    "cmake_target": "valid_fixture_solution",
+    "test_target": "valid_fixture_test"
+  }
+}
+

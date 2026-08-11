@@ -1,0 +1,132 @@
+schema_version: 1
+
+id: d3-sequence-and-gap-recovery
+title: Sequence numbers, gap detection, and recovery
+difficulty: applied
+target_length: { min_words: 1600, max_words: 2600 }
+
+motivation_scenario: >
+  A market-data handler consumes an incremental multicast feed. Every message
+  carries a sequence number. At 09:31:04 the handler receives sequence 148,203
+  immediately after 148,199: three messages are gone, dropped by a switch under
+  load. The book the strategy is trading against is now wrong, and the handler
+  does not know in which direction or by how much. Meanwhile live packets are
+  still arriving at full rate and will not stop while recovery happens. The
+  handler must detect the gap, decide whether the book is still usable, obtain
+  the missing data or a fresh snapshot, and resume without dropping the packets
+  that arrive during recovery.
+
+reader_starting_point: >
+  The reader understands UDP multicast versus TCP (d2) and knows what an
+  incremental feed and a snapshot channel are (d1). They have probably never
+  had to reason about a data structure that is silently wrong.
+
+core_claims_to_establish:
+  - id: claim-d3-01
+    type: normative
+    statement: >
+      A per-channel monotonically increasing sequence number lets a receiver detect
+      loss, duplication, and reordering without cooperation from the sender.
+  - id: claim-d3-02
+    type: judgment
+    statement: >
+      A detected gap means the derived state (the book) is untrusted, not merely
+      incomplete; continuing to publish prices from an untrusted book is worse than
+      publishing nothing.
+  - id: claim-d3-03
+    type: judgment
+    statement: >
+      Recovery must run concurrently with live reception. A design that stops reading
+      the live socket while requesting retransmission converts a small gap into a
+      large one, because the kernel receive buffer overflows during the request.
+  - id: claim-d3-04
+    type: judgment
+    statement: >
+      Buffering live messages during recovery and replaying them after the snapshot
+      is the standard resolution, and it requires knowing the sequence number the
+      snapshot is valid as of.
+  - id: claim-d3-05
+    type: judgment
+    statement: >
+      Redundant A/B feeds reduce gap frequency by arbitration but do not remove the
+      need for recovery, because correlated loss occurs downstream of the split point.
+  - id: claim-d3-06
+    type: empirical
+    statement: >
+      Recovery latency, not gap frequency, determines how long the strategy is blind.
+      Requires either a measured example or an explicit unverified label.
+
+reader_misconceptions:
+  - "UDP loss is rare enough that recovery is an edge case I can add later."
+  - "A gap means I missed some updates; I can just carry on and let the book converge."
+  - "I can request a retransmission and wait for it."
+  - "Two redundant feeds mean I will never see a gap."
+  - "Reordered packets and lost packets need different handling paths."
+
+correctness_properties:
+  - Every gap is detected at the moment of the first out-of-order sequence number.
+  - The book is marked untrusted from gap detection until recovery completes.
+  - No live message is dropped because the handler was busy recovering.
+  - Buffered messages are applied in sequence order after the snapshot, skipping any at or below the snapshot's sequence number.
+  - A duplicate message is discarded without side effects.
+  - The transition back to trusted state is explicit and observable.
+
+measurement_questions:
+  - How long does the handler stay in the untrusted state, measured end to end, at the tail?
+  - How large does the live buffer grow during recovery, and what happens when it is full?
+  - What is the gap rate per channel per session, and does it correlate with message rate?
+  - How much of recovery latency is the venue's response time versus the handler's own processing?
+
+operational_and_recovery_concerns:
+  - Untrusted-state duration and gap count must be exported per channel and alarmed.
+  - The strategy must be told the book is untrusted; it cannot infer it from stale prices.
+  - Recovery buffer exhaustion needs a defined policy, most likely full resubscribe.
+  - Repeated gaps on one channel are a network or capacity problem, not a handler problem, and the metrics must make that distinguishable.
+
+when_not_to_use:
+  - Retransmission-based recovery when the venue's snapshot cycle is faster than its retransmission service.
+  - Full resubscribe on every gap when gaps are frequent; the churn can be worse than the loss.
+  - Building custom arbitration when the venue or the NIC already provides a deduplicated feed.
+
+code_artifact_expectations:
+  - id: code-d3-1
+    type: runnable
+    purpose: Gap detector and recovery state machine, driven by a synthetic message sequence, asserting the correctness properties.
+    language_standard: c++20
+    notes: No sockets. Input is a vector of sequence numbers so the test is deterministic.
+  - id: code-d3-2
+    type: illustrative
+    purpose: The buffer-and-replay merge step, showing the sequence-number comparison against the snapshot.
+    language_standard: c++20
+
+diagram_expectations:
+  - id: fig-d3-1
+    purpose: State machine over synchronised / gap-detected / recovering / replaying / synchronised.
+    critical_distinction: Live reception and buffering continue in every state.
+    forbidden_implication: >
+      Must not imply that recovery blocks live packet reception, and must not show
+      a single linear path that suggests a second gap during recovery is impossible.
+  - id: fig-d3-2
+    purpose: Timeline of a gap, showing live sequence numbers, the snapshot's as-of sequence, and the replay window.
+    critical_distinction: The overlap region between buffered live messages and the snapshot.
+    forbidden_implication: Must not imply the snapshot and the gap boundary align exactly.
+
+source_constraints:
+  preferred:
+    - Publicly available exchange market-data specifications and their recovery sections
+    - Published multicast recovery protocol documentation
+  disallowed:
+    - Proprietary specifications not publicly redistributable
+    - Vendor claims about loss rates without stated methodology
+
+scope_exclusions:
+  - Order-book data structure design (e2-order-book-construction)
+  - Transport selection rationale (d2-tcp-udp-multicast)
+  - Clock and timestamp semantics (d5-clocks-and-timestamps)
+  - Overload and backpressure policy (d4-parsing-batching-backpressure)
+
+interview_competencies:
+  - Describe gap recovery without stalling live reception, unprompted.
+  - Explain why a gap invalidates the book rather than merely delaying it.
+  - State what a snapshot must carry for replay to be correct.
+  - Explain what redundant feeds do and do not protect against.

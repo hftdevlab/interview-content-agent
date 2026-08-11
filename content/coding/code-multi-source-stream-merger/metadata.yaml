@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "id": "code-multi-source-stream-merger",
+  "type": "coding",
+  "title": "Merge Multiple Temporarily Available Ordered Record Sources",
+  "status": "needs_human_review",
+  "difficulty": 4,
+  "expected_duration_minutes": 45,
+  "categories": ["algorithms", "data-pipeline", "api-design"],
+  "tags": ["heap", "ordering", "stream-merge", "watermark", "move-semantics"],
+  "prerequisites": [],
+  "related_questions": ["sd-market-data-feed", "fund-sequence-lock"],
+  "source": {
+    "input_type": "text",
+    "confidentiality": "sanitized_real_interview",
+    "original_company_removed": true,
+    "original_files": ["source/transcription.txt"]
+  },
+  "review": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "last_updated": "2026-08-11",
+  "content_file": "question.md",
+  "practice": {
+    "path": "practice/questions/code-multi-source-stream-merger",
+    "cmake_target": "stream_merger_solution",
+    "test_target": "stream_merger_test"
+  }
+}

@@ -1,0 +1,138 @@
+schema_version: 1
+
+id: c5-numa-placement
+title: NUMA-aware placement
+difficulty: specialist
+target_length: { min_words: 1800, max_words: 3000 }
+
+motivation_scenario: >
+  A trading system runs on a dual-socket host. The NIC is attached to socket 0.
+  The feed handler is pinned to a core on socket 0; the strategy is pinned to
+  socket 1 because socket 0 was already busy. Median tick-to-trade latency looks
+  acceptable, but the 99th percentile is roughly double what the same code shows
+  on a single-socket development box, and no profile points at a hot function.
+  The cost is distributed across every access to the message buffers, which were
+  allocated by an initialisation thread that happened to run on socket 1, and
+  every cross-socket coherence transaction for the shared queue indices.
+
+reader_starting_point: >
+  The reader can pin threads (c4), understands page faults and first-touch
+  behaviour at a basic level (c1), and knows what cache coherence costs (a6).
+  They have likely never inspected which NUMA node their memory is on.
+
+core_claims_to_establish:
+  - id: claim-c5-01
+    type: normative
+    statement: >
+      Under the default first-touch policy, a page is allocated on the NUMA node of
+      the thread that first writes to it, not the thread that called the allocator.
+  - id: claim-c5-02
+    type: judgment
+    statement: >
+      Remote memory access is not merely slower on average; it adds variance, which
+      matters more than the mean for tail latency.
+  - id: claim-c5-03
+    type: judgment
+    statement: >
+      Device locality matters as much as memory locality. A thread processing packets
+      from a NIC on another socket pays the interconnect cost on every packet regardless
+      of where its own buffers live.
+  - id: claim-c5-04
+    type: judgment
+    statement: >
+      NUMA optimisation should follow evidence of a NUMA problem. On a single-socket
+      host, or where the hot working set fits in cache, the effort has no payoff.
+  - id: claim-c5-05
+    type: judgment
+    statement: >
+      Interleaved allocation is a hedge that lowers the worst case and raises the best
+      case; it is appropriate for shared structures and wrong for per-thread ones.
+  - id: claim-c5-06
+    type: empirical
+    statement: >
+      Local versus remote access latency differs materially on current multi-socket
+      hardware. THIS CHAPTER HAS NO ACCESS TO REPRESENTATIVE HARDWARE. The claim must
+      be presented as a methodology the reader runs on their own machine, with any
+      figure attributed to a named vendor document or omitted. No invented numbers.
+
+reader_misconceptions:
+  - "malloc on the right thread puts the memory on the right node."
+  - "NUMA is a server-tuning topic that does not affect application code."
+  - "Pinning threads is enough; memory follows the thread."
+  - "The kernel's automatic NUMA balancing will fix it."
+  - "More sockets means more capacity, so spreading work across them is good."
+
+correctness_properties:
+  - Placement decisions are explicit and inspectable at runtime, not incidental.
+  - Initialisation touches memory from the thread that will use it, or placement is set explicitly.
+  - The system degrades predictably, not silently, if it starts on a topology it was not tuned for.
+
+measurement_questions:
+  - What is the actual topology of the target host, and where is the NIC attached?
+  - Which NUMA node do the hot buffers physically reside on, and how would the reader check?
+  - What is the local-versus-remote access cost on this specific machine, measured by the reader?
+  - Does the tail latency difference disappear when producer and consumer are co-located on one socket?
+  - How much of the observed difference is remote memory versus cross-socket coherence on shared lines?
+
+operational_and_recovery_concerns:
+  - Placement assumptions must be asserted at startup and the process should refuse to run silently misplaced.
+  - Topology differs between development, staging, and production hosts; a config that is correct in one may be wrong in another.
+  - Automatic NUMA balancing can migrate pages under load and introduce latency spikes; whether it is enabled must be known and recorded.
+  - Hardware refresh changes topology. Placement configuration is an operational artifact with an owner.
+
+when_not_to_use:
+  - Single-socket hosts, which is most modern deployments. Say this plainly and early.
+  - When the hot working set is cache-resident and memory node location is not on the critical path.
+  - Before thread affinity (c4) and measurement (a4) are in place; NUMA tuning on an unpinned system measures noise.
+  - When the operational cost of topology-specific configuration exceeds the latency won.
+
+code_artifact_expectations:
+  - id: code-c5-1
+    type: illustrative
+    purpose: Show first-touch initialisation done by the consuming thread versus done centrally, making the difference visible.
+    language_standard: c++20
+    notes: >
+      Platform-specific APIs are referenced but not compiled as part of the test suite.
+      Banner must state that this is Linux-specific and illustrative.
+  - id: code-c5-2
+    type: benchmark
+    purpose: A harness the reader runs on their own hardware to measure local versus remote access cost.
+    language_standard: c++20
+    notes: >
+      Reports a distribution and the environment, never a single number. Must not ship
+      with expected values baked in. Must document why the result is not portable.
+
+diagram_expectations:
+  - id: fig-c5-1
+    purpose: Two-socket topology with NIC attachment, showing the paths a packet's data takes under good and bad placement.
+    critical_distinction: The interconnect crossing is a property of the path, not of the thread.
+    forbidden_implication: >
+      Must not imply a fixed latency ratio between local and remote access, and must
+      not imply that all multi-socket systems share this topology.
+
+source_constraints:
+  preferred:
+    - Vendor architecture and optimisation documentation for the relevant CPU families
+    - Linux kernel and libnuma documentation for placement policy
+    - Peer-reviewed measurement studies with stated methodology
+  disallowed:
+    - Any performance ratio without a named source and stated hardware
+    - Blog benchmarks without environment disclosure
+
+scope_exclusions:
+  - Thread pinning mechanics (c4-thread-affinity)
+  - Page fault and huge page behaviour in depth (c1-virtual-memory)
+  - Kernel bypass receive paths (d6-kernel-bypass)
+  - Allocator design (c3-arenas-and-allocators)
+
+interview_competencies:
+  - Explain first-touch and predict where a buffer lands in a given initialisation pattern.
+  - Diagnose a tail-latency regression on a multi-socket host without a hot function in the profile.
+  - Argue against NUMA optimisation when the evidence does not support it.
+  - State what you would measure before changing anything.
+
+author_note: >
+  This pilot exists to stress the evidence gate. It deliberately contains an
+  empirical claim (claim-c5-06) that cannot be verified in this repository.
+  If the workflow produces plausible-looking latency ratios for this chapter,
+  the evidence gate has failed and the prompts need correction before scale-up.

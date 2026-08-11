@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "question_id": "fund-sequence-lock",
+  "language": "C++20",
+  "starter_target": "sequence_snapshot_starter",
+  "solution_target": "sequence_snapshot_solution",
+  "test_target": "sequence_snapshot_test"
+}
+

@@ -1,0 +1,104 @@
+schema_version: 1
+id: c1-virtual-memory
+title: Virtual memory, page faults, huge pages, and TLBs
+display_title: "The Latency Spike at 09:30"
+module: C
+difficulty: applied
+order: 1
+target_length: { min_words: 1600, max_words: 2600 }
+
+chapter_focus: >
+  That memory you allocated does not exist until you touch it, and the touch is a
+  trip through the kernel — so the cost of memory is paid on first use, at a time
+  you did not choose, unless you choose it deliberately.
+
+reader_starting_point: >
+  The reader knows cache lines and locality (a5) and how to measure (a4). They
+  treat malloc as returning usable memory and have never thought about when the
+  physical pages appear.
+
+opening_scenario: >
+  A trading system restarts cleanly every morning. For the first few seconds of
+  the session its tail latency is dreadful — spikes of tens of microseconds on a
+  path that normally runs in two — and then it settles and behaves perfectly for
+  the rest of the day. Every day, the same shape. The team has learned to warm
+  the system up before the open and nobody can quite explain why it works.
+
+industry_usage_anchor: >
+  Session-start warm-up is standard practice at latency-sensitive firms, and this
+  is what it is for. Page-fault behaviour also underlies NUMA placement (c5),
+  memory pools (c2), and mmap (c6), so this chapter is the foundation of the module.
+
+primary_artifact_mode: code
+include_quizzes: true
+include_measurement_plan: true
+
+core_claims_to_establish:
+  - id: claim-c1-01
+    type: normative
+    statement: >
+      malloc returns virtual address space; physical pages are allocated lazily on
+      first access, via a page fault handled by the kernel.
+  - id: claim-c1-02
+    type: judgment
+    statement: >
+      A minor fault costs a kernel entry and page-table work; a major fault costs
+      disk I/O and is catastrophic on a hot path.
+  - id: claim-c1-03
+    type: normative
+    statement: >
+      Address translation is cached in the TLB; a miss requires a page-table walk
+      of several dependent memory accesses before the access itself can proceed.
+  - id: claim-c1-04
+    type: judgment
+    statement: >
+      TLB reach is entries times page size, so large working sets exhaust it and
+      huge pages extend it by increasing the bytes covered per entry.
+  - id: claim-c1-05
+    type: judgment
+    statement: >
+      Pre-faulting at startup moves an unavoidable cost off the trading path;
+      it does not remove work, it reschedules it.
+
+reader_misconceptions:
+  - "malloc gives me memory."
+  - "Warm-up is superstition."
+  - "Huge pages are free performance."
+  - "Page faults only matter if you are swapping."
+  - "If it is not in the profile it is not costing me."
+
+correctness_properties:
+  - No page fault occurs on the critical path during trading hours.
+  - Swap is disabled or the process is locked into memory.
+
+measurement_questions:
+  - How many minor faults does the process take, and when?
+  - Does the startup spike disappear when the arena is pre-faulted?
+  - Does the hot scan's cost change with huge pages, and does that survive at production working-set size?
+
+operational_and_recovery_concerns:
+  - Resident set size, not virtual size, is the number that matters.
+  - Page fault counters should be monitored and should be flat during the session.
+  - Transparent huge page compaction can itself cause stalls; whether it is enabled must be known.
+
+when_not_to_use:
+  - Small working sets that fit comfortably with default pages.
+  - Cold paths where a fault costs nothing anyone notices.
+  - Huge pages applied without measuring, or where memory waste matters.
+
+scope_exclusions:
+  - NUMA placement (c5-numa-placement)
+  - Allocator design (c2, c3)
+  - mmap and file mappings (c6-mmap-and-zero-copy)
+
+depth_pointers:
+  - id: dp-c1-01
+    topic: Page-table structure, multi-level walks, and kernel physical memory management
+    why: Explains why a TLB miss costs several dependent accesses and how the kernel decides what to evict.
+    sources: Arpaci-Dusseau and Arpaci-Dusseau, Operating Systems - Three Easy Pieces
+
+interview_competencies:
+  - Explain what malloc does and does not do.
+  - Explain the morning latency spike from first principles.
+  - Say what the TLB is and when huge pages help.
+  - Describe how you would eliminate faults from the trading path.

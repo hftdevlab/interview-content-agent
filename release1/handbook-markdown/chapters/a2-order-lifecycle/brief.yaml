@@ -1,0 +1,133 @@
+schema_version: 1
+
+id: a2-order-lifecycle
+title: Order lifecycle and state machines
+module: A
+difficulty: foundation
+target_length: { min_words: 1400, max_words: 2200 }
+
+chapter_focus: >
+  That your order state is a belief about the exchange's state, not the state
+  itself; the two can diverge, and the pending states exist precisely to make
+  that divergence explicit rather than hidden.
+
+reader_range: >
+  From an engineer who has never sent an order, through to someone refreshing
+  before an interview where the cancel/fill race is a standard question.
+
+reader_starting_point: >
+  The reader has the system map from a1 and knows where the order gateway sits.
+  They have not thought about what happens between sending a message and hearing
+  back about it.
+
+opening_scenario: >
+  A firm has a resting buy order for 500 shares of NVDA on Nasdaq. News breaks
+  and the strategy decides to pull it, so the gateway sends a cancel. While that
+  cancel is in flight down the wire, someone hits the order and it fills. For a
+  few hundred microseconds the firm believes it has no position and no order,
+  the exchange believes the order is filled, and both are acting on those
+  beliefs. One of them is wrong, and it is not the exchange.
+
+industry_usage_anchor: >
+  Every order gateway, execution management system, and risk engine is built
+  around this state machine. "What happens if you send a cancel and it fills
+  first?" is close to a mandatory interview question for any execution role,
+  because the answer separates people who have sent live orders from people
+  who have read about it.
+
+primary_artifact_mode: pseudocode
+include_quizzes: true
+include_measurement_plan: false
+
+core_claims_to_establish:
+  - id: claim-a2-01
+    type: judgment
+    statement: >
+      The exchange's view of an order is authoritative and cannot be observed
+      directly; the local state machine tracks a belief that lags it by one
+      network round trip.
+  - id: claim-a2-02
+    type: judgment
+    statement: >
+      Pending states (pending-new, pending-cancel, pending-replace) exist to
+      represent the interval in which the belief is known to be unreliable, and
+      collapsing them into their target states hides real uncertainty.
+  - id: claim-a2-03
+    type: judgment
+    statement: >
+      A cancel request is a request, not a command. The order may fill first,
+      and both outcomes must be handled as normal rather than as errors.
+  - id: claim-a2-04
+    type: judgment
+    statement: >
+      Risk exposure must be incremented before an order is sent, because between
+      send and acknowledgement the order can already have filled.
+  - id: claim-a2-05
+    type: judgment
+    statement: >
+      After a disconnect or restart, local state is untrustworthy and must be
+      reconciled against the venue rather than assumed.
+
+reader_misconceptions:
+  - "Sending a cancel means the order is cancelled."
+  - "If I haven't received an acknowledgement, nothing has happened yet."
+  - "After a restart I can assume I have no working orders."
+  - "A rejected order means nothing happened, so no state changed."
+  - "Fills arrive in the order the trades happened."
+
+correctness_properties:
+  - Every state transition is driven by a venue message or a local send, never by a timeout alone changing what is believed true.
+  - A fill is applied exactly once regardless of how many times it is delivered.
+  - No order can be in a state where its exposure is not counted somewhere.
+  - The state machine has an explicit terminal state and orders reach it.
+
+sequencing_hazards:
+  - id: seq-a2-01
+    order:
+      - increment risk exposure locally
+      - send the order to the venue
+      - await acknowledgement
+    failure_if_violated: >
+      Incrementing exposure on acknowledgement rather than on send leaves a
+      window in which the order exists at the venue and can fill while the risk
+      engine believes no exposure exists. Under a burst of orders this
+      systematically understates position and defeats the pre-trade limit.
+    detectability: silent
+  - id: seq-a2-02
+    order:
+      - record the client order ID as used
+      - send the message
+    failure_if_violated: >
+      Assigning the ID after sending, or reusing one after a send failure of
+      unknown outcome, can produce two live orders the system believes are one.
+    detectability: timing-dependent
+
+operational_and_recovery_concerns:
+  - Orders stuck in a pending state past a threshold need alerting; they represent unknown exposure.
+  - Session disconnects require reconciliation against drop copy or an order status request before trading resumes.
+  - Every state transition should be logged with venue timestamps for post-trade reconstruction.
+  - The count of live orders believed locally versus reported by the venue is a standing reconciliation check.
+
+when_not_to_use:
+  - Modelling fewer states than the venue exposes because the simpler machine is easier to write.
+  - Treating a rejection as a no-op rather than a transition.
+
+diagram_expectations:
+  - id: fig-a2-1
+    purpose: The order state machine including pending states, rejections, and terminal states.
+    critical_distinction: Pending states are distinct from their target states.
+    forbidden_implication: >
+      Must not imply transitions are instantaneous, and must not omit the edge
+      where a cancel request is followed by a fill.
+
+scope_exclusions:
+  - Risk check content and limits (e3-pretrade-risk-engine)
+  - Idempotency and client order ID schemes in depth (e1-idempotency-and-duplicates)
+  - Wire protocol encoding (d1-market-data-and-protocols)
+  - Position and PnL calculation
+
+interview_competencies:
+  - Draw the state machine including pending states, unprompted.
+  - Answer the cancel/fill race correctly and explain why both outcomes are normal.
+  - Say when risk exposure is incremented and why.
+  - Explain what is known about working orders after a restart.

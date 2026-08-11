@@ -1,0 +1,84 @@
+schema_version: 1
+id: e3-pretrade-risk-engine
+title: Pre-trade risk-engine foundations
+display_title: "The Check You Cannot Skip"
+module: E
+difficulty: applied
+order: 3
+target_length: { min_words: 1600, max_words: 2600 }
+chapter_focus: >
+  That pre-trade risk is the one thing on the critical path that cannot be moved
+  off it, so it must be BOUNDED rather than merely fast — and the ordering of
+  exposure accounting is what makes it correct rather than decorative.
+reader_starting_point: >
+  The reader knows the order lifecycle (a2), that the tail is the product (a3),
+  and that allocation is banned on the hot path (c2).
+opening_scenario: >
+  A strategy misreads a stale reference price and starts sending buy orders at a
+  price far above the market. Nothing about the orders is malformed and the
+  gateway sends them correctly. The only thing standing between that bug and a
+  very expensive morning is a set of checks that run in the microseconds before
+  each order reaches the wire.
+industry_usage_anchor: >
+  Every firm has this, much of it is mandated, and the design constraint —
+  bounded worst case on the critical path — makes it a good interview topic for
+  reasoning about latency budgets under a correctness requirement.
+primary_artifact_mode: code
+include_quizzes: true
+include_measurement_plan: false
+core_claims_to_establish:
+  - id: claim-e3-01
+    type: judgment
+    statement: An asynchronous risk check is not a risk check, because the order is already at the venue when it completes.
+  - id: claim-e3-02
+    type: judgment
+    statement: Every check must have a bounded worst case, which rules out allocation, locks, and any lookup that might be slow.
+  - id: claim-e3-03
+    type: judgment
+    statement: Exposure must be counted before the order is sent and released on rejection, because the order can fill before acknowledgement.
+  - id: claim-e3-04
+    type: judgment
+    statement: Checks divide into those computable from precomputed state and those requiring live position, and the division determines what can be made fast.
+  - id: claim-e3-05
+    type: judgment
+    statement: Defence in depth applies: an in-process check that is fast and an independent system that is authoritative serve different purposes and neither replaces the other.
+  - id: claim-e3-06
+    type: judgment
+    statement: A kill switch must work when the trading system is broken, which means it cannot depend on the trading system.
+reader_misconceptions:
+  - "Risk checks can be done asynchronously to save latency."
+  - "The risk check is slow, so we should skip it for small orders."
+  - "Counting exposure on acknowledgement is more accurate."
+  - "The strategy already checks this, so the gateway does not need to."
+correctness_properties:
+  - No order reaches the wire without passing every mandatory check.
+  - Exposure counted on send is released exactly once on a terminal rejection.
+  - Every check completes within a stated worst-case bound.
+sequencing_hazards:
+  - id: seq-e3-01
+    order:
+      - evaluate the checks against current exposure
+      - increment exposure
+      - send
+      - release exposure only on a terminal rejection
+    failure_if_violated: >
+      Incrementing after the send, or on acknowledgement, leaves a window in which the
+      order is live at the venue and uncounted. Under a burst this systematically
+      understates position exactly when the limit is doing the most work, and it fails
+      silently — nothing errors, the limit simply permits more than it should.
+    detectability: silent
+operational_and_recovery_concerns:
+  - Every rejection must be counted by reason; a rising count is a strategy bug or a stale limit.
+  - Limits must be reloadable without a restart and changes must be audited.
+  - The kill switch must be tested on a schedule, not assumed.
+when_not_to_use:
+  - Adding discretionary checks to the critical path that an independent system could perform.
+scope_exclusions:
+  - Order state machine (a2-order-lifecycle)
+  - Position and PnL calculation
+  - Idempotency (e1-idempotency-and-duplicates)
+interview_competencies:
+  - Explain why risk cannot be asynchronous.
+  - Say when exposure is incremented and why.
+  - Distinguish bounded from fast.
+  - Describe a kill switch that does not depend on the system it stops.

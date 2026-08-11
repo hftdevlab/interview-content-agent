@@ -1,0 +1,111 @@
+schema_version: 1
+id: c3-arenas-and-allocators
+title: Arenas, slabs, and custom allocators
+display_title: "Free Everything at Once"
+module: C
+difficulty: specialist
+order: 3
+target_length: { min_words: 1600, max_words: 2800 }
+
+chapter_focus: >
+  That the right allocator follows from the LIFETIME PATTERN of the objects, and
+  the biggest win available is arranging for many objects to die at the same time.
+
+reader_starting_point: >
+  The reader has a fixed-size pool from c2 and understands page behaviour from c1.
+  They think of allocation as a per-object problem.
+
+opening_scenario: >
+  A feed handler parses a batch of messages. Each one produces a handful of short
+  lived intermediate objects — field views, a decoded header, a small vector of
+  entries — all of which are dead the moment the message has been applied to the
+  book. The pool from the previous chapter handles one type at a time and each of
+  these is a different type, so the handler is back to calling the general
+  allocator dozens of times per message for objects that live microseconds.
+
+industry_usage_anchor: >
+  Per-message and per-session scratch allocation in feed handlers and gateways.
+  Allocator design questions appear in interviews as a way of probing whether a
+  candidate reasons about lifetime rather than reaching for a familiar tool.
+
+primary_artifact_mode: code
+include_quizzes: true
+include_measurement_plan: false
+
+core_claims_to_establish:
+  - id: claim-c3-01
+    type: judgment
+    statement: >
+      An arena allocates by advancing a pointer and frees nothing individually; the
+      whole region is reset at once, which makes deallocation effectively free.
+  - id: claim-c3-02
+    type: judgment
+    statement: >
+      Arenas fit lifetimes with a natural common end point — per message, per batch,
+      per session — and fit nothing else.
+  - id: claim-c3-03
+    type: judgment
+    statement: >
+      A slab allocator serves fixed-size objects from preallocated storage, which is
+      the c2 pool generalised across types.
+  - id: claim-c3-04
+    type: judgment
+    statement: >
+      std::pmr provides a standard way to plumb these allocators through containers
+      without templating every type on an allocator.
+  - id: claim-c3-05
+    type: judgment
+    statement: >
+      A custom allocator is a maintenance obligation, and the general allocator is
+      the right answer far more often than allocator enthusiasm suggests.
+
+reader_misconceptions:
+  - "A custom allocator is faster, so I should write one."
+  - "An arena is just a pool."
+  - "std::pmr is slow because it is polymorphic."
+  - "If I never free, I have a leak."
+
+correctness_properties:
+  - No reference to arena memory outlives the arena reset.
+  - Non-trivial destructors are run before the region is reused, or the types stored are trivially destructible.
+
+sequencing_hazards:
+  - id: seq-c3-01
+    order:
+      - drop every reference into the arena
+      - run destructors if the types require them
+      - reset the arena
+    failure_if_violated: >
+      Resetting while a reference is live produces a dangling pointer into memory
+      that will be handed out again immediately, so the next allocation silently
+      overwrites data someone is still reading. This is worse than a heap
+      use-after-free because the memory is guaranteed to be reused promptly.
+    detectability: silent
+
+operational_and_recovery_concerns:
+  - Arena high-water mark per cycle tells you whether the region is sized correctly.
+  - An arena that overflows mid-message needs a defined behaviour, not a fallback nobody tested.
+
+when_not_to_use:
+  - Objects whose lifetimes do not share an end point.
+  - When the general allocator is not measurably a problem.
+  - When the maintenance cost exceeds the win.
+
+scope_exclusions:
+  - Fixed-size object pools (c2-preallocation-and-pools)
+  - Page and TLB behaviour (c1-virtual-memory)
+  - NUMA placement of arenas (c5-numa-placement)
+
+depth_pointers:
+  - id: dp-c3-01
+    topic: General-purpose allocator internals — size classes, thread caches, arenas
+    why: >
+      Explains why the general allocator is fast on average and where its slow paths
+      come from, which is the baseline any custom allocator must beat.
+    sources: The published design documentation for widely used allocators such as jemalloc and tcmalloc
+
+interview_competencies:
+  - Choose an allocator from a stated lifetime pattern.
+  - Explain what an arena buys and what it forbids.
+  - Identify the dangling-reference hazard in arena reset.
+  - Argue for the general allocator where it is adequate.

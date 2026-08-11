@@ -1,0 +1,147 @@
+schema_version: 1
+
+id: b2-spsc-ring-buffer
+title: SPSC ring buffers
+difficulty: applied
+target_length: { min_words: 1400, max_words: 2600 }
+
+motivation_scenario: >
+  A feed handler thread reads normalised market-data messages from a NIC and must
+  hand them to a strategy thread running on a different core. During the first
+  seconds after an economic release the feed produces tens of thousands of messages
+  in a few hundred milliseconds, arriving in bursts far faster than the strategy's
+  average processing rate. The handoff must not allocate, must not take a lock the
+  feed thread could block on, must not lose messages silently, and must have a
+  defined behaviour when the strategy falls behind. A std::queue plus std::mutex
+  satisfies none of these requirements: it allocates per push, and the feed thread
+  can be descheduled while holding the lock.
+
+reader_starting_point: >
+  The reader can write correct multithreaded C++ with mutexes and condition
+  variables, has seen std::atomic, and has read the memory-model chapter (b1).
+  They have probably not implemented a lock-free structure they trusted in production.
+
+core_claims_to_establish:
+  - id: claim-b2-01
+    type: normative
+    statement: >
+      A release store on the write index paired with an acquire load of the same
+      index establishes happens-before between the producer's slot write and the
+      consumer's slot read, which is sufficient to prevent a data race on the slot.
+  - id: claim-b2-02
+    type: normative
+    statement: >
+      Because exactly one thread writes each index, no read-modify-write operation
+      is required on either index; plain atomic load and store suffice.
+  - id: claim-b2-03
+    type: judgment
+    statement: >
+      Placing the two indices on separate cache lines removes false sharing between
+      producer and consumer, which is the dominant avoidable cost in a naive implementation.
+  - id: claim-b2-04
+    type: judgment
+    statement: >
+      Caching the peer's index in thread-private storage removes the shared-line read
+      from the common case, because a stale cached value can only produce a spurious
+      "full" or "empty" result and never a correctness violation.
+  - id: claim-b2-05
+    type: normative
+    statement: >
+      With a power-of-two capacity and monotonically increasing unsigned counters,
+      occupancy is head - tail and slot selection is a bitwise mask; unsigned
+      wraparound is well defined and does not break the arithmetic.
+  - id: claim-b2-06
+    type: judgment
+    statement: >
+      Full-queue behaviour is a system policy decision (drop, overwrite, block,
+      shed load upstream), not an implementation detail, and the queue's job is
+      to surface the condition rather than hide it.
+  - id: claim-b2-07
+    type: empirical
+    statement: >
+      Removing false sharing and adding cached indices measurably reduces per-operation
+      cost on contended hardware. Requires a benchmark in this repo or an explicit
+      unverified label.
+
+reader_misconceptions:
+  - "Lock-free means faster than a mutex."
+  - "On x86 the hardware is strongly ordered, so I can use relaxed everywhere."
+  - "seq_cst is the safe default; I will optimise the orderings later if profiling says so."
+  - "If the queue is deep enough I do not have to think about the full case."
+  - "A ring buffer that works for one producer will work for two if I make the index a fetch_add."
+
+correctness_properties:
+  - No element is lost, duplicated, or reordered.
+  - The producer never writes a slot the consumer has not finished reading.
+  - The consumer never reads a slot the producer has not finished writing.
+  - try_push returns false rather than overwriting when the queue is full.
+  - try_pop returns false rather than returning stale data when the queue is empty.
+  - Neither operation allocates or blocks.
+
+measurement_questions:
+  - How does per-operation cost change when the two indices share a cache line versus separate lines?
+  - What does the latency distribution look like when the queue is near-empty versus near-full?
+  - Does the cached-index optimisation change anything when the queue is rarely contended?
+  - What is the round-trip latency of a ping-pong between two pinned threads, at the tail rather than the mean?
+
+operational_and_recovery_concerns:
+  - Queue occupancy is a leading indicator of a slow consumer and should be exported as a metric.
+  - A full queue means the system is already in overload; the response belongs to the overload policy, not the queue.
+  - Silent drops are the worst option; a dropped-message counter must exist and must be alarmed.
+  - Restart semantics: an in-process queue loses its contents on restart, which is fine for market data and not fine for orders.
+
+when_not_to_use:
+  - The consumer is persistently slower than the producer. A queue defers the problem; it does not solve it.
+  - There is more than one producer, now or plausibly later. Retrofitting is a rewrite, not a tweak.
+  - The element is large. Copying a large payload into the ring may cost more than the synchronisation saved; pass an index into preallocated storage instead.
+  - The two parties are in different processes. Shared-memory rings have different lifetime, trust, and crash-recovery problems.
+
+code_artifact_expectations:
+  - id: code-b2-1
+    type: runnable
+    purpose: A complete, correct bounded SPSC queue that the reader can compile, test, and read line by line.
+    language_standard: c++20
+    notes: >
+      Constrained to trivially copyable T to keep the memory-ordering argument
+      visible. The general case (raw storage plus placement new) is stated as a
+      limitation, not implemented.
+  - id: code-b2-2
+    type: test
+    purpose: Stress test asserting FIFO order and no loss across millions of items on two pinned threads.
+    language_standard: c++20
+  - id: code-b2-3
+    type: illustrative
+    purpose: The naive mutex-and-std::queue version, to make the contrast concrete.
+    language_standard: c++20
+    notes: Deliberately omits error handling and construction details.
+
+diagram_expectations:
+  - id: fig-b2-1
+    purpose: Show which memory each thread owns and which two words are actually shared.
+    critical_distinction: Slot storage is shared by address but never concurrently accessed; only the two indices are genuinely shared state.
+    forbidden_implication: >
+      Must not imply that the producer and consumer contend on the slot array, and
+      must not imply that padding the indices removes coherence traffic entirely.
+
+source_constraints:
+  preferred:
+    - ISO C++ standard, atomics and memory-model clauses
+    - Williams, C++ Concurrency in Action
+    - Herlihy and Shavit, The Art of Multiprocessor Programming
+    - Intel and AMD optimisation manuals for cache-line and coherence behaviour
+  disallowed:
+    - Undated blog posts without reproducible measurement
+    - Vendor benchmark marketing
+
+scope_exclusions:
+  - Multi-producer designs (b4-mpsc-and-contention)
+  - Progress-guarantee taxonomy in depth (b3-progress-guarantees)
+  - Consumer waiting strategy when empty (b5-waiting-strategies)
+  - Stress-test methodology and sanitizer limits (b7-testing-concurrent-code)
+  - Cross-process shared-memory rings (c6-mmap-and-zero-copy)
+
+interview_competencies:
+  - Derive the required memory orderings from the happens-before requirement rather than reciting them.
+  - Explain why an SPSC queue needs no CAS.
+  - Identify false sharing in a code sample and state its cost mechanism.
+  - Answer "what happens when it is full" with a policy, not a shrug.

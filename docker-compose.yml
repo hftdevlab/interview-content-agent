@@ -1,0 +1,6 @@
+services:
+  content-factory:
+    build: .
+    working_dir: /workspace
+    command: make all
+

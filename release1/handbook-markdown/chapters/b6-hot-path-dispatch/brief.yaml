@@ -1,0 +1,74 @@
+schema_version: 1
+
+id: b6-hot-path-dispatch
+title: Dispatch and polymorphism on the hot path
+display_title: "The Cost of Asking Which Strategy"
+module: B
+difficulty: applied
+target_length: { min_words: 1600, max_words: 2600 }
+
+chapter_focus: >
+  That dispatch cost is dominated by branch predictability and inlining, not by
+  the vtable indirection people blame — so the right comparison is between what
+  the compiler can see, not between language features.
+
+reader_starting_point: >
+  The reader understands cache locality (a5) and measurement (a4), and writes
+  idiomatic C++ with abstract base classes.
+
+opening_scenario: >
+  A strategy framework dispatches each market-data update to whichever strategy
+  objects are subscribed to that symbol, through a virtual on_update. There are
+  six strategy types and several hundred instances. Someone proposes replacing
+  the virtual calls with CRTP for performance, and nobody in the room can say
+  how much it would save.
+
+industry_usage_anchor: >
+  Strategy and handler dispatch in the inner loop of every framework-based
+  trading system. Commonly probed in C++ interviews at latency-sensitive firms.
+
+primary_artifact_mode: code
+include_quizzes: true
+include_measurement_plan: true
+
+core_claims_to_establish:
+  - id: claim-b6-01
+    type: normative
+    statement: >
+      A virtual call is an indirect branch through a vtable pointer, which
+      prevents inlining at the call site unless the compiler can prove the type.
+  - id: claim-b6-02
+    type: judgment
+    statement: >
+      The dominant cost is usually the lost inlining and the unpredictable
+      branch, not the extra load.
+  - id: claim-b6-03
+    type: judgment
+    statement: >
+      Sorting or grouping calls by concrete type makes the indirect branch
+      predictable and can recover most of the difference without changing the design.
+  - id: claim-b6-04
+    type: judgment
+    statement: >
+      CRTP, std::variant, and type erasure trade different things; none is
+      universally faster, and the right choice follows from whether the type set
+      is closed and known at compile time.
+
+reader_misconceptions:
+  - "Virtual calls are slow because of the extra pointer dereference."
+  - "CRTP is always faster."
+  - "std::function is a reasonable hot-path abstraction."
+  - "Devirtualisation will handle it."
+
+when_not_to_use:
+  - Restructuring dispatch before establishing it is on the critical path.
+  - CRTP where the type set is open or the code bloat is not justified.
+
+scope_exclusions:
+  - Cache layout (a5-cache-locality-and-layout)
+  - Measurement methodology (a4-measurement-and-profiling)
+
+interview_competencies:
+  - Explain what a virtual call actually costs, in the right order of importance.
+  - Compare dispatch mechanisms on real criteria rather than folklore.
+  - Propose grouping by type as a cheaper fix than a redesign.

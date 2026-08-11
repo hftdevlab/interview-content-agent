@@ -1,0 +1,77 @@
+schema_version: 1
+id: d4-parsing-batching-backpressure
+title: Hot-path networking, batching, and overload
+display_title: "When the Market Outruns You"
+module: D
+difficulty: applied
+order: 4
+target_length: { min_words: 1600, max_words: 2600 }
+chapter_focus: >
+  That you cannot apply backpressure to an exchange, so overload behaviour is a
+  policy you choose in advance — and the only real choices are to go faster, to
+  drop deliberately, or to stop.
+reader_starting_point: >
+  The reader knows transports (d2), recovery (d3), and that the tail is the
+  product (a3). They assume a queue can absorb a burst.
+opening_scenario: >
+  A feed handler keeps up comfortably at average rates and has done for a year.
+  On the morning of a rate decision the message rate rises tenfold for four
+  seconds. The handler falls behind, its queue fills, the kernel receive buffer
+  fills behind it, and the system starts dropping packets — which triggers gap
+  recovery, which adds work, which makes it fall further behind.
+industry_usage_anchor: >
+  Overload behaviour is what determines whether a volatile open is a good day or
+  an incident, and every feed handler and gateway needs a defined answer.
+primary_artifact_mode: pseudocode
+include_quizzes: true
+include_measurement_plan: true
+core_claims_to_establish:
+  - id: claim-d4-01
+    type: judgment
+    statement: A multicast publisher cannot be slowed down, so classical backpressure does not exist on the inbound path.
+  - id: claim-d4-02
+    type: judgment
+    statement: Drops occur at several distinct points, each with its own counter, and knowing which one moved is the whole diagnosis.
+  - id: claim-d4-03
+    type: judgment
+    statement: Batching amortises per-operation cost and raises throughput while adding latency equal to the accumulation delay.
+  - id: claim-d4-04
+    type: judgment
+    statement: Adaptive batching — process immediately when quiet, batch under load — gives most of both, and degrades gracefully.
+  - id: claim-d4-06
+    type: judgment
+    statement: >
+      Head-of-line blocking converts a detectable gap into an undetectable stall,
+      which makes TCP's failure mode harder to handle than UDP's despite its
+      stronger guarantee.
+  - id: claim-d4-07
+    type: judgment
+    statement: >
+      Readiness notification such as epoll scales with the number of ready
+      descriptors rather than the number watched, which makes it right for many
+      mostly-idle sockets and pure overhead for a single hot one.
+  - id: claim-d4-05
+    type: judgment
+    statement: Conflation is only sound where the message carries state rather than a delta, which is why it works for level snapshots and not for incremental updates.
+reader_misconceptions:
+  - "A bigger queue solves overload."
+  - "We can apply backpressure to the feed."
+  - "Batching is a pure win."
+  - "We can just skip messages when we are behind."
+correctness_properties:
+  - Every drop is counted and attributed to a specific stage.
+  - Conflation, where used, never discards information the consumer needs to reconstruct state.
+measurement_questions:
+  - Which counter moves first as load rises?
+  - What batch size is the crossover between latency cost and throughput gain?
+  - How long does the system take to catch up after a burst ends?
+scope_exclusions:
+  - Recovery mechanics (d3-sequence-and-gap-recovery)
+  - Queue implementation (b2-spsc-ring-buffer)
+interview_competencies:
+  - Name the socket-level toolkit and say when epoll is the wrong choice.
+  - Explain head-of-line blocking as a detectability problem rather than a delay.
+  - Say that backpressure does not exist on a multicast feed.
+  - Name the drop points and their counters.
+  - Explain the batching trade with a crossover.
+  - State when conflation is and is not sound.

@@ -1,0 +1,131 @@
+schema_version: 1
+
+id: b0-threads-atomics-locks
+title: "Threads, atomics, and locks: the tools of concurrency"
+display_title: "The Counter That Lost Count"
+module: B
+difficulty: foundation
+target_length: { min_words: 1800, max_words: 3000 }
+
+chapter_focus: >
+  That atomicity is a property of an OPERATION, not of a variable — and that the
+  three tools (mutex, atomic load/store, atomic read-modify-write) each make a
+  different scope of operation indivisible.
+
+reader_range: >
+  From engineers who write single-threaded C++ and have used a mutex without
+  thinking hard about it, through to those who have used std::atomic but never
+  written a compare-exchange loop.
+
+reader_starting_point: >
+  The reader is comfortable with single-threaded C++ and has written
+  multi-threaded code using std::thread and std::mutex. They have probably seen
+  std::atomic and assume it means "thread-safe variable". They have not written
+  lock-free code and do not need the memory model yet.
+
+opening_scenario: >
+  A feed handler is split across two threads to keep up with a busy morning.
+  Both increment a shared counter of messages processed. At the end of the
+  session the counter reads a few thousand short of the true total — not
+  wildly wrong, not obviously broken, just quietly and consistently low. The
+  line of code is a single ++, and there is nothing in it to fix.
+
+industry_usage_anchor: >
+  Every shared counter, every position and exposure figure touched by more than
+  one thread, and every queue index in this module rests on these primitives.
+  Compare-exchange in particular appears throughout later chapters, so it stops
+  being optional background here. Interviews at latency-sensitive firms assume
+  this material as a starting point rather than testing it directly.
+
+primary_artifact_mode: code
+include_quizzes: true
+include_measurement_plan: false
+
+core_claims_to_establish:
+  - id: claim-b0-01
+    type: judgment
+    statement: >
+      An increment is a read, a modify, and a write. Two threads can interleave
+      between those steps, so updates are lost without anything appearing wrong
+      in the source.
+  - id: claim-b0-02
+    type: normative
+    statement: >
+      An atomic operation is indivisible: no other thread can observe it
+      half-complete, and it either happened or it did not.
+  - id: claim-b0-03
+    type: normative
+    statement: >
+      A mutex makes an arbitrary block of code indivisible with respect to other
+      threads holding the same mutex, which is what allows invariants spanning
+      several variables to be maintained.
+  - id: claim-b0-04
+    type: normative
+    statement: >
+      std::atomic provides load, store, exchange, fetch_add and friends, and
+      compare_exchange; the read-modify-write operations are single indivisible
+      operations rather than a load followed by a store.
+  - id: claim-b0-05
+    type: normative
+    statement: >
+      compare_exchange compares against an expected value, writes only if it
+      matches, and on failure updates the expected variable with the value that
+      was actually found — which is what makes the retry loop work.
+  - id: claim-b0-06
+    type: normative
+    statement: >
+      Atomic operations default to memory_order_seq_cst when no ordering is
+      specified, which is correct and is not free.
+  - id: claim-b0-07
+    type: judgment
+    statement: >
+      Atomics make one location indivisible; invariants spanning several
+      locations need a mutex or a redesign, because composing two atomic
+      operations does not produce an atomic operation.
+
+reader_misconceptions:
+  - "std::atomic<int> x; x = x + 1; is atomic because x is atomic."
+  - "Atomic means thread-safe, so a struct of atomics is thread-safe."
+  - "std::atomic<T> works for any T at the same cost."
+  - "compare_exchange_weak failing means another thread won."
+  - "A mutex is slow, so atomics are the fast alternative for everything."
+
+correctness_properties:
+  - No update to a shared counter is lost under any interleaving.
+  - An invariant spanning several variables is never observed in a partial state.
+  - A compare-exchange loop terminates and applies its update exactly once.
+
+sequencing_hazards:
+  - id: seq-b0-01
+    order:
+      - load the current value into a local
+      - compute the new value from the local
+      - compare_exchange against the local, retrying on failure
+    failure_if_violated: >
+      Reloading the atomic inside the computation, or ignoring the value that
+      compare_exchange writes back into the expected variable on failure,
+      produces a loop that either spins forever or applies an update computed
+      from a value that was never current.
+    detectability: timing-dependent
+
+operational_and_recovery_concerns:
+  - A lost-update bug produces plausible wrong numbers, not crashes, so it is found by reconciliation rather than by monitoring.
+  - Counters read by a monitoring thread need to be atomic even when accuracy is not critical, because a torn read of a wide type is not merely stale.
+
+when_not_to_use:
+  - Atomics where a mutex expresses the invariant more clearly and the path is cold.
+  - A mutex on a hot path where a single atomic operation would do.
+  - Either, where the data need not be shared at all.
+
+scope_exclusions:
+  - Memory ordering and visibility between threads (b1-cpp-memory-model)
+  - Queue implementation (b2-spsc-ring-buffer)
+  - Progress guarantees (b3-progress-guarantees)
+  - What to do while waiting (b5-waiting-strategies)
+  - How atomics and mutexes are implemented (b1-cpp-memory-model depth pointer)
+
+interview_competencies:
+  - Explain why ++ on a shared counter loses updates.
+  - Name the atomic operations and say which are read-modify-write.
+  - Write a correct compare-exchange loop and explain the expected-value semantics.
+  - Choose between a mutex and an atomic from the shape of the invariant.

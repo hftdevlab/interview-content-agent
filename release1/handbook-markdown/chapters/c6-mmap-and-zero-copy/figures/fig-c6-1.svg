@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 714 412" width="714" height="412" role="img" aria-label="Two processes with separate address spaces, each containing text, data, heap and per-thread stacks; a shared memory segment is mapped into both">
+<!--
+  figure: fig-c6-1
+  purpose: Show that threads share everything except their stacks, that processes share nothing by default, and that a shared segment is the deliberate exception.
+  critical distinction: Threads share the heap; processes do not. A shared segment maps the same physical pages, not the same virtual addresses.
+  forbidden implication: Must not imply threads have private heaps, and must not imply a shared segment appears at the same address in both processes.
+-->
+<style>
+  .t   { font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; fill:#1f2328; }
+  .lbl { font-size:13px; }
+  .ann { font-size:11px; fill:#6b7280; }
+  .ttl { font-size:14px; font-weight:600; }
+  .mono{ font-family: ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
+  .box { fill:#f3f4f6; stroke:#9aa4b2; stroke-width:1.2; }
+  .acc { fill:#dbeafe; stroke:#1a6fb5; stroke-width:1.5; }
+  .wrn { fill:#fde8d7; stroke:#b5501a; stroke-width:1.5; }
+  .ghost { fill:#ffffff; stroke:#9aa4b2; stroke-width:1.2; stroke-dasharray:4 3; }
+  .arw { stroke:#1f2328; stroke-width:1.4; fill:none; marker-end:url(#a); }
+  .arwA{ stroke:#1a6fb5; stroke-width:1.8; fill:none; marker-end:url(#aA); }
+  .arwW{ stroke:#b5501a; stroke-width:1.8; fill:none; marker-end:url(#aW); }
+</style>
+<defs>
+  <marker id="a"  markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#1f2328"/></marker>
+  <marker id="aA" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#1a6fb5"/></marker>
+  <marker id="aW" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#b5501a"/></marker>
+</defs>
+
+<text class="t ttl" x="12" y="22">Threads share an address space. Processes do not.</text>
+
+<rect class="box" x="12" y="40" width="320" height="300"/>
+<text class="t lbl" x="26" y="62">Process A — one address space</text>
+
+<rect class="acc" x="26" y="74" width="292" height="30"/>
+<text class="t mono" x="172" y="94" text-anchor="middle">text (code)</text>
+<rect class="acc" x="26" y="108" width="292" height="30"/>
+<text class="t mono" x="172" y="128" text-anchor="middle">data / bss (globals)</text>
+<rect class="acc" x="26" y="142" width="292" height="46"/>
+<text class="t mono" x="172" y="162" text-anchor="middle">heap</text>
+<text class="t ann" x="172" y="180" text-anchor="middle">grows up; shared by all threads</text>
+<text class="t ann" x="326" y="132" fill="#1a6fb5">shared</text>
+
+<rect class="box" x="26"  y="204" width="88" height="76"/>
+<text class="t ann" x="70" y="222" text-anchor="middle">thread 1</text>
+<text class="t mono" x="70" y="240" text-anchor="middle">stack</text>
+<path class="arw" d="M70 272 L70 250"/>
+<text class="t ann" x="70" y="292" text-anchor="middle">SP</text>
+<rect class="box" x="128" y="204" width="88" height="76"/>
+<text class="t ann" x="172" y="222" text-anchor="middle">thread 2</text>
+<text class="t mono" x="172" y="240" text-anchor="middle">stack</text>
+<path class="arw" d="M172 272 L172 250"/>
+<text class="t ann" x="172" y="292" text-anchor="middle">SP</text>
+<rect class="box" x="230" y="204" width="88" height="76"/>
+<text class="t ann" x="274" y="222" text-anchor="middle">thread 3</text>
+<text class="t mono" x="274" y="240" text-anchor="middle">stack</text>
+<path class="arw" d="M274 272 L274 250"/>
+<text class="t ann" x="274" y="292" text-anchor="middle">SP</text>
+<text class="t ann" x="26" y="316">one stack per thread, each with its own stack pointer;</text>
+<text class="t ann" x="26" y="332">stacks grow DOWN toward the heap</text>
+
+<rect class="box" x="382" y="40" width="320" height="300"/>
+<text class="t lbl" x="396" y="62">Process B — a different address space</text>
+<rect class="box" x="396" y="74" width="292" height="30"/>
+<text class="t mono" x="542" y="94" text-anchor="middle">text (code)</text>
+<rect class="box" x="396" y="108" width="292" height="30"/>
+<text class="t mono" x="542" y="128" text-anchor="middle">data / bss</text>
+<rect class="box" x="396" y="142" width="292" height="46"/>
+<text class="t mono" x="542" y="168" text-anchor="middle">heap</text>
+<rect class="box" x="396" y="204" width="88" height="76"/>
+<text class="t ann" x="440" y="222" text-anchor="middle">thread 1</text>
+<text class="t mono" x="440" y="240" text-anchor="middle">stack</text>
+<text class="t ann" x="396" y="316">the same virtual address in A and B</text>
+<text class="t ann" x="396" y="332">refers to DIFFERENT physical memory</text>
+
+<rect class="wrn" x="26" y="356" width="662" height="44"/>
+<text class="t lbl" x="357" y="376" text-anchor="middle">shared memory segment — mapped into both address spaces</text>
+<text class="t ann" x="357" y="392" text-anchor="middle" fill="#b5501a">same physical pages, possibly different virtual addresses. No protection between participants.</text>
+<path class="arwW" d="M172 344 L172 354"/>
+<path class="arwW" d="M542 344 L542 354"/>
+
+</svg>

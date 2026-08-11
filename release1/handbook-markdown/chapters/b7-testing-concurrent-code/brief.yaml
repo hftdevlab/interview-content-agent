@@ -1,0 +1,77 @@
+schema_version: 1
+
+id: b7-testing-concurrent-code
+title: Testing concurrent and lock-free code
+display_title: "The Bug That Passes Every Test"
+module: B
+difficulty: applied
+target_length: { min_words: 1600, max_words: 2600 }
+
+chapter_focus: >
+  That a passing concurrency test is weak evidence, and the discipline is
+  building tests that can actually fail — then knowing precisely what a pass does
+  and does not establish.
+
+reader_starting_point: >
+  The reader has written an SPSC queue (b2) and knows the memory model (b1).
+  They probably believe a stress test that runs for an hour proves correctness.
+
+opening_scenario: >
+  A team ships a lock-free queue backed by a stress test that pushes fifty
+  million items through it on two threads and verifies every one arrives in
+  order. It passes on every run, on every machine, for months. Then a production
+  process on a new host drops a message roughly once a week, and the same test
+  still passes.
+
+industry_usage_anchor: >
+  Every hand-rolled concurrent structure in a trading system needs this, and the
+  cost of getting it wrong is a bug that appears once a month in production and
+  cannot be reproduced on demand.
+
+primary_artifact_mode: code
+include_quizzes: true
+include_measurement_plan: false
+
+core_claims_to_establish:
+  - id: claim-b7-01
+    type: judgment
+    statement: >
+      A stress test explores the interleavings the hardware and scheduler happen
+      to produce, which on one architecture may systematically exclude the
+      interleavings that break the code.
+  - id: claim-b7-02
+    type: judgment
+    statement: >
+      ThreadSanitizer detects data races by tracking happens-before at runtime,
+      so it finds races on paths that execute and says nothing about paths that
+      do not.
+  - id: claim-b7-03
+    type: judgment
+    statement: >
+      Hand-rolled atomics are visible to the sanitizer as synchronisation, so
+      correctly annotated code hides races that incorrect orderings would
+      otherwise expose.
+  - id: claim-b7-04
+    type: judgment
+    statement: >
+      Testing on a weakly ordered architecture exposes reorderings that a
+      strongly ordered one cannot produce, which makes it evidence a single-platform
+      test cannot supply.
+
+reader_misconceptions:
+  - "It passed fifty million iterations, so it is correct."
+  - "ThreadSanitizer proves there are no races."
+  - "If it works on x86 it will work anywhere."
+  - "Concurrency bugs are found by running the test longer."
+
+when_not_to_use:
+  - Building elaborate test infrastructure for a structure a mutex would have solved.
+
+scope_exclusions:
+  - Memory ordering rules (b1-cpp-memory-model)
+  - Deterministic replay of production incidents (e4-deterministic-replay)
+
+interview_competencies:
+  - Explain why a passing stress test is weak evidence.
+  - State what a sanitizer can and cannot establish.
+  - Describe how you would gain confidence in a lock-free structure.

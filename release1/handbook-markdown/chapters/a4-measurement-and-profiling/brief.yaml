@@ -1,0 +1,95 @@
+schema_version: 1
+
+id: a4-measurement-and-profiling
+title: Measurement, benchmarking, and performance diagnosis
+module: A
+difficulty: applied
+target_length: { min_words: 1400, max_words: 2400 }
+
+chapter_focus: >
+  That a measurement answers a question, and the discipline is choosing the
+  question and the smallest comparison that isolates it — not producing a number.
+
+reader_range: >
+  From engineers who have run a profiler and read the top of the list, through
+  to those who need to defend a methodology in an interview.
+
+reader_starting_point: >
+  The reader knows the vocabulary from a3 and understands why tails matter.
+  They have probably used a sampling profiler without questioning what it can
+  and cannot see.
+
+opening_scenario: >
+  A tail-latency regression appears after a release. The team profiles the
+  process under production load and the flame graph looks identical to last
+  week's — no new hot function, no obvious change. The regression is real and
+  reproducible, and the profiler cannot see it, because a sampling profiler
+  reports where time is spent on average and the problem is a rare event that
+  contributes almost nothing to the total.
+
+industry_usage_anchor: >
+  Performance diagnosis is a routine part of the job at any latency-sensitive
+  firm, and "how would you investigate this regression" is a standard interview
+  question whose answer reveals whether a candidate reaches for a tool or for a
+  hypothesis.
+
+primary_artifact_mode: pseudocode
+include_quizzes: true
+include_measurement_plan: false
+
+core_claims_to_establish:
+  - id: claim-a4-01
+    type: judgment
+    statement: >
+      A measurement should start from a question and a hypothesis; a number
+      collected without one cannot be interpreted.
+  - id: claim-a4-02
+    type: judgment
+    statement: >
+      Sampling profilers report where time is spent on average and are
+      structurally poor at finding rare tail events.
+  - id: claim-a4-03
+    type: judgment
+    statement: >
+      Timestamping the path directly is how tail events are localised, because
+      it captures every occurrence rather than a sample.
+  - id: claim-a4-04
+    type: judgment
+    statement: >
+      Measurement perturbs the system, and the smallest comparison that isolates
+      the variable is preferable to the most comprehensive instrumentation.
+  - id: claim-a4-05
+    type: judgment
+    statement: >
+      A microbenchmark that does not reproduce the production access pattern,
+      cache state, and load measures something other than what it claims.
+
+reader_misconceptions:
+  - "The profiler will show me where the problem is."
+  - "A microbenchmark result transfers to production."
+  - "Warm-up is a formality."
+  - "If I measure everything, I will find it."
+  - "The optimiser will not delete my benchmark's work."
+
+correctness_properties:
+  - A benchmark's result must not depend on work the optimiser is free to eliminate.
+  - Reported figures must state the environment they were taken in.
+
+operational_and_recovery_concerns:
+  - Production timestamping needs a defined overhead budget.
+  - Measurement infrastructure that is only enabled during incidents is not trustworthy during incidents.
+
+when_not_to_use:
+  - Profiling before establishing that the path is on the critical path.
+  - Instrumenting broadly when a targeted hypothesis is available.
+
+scope_exclusions:
+  - Clock semantics and synchronisation (d5-clocks-and-timestamps)
+  - Percentile vocabulary (a3-latency-throughput)
+  - Specific jitter sources (Module C)
+
+interview_competencies:
+  - Start a diagnosis with a hypothesis rather than a tool.
+  - Explain why a sampling profiler misses tail events.
+  - Identify what a described microbenchmark actually measures.
+  - State the environment alongside any figure.

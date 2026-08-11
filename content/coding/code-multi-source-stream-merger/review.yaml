@@ -1,0 +1,14 @@
+{
+  "question_id": "code-multi-source-stream-merger",
+  "checks": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "review_notes": [
+    "Draft follows the semantics discussed in the source interview session.",
+    "Human review should confirm whether timestamp-only or total ordering is expected."
+  ]
+}
+

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Draft Fundamentals Question"
+  short_description: "Draft C++ systems fundamentals content"
+  default_prompt: "Use $draft-fundamentals-question to draft this systems fundamentals question."

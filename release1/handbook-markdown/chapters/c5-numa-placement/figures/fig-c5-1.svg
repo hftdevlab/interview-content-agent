@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 714 338" width="714" height="338" role="img" aria-label="Two sockets each with cores and local memory, joined by an interconnect; the NIC is attached to socket 0 while the strategy thread runs on socket 1, so every packet crosses the interconnect">
+<!--
+  figure: fig-c5-1
+  purpose: Show that both memory and devices have a socket, and that a bad placement puts a crossing on every packet.
+  critical distinction: The crossing is a property of the path, not of the thread — it happens during DMA, before your code touches anything.
+  forbidden implication: Must not imply a fixed latency ratio between local and remote, and must not imply all multi-socket machines share this topology.
+-->
+<style>
+  .t   { font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; fill:#1f2328; }
+  .lbl { font-size:13px; }
+  .ann { font-size:11px; fill:#6b7280; }
+  .ttl { font-size:14px; font-weight:600; }
+  .mono{ font-family: ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
+  .box { fill:#f3f4f6; stroke:#9aa4b2; stroke-width:1.2; }
+  .acc { fill:#dbeafe; stroke:#1a6fb5; stroke-width:1.5; }
+  .wrn { fill:#fde8d7; stroke:#b5501a; stroke-width:1.5; }
+  .ghost { fill:#ffffff; stroke:#9aa4b2; stroke-width:1.2; stroke-dasharray:4 3; }
+  .arw { stroke:#1f2328; stroke-width:1.4; fill:none; marker-end:url(#a); }
+  .arwA{ stroke:#1a6fb5; stroke-width:1.8; fill:none; marker-end:url(#aA); }
+  .arwW{ stroke:#b5501a; stroke-width:1.8; fill:none; marker-end:url(#aW); }
+</style>
+<defs>
+  <marker id="a"  markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#1f2328"/></marker>
+  <marker id="aA" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#1a6fb5"/></marker>
+  <marker id="aW" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#b5501a"/></marker>
+</defs>
+
+<text class="t ttl" x="12" y="22">Memory has a home. So does the NIC.</text>
+
+<rect class="box" x="12" y="40" width="326" height="220"/>
+<text class="t lbl" x="26" y="62">Socket 0</text>
+<rect class="acc" x="26" y="74" width="140" height="52"/>
+<text class="t lbl" x="96" y="96" text-anchor="middle">cores</text>
+<text class="t ann" x="96" y="114" text-anchor="middle">feed handler here</text>
+<rect class="box" x="182" y="74" width="140" height="52"/>
+<text class="t lbl" x="252" y="96" text-anchor="middle">memory</text>
+<text class="t ann" x="252" y="114" text-anchor="middle">node 0</text>
+<path class="arwA" d="M170 100 L178 100"/>
+<rect class="acc" x="26" y="146" width="140" height="46"/>
+<text class="t lbl" x="96" y="168" text-anchor="middle">NIC</text>
+<text class="t ann" x="96" y="184" text-anchor="middle">attached to socket 0</text>
+<path class="arwA" d="M96 142 L96 130"/>
+<text class="t ann" x="26" y="216">packets are DMA'd into</text>
+<text class="t ann" x="26" y="232">socket 0's memory —</text>
+<text class="t ann" x="26" y="248">before your code runs</text>
+
+<rect class="box" x="376" y="40" width="326" height="220"/>
+<text class="t lbl" x="390" y="62">Socket 1</text>
+<rect class="wrn" x="390" y="74" width="140" height="52"/>
+<text class="t lbl" x="460" y="96" text-anchor="middle">cores</text>
+<text class="t ann" x="460" y="114" text-anchor="middle">strategy here</text>
+<rect class="box" x="546" y="74" width="140" height="52"/>
+<text class="t lbl" x="616" y="96" text-anchor="middle">memory</text>
+<text class="t ann" x="616" y="114" text-anchor="middle">node 1</text>
+<path class="arw" d="M534 100 L542 100"/>
+
+<rect class="box" x="338" y="120" width="38" height="40"/>
+<text class="t ann" x="357" y="136" text-anchor="middle">inter-</text>
+<text class="t ann" x="357" y="150" text-anchor="middle">connect</text>
+
+<path class="arwW" d="M166 100 L340 100"/>
+<path class="arwW" d="M374 100 L388 100"/>
+<text class="t ann" x="357" y="88" text-anchor="middle" fill="#b5501a">every packet crosses here</text>
+
+<text class="t ann" x="390" y="216" fill="#b5501a">remote access is not just slower —</text>
+<text class="t ann" x="390" y="232" fill="#b5501a">it is more VARIABLE, because the</text>
+<text class="t ann" x="390" y="248" fill="#b5501a">interconnect is shared with everything</text>
+
+<line x1="12" y1="280" x2="702" y2="280" stroke="#9aa4b2" stroke-width="1"/>
+<text class="t lbl" x="12" y="304">A page's node is chosen by the thread that first WRITES it —</text>
+<text class="t lbl" x="12" y="322">not by the thread that called malloc, and not by the thread that will use it.</text>
+
+</svg>

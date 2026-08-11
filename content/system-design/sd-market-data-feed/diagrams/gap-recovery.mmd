@@ -1,0 +1,13 @@
+sequenceDiagram
+    participant EX as Exchange
+    participant RX as Live Receiver
+    participant GR as Recovery Service
+    participant MG as Ordered Merger
+    participant CO as Consumer
+    EX->>RX: sequence 100
+    EX->>RX: sequence 103
+    RX->>GR: request 101 through 102
+    RX->>MG: buffer live sequence 103
+    GR-->>MG: replay 101 and 102
+    MG->>CO: release 100 through 103
+

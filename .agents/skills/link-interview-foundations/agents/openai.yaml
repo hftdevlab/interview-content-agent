@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reference Interview Foundations"
+  short_description: "Link interview questions to trusted foundations"
+  default_prompt: "Use $link-interview-foundations to add concise prerequisite links to this interview question."

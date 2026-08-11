@@ -1,0 +1,69 @@
+schema_version: 1
+id: d6-kernel-bypass
+title: Kernel bypass and user-space networking
+display_title: "Taking the Kernel Out of the Path"
+module: D
+difficulty: specialist
+order: 6
+target_length: { min_words: 1800, max_words: 3000 }
+carries_module_review: true
+chapter_focus: >
+  What the kernel network path actually costs, which specific parts bypass
+  removes, and the operational bill that arrives with it.
+reader_starting_point: >
+  The reader knows transports (d2), copies and mappings (c6), waiting strategies
+  (b5), and measurement (a4). They have heard bypass described as fast.
+opening_scenario: >
+  A firm adopts kernel bypass and the receive path gets materially faster. Six
+  weeks later a production incident begins: the strategy is seeing no market
+  data. An engineer runs tcpdump on the host and sees nothing at all — not the
+  missing packets, not the packets that are arriving fine on another feed. The
+  tooling everyone has used for a decade is looking at a path the data no longer
+  takes.
+industry_usage_anchor: >
+  Bypass is standard at the fastest tier of the industry and unnecessary
+  everywhere else, and interviews probe whether a candidate can state what it
+  removes and what it costs rather than that it is fast.
+primary_artifact_mode: none
+include_quizzes: true
+include_measurement_plan: true
+core_claims_to_establish:
+  - id: claim-d6-01
+    type: judgment
+    statement: The kernel receive path costs an interrupt, protocol processing, a copy to user space, and a system call with its mode switch — each with variance as well as mean cost.
+  - id: claim-d6-02
+    type: judgment
+    statement: Bypass maps the NIC's queues into the process, so packets are read by polling and parsed in place, removing the copy, the syscall, and the interrupt.
+  - id: claim-d6-03
+    type: judgment
+    statement: Polling requires a dedicated core, so bypass consumes a core permanently whether or not data arrives.
+  - id: claim-d6-04
+    type: judgment
+    statement: Bypass moves protocol handling into your process, so you own reassembly, checksums, and multicast group management that the kernel handled.
+  - id: claim-d6-05
+    type: judgment
+    statement: Kernel tooling cannot see bypassed traffic, so observability must be rebuilt inside the application.
+  - id: claim-d6-06
+    type: judgment
+    statement: Several cheaper interventions recover part of the benefit without leaving the kernel, and should be exhausted first.
+reader_misconceptions:
+  - "Bypass is just a faster socket."
+  - "We get the same tooling."
+  - "It is free once it is set up."
+  - "The kernel path is slow because the kernel is inefficient."
+correctness_properties:
+  - Packets are processed before the NIC ring wraps and overwrites them.
+  - Multicast group membership and link state are managed explicitly.
+measurement_questions:
+  - How much of the current receive latency is the kernel path, measured with NIC hardware timestamps?
+  - Does interrupt coalescing or busy-polling recover most of it without bypass?
+  - What is the ring occupancy under burst, and how close does it come to wrapping?
+scope_exclusions:
+  - Mapping and copy counting (c6-mmap-and-zero-copy)
+  - Spinning cost (b5-waiting-strategies)
+  - Protocol decoding (d1-market-data-and-protocols)
+interview_competencies:
+  - Enumerate the kernel receive path and say which parts bypass removes.
+  - Raise the dedicated-core cost unprompted.
+  - Name the observability loss.
+  - Propose cheaper interventions before bypass.

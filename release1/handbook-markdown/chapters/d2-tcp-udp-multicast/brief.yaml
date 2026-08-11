@@ -1,0 +1,65 @@
+schema_version: 1
+id: d2-tcp-udp-multicast
+title: TCP, UDP, and multicast in trading systems
+display_title: "Why the Exchange Does Not Reply to You"
+module: D
+difficulty: applied
+order: 2
+target_length: { min_words: 1600, max_words: 2600 }
+chapter_focus: >
+  That transport is chosen per channel from the failure you can tolerate — market
+  data is one-to-many and unreliable by design because reliability would be
+  unfair, and order entry is a session because you must know your order arrived.
+reader_starting_point: >
+  The reader knows what channels a feed has (d1) and how a trading system is
+  shaped (a1). They know TCP and UDP from a networks course as a reliability
+  trade, and have not thought about fairness or fan-out.
+opening_scenario: >
+  A firm receives Nasdaq market data over UDP multicast and sends orders over
+  TCP. Both choices look inconsistent with the stakes: the data the strategy
+  depends on arrives over a protocol that can silently drop it, while the orders
+  travel over one that will happily stall for tens of milliseconds retransmitting
+  something. Each choice is correct, and the reasoning is not about reliability.
+industry_usage_anchor: >
+  Every venue connection is one of these two shapes, and "why is market data
+  multicast" is a standard interview question whose good answer is about fan-out
+  and fairness rather than about speed.
+primary_artifact_mode: none
+include_quizzes: true
+include_measurement_plan: false
+core_claims_to_establish:
+  - id: claim-d2-01
+    type: judgment
+    statement: Multicast lets one sender reach hundreds of receivers with the network replicating packets, so sender cost does not grow with subscriber count.
+  - id: claim-d2-02
+    type: judgment
+    statement: Per-receiver reliability would require per-receiver state and retransmission, which makes delivery times differ between participants — a fairness problem, not just a scaling one.
+  - id: claim-d2-03
+    type: judgment
+    statement: Order entry uses TCP because the sender must know the order arrived, and a session carries sequence and recovery semantics that a datagram does not.
+  - id: claim-d2-04
+    type: judgment
+    statement: TCP's reliability is paid for in the tail — a lost segment blocks every byte behind it until retransmission completes.
+  - id: claim-d2-05
+    type: judgment
+    statement: Most UDP loss in practice happens in the receiver's own buffers, not in the network.
+reader_misconceptions:
+  - "UDP is used because it is faster."
+  - "TCP is reliable, so order entry cannot lose anything."
+  - "Packet loss happens in the network."
+  - "Nagle's algorithm is a sensible default."
+correctness_properties:
+  - Receive buffers are sized deliberately and their overflow counters are monitored.
+  - Session-level sequencing is maintained independently of TCP's own.
+when_not_to_use:
+  - Multicast across networks that do not support it, including most cloud environments.
+  - TCP for anything where a stalled byte stream is worse than a missing message.
+scope_exclusions:
+  - Gap detection and recovery (d3-sequence-and-gap-recovery)
+  - Kernel bypass (d6-kernel-bypass)
+  - Overload behaviour (d4-parsing-batching-backpressure)
+interview_competencies:
+  - Explain multicast in terms of fan-out and fairness.
+  - Explain head-of-line blocking and why it damages the tail.
+  - Say where packet loss actually occurs.
+  - Name the socket settings that matter and why.

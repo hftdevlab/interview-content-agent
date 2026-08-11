@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 714 244" width="714" height="244" role="img" aria-label="Three virtual pages after malloc, none backed by physical memory; after a first write, one page is backed while the others remain unbacked">
+<!--
+  figure: fig-c1-1
+  purpose: Separate the reservation of address space from the creation of physical pages, and show that the fault cost lands at first touch.
+  critical distinction: The page exists because it was WRITTEN, not because it was allocated.
+  forbidden implication: Must not suggest malloc allocates physical memory, and must not suggest all pages are faulted at once.
+-->
+<style>
+  .t   { font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; fill:#1f2328; }
+  .lbl { font-size:13px; }
+  .ann { font-size:11px; fill:#6b7280; }
+  .ttl { font-size:14px; font-weight:600; }
+  .mono{ font-family: ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
+  .box { fill:#f3f4f6; stroke:#9aa4b2; stroke-width:1.2; }
+  .acc { fill:#dbeafe; stroke:#1a6fb5; stroke-width:1.5; }
+  .wrn { fill:#fde8d7; stroke:#b5501a; stroke-width:1.5; }
+  .ghost { fill:#ffffff; stroke:#9aa4b2; stroke-width:1.2; stroke-dasharray:4 3; }
+  .arw { stroke:#1f2328; stroke-width:1.4; fill:none; marker-end:url(#a); }
+  .arwA{ stroke:#1a6fb5; stroke-width:1.8; fill:none; marker-end:url(#aA); }
+  .arwW{ stroke:#b5501a; stroke-width:1.8; fill:none; marker-end:url(#aW); }
+</style>
+<defs>
+  <marker id="a"  markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#1f2328"/></marker>
+  <marker id="aA" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#1a6fb5"/></marker>
+  <marker id="aW" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#b5501a"/></marker>
+</defs>
+
+<text class="t ttl" x="12" y="22">malloc reserves address space. First touch creates the page.</text>
+
+<text class="t ann" x="12" y="48">after malloc(3 pages)</text>
+<rect class="ghost" x="12"  y="56" width="96" height="46"/>
+<rect class="ghost" x="110" y="56" width="96" height="46"/>
+<rect class="ghost" x="208" y="56" width="96" height="46"/>
+<text class="t lbl" x="60"  y="84" text-anchor="middle">page 0</text>
+<text class="t lbl" x="158" y="84" text-anchor="middle">page 1</text>
+<text class="t lbl" x="256" y="84" text-anchor="middle">page 2</text>
+<text class="t ann" x="12" y="120">virtual: valid range exists</text>
+<text class="t ann" x="12" y="136">physical: nothing allocated</text>
+<text class="t ann" x="12" y="152">resident set: unchanged</text>
+
+<path class="arwW" d="M330 79 L392 79"/>
+<text class="t ann" x="336" y="70" fill="#b5501a">first write</text>
+<text class="t ann" x="336" y="98" fill="#b5501a">to page 1</text>
+
+<rect class="ghost" x="410" y="56" width="96" height="46"/>
+<rect class="acc"   x="508" y="56" width="96" height="46"/>
+<rect class="ghost" x="606" y="56" width="96" height="46"/>
+<text class="t lbl" x="458" y="84" text-anchor="middle">page 0</text>
+<text class="t lbl" x="556" y="84" text-anchor="middle">page 1</text>
+<text class="t lbl" x="654" y="84" text-anchor="middle">page 2</text>
+<text class="t ann" x="410" y="120">page fault → kernel finds a frame,</text>
+<text class="t ann" x="410" y="136">zeroes it, installs the translation,</text>
+<text class="t ann" x="410" y="152">restarts your instruction</text>
+
+<line x1="12" y1="176" x2="702" y2="176" stroke="#9aa4b2" stroke-width="1"/>
+
+<text class="t lbl" x="12" y="202">Cost is paid once per page, at first touch —</text>
+<text class="t lbl" x="12" y="220">so it lands wherever first touch happens to occur.</text>
+
+<rect class="wrn" x="386" y="188" width="150" height="40"/>
+<text class="t lbl" x="461" y="204" text-anchor="middle">during the burst</text>
+<text class="t ann" x="461" y="220" text-anchor="middle" fill="#b5501a">tail latency</text>
+<rect class="box" x="552" y="188" width="150" height="40"/>
+<text class="t lbl" x="627" y="204" text-anchor="middle">at startup</text>
+<text class="t ann" x="627" y="220" text-anchor="middle">nobody is trading</text>
+<text class="t ann" x="546" y="214" text-anchor="middle">or</text>
+
+</svg>

@@ -1,0 +1,102 @@
+schema_version: 1
+id: c2-preallocation-and-pools
+title: Preallocation and object pools
+display_title: "Never Ask the Allocator During Market Hours"
+module: C
+difficulty: applied
+order: 2
+target_length: { min_words: 1600, max_words: 2600 }
+
+chapter_focus: >
+  That allocation is banned on the hot path for DETERMINISM rather than speed —
+  and that the real design decision in a pool is what happens when it is empty.
+
+reader_starting_point: >
+  The reader knows that pages arrive on first touch (c1) and that the tail is the
+  product (a3). They allocate objects freely and have never hit an allocator stall.
+
+opening_scenario: >
+  An order gateway allocates an order object per order. It has done so for two
+  years without incident. During a burst after a rate decision, one allocation
+  takes forty microseconds — the allocator took a slow path, walked a free list,
+  and faulted in a fresh page. That order was late to the venue. The code was not
+  slow; it was slow once, at the worst possible moment.
+
+industry_usage_anchor: >
+  Order objects, message buffers, and book nodes are preallocated at every
+  latency-sensitive firm, and "no allocation on the hot path" is a rule you will
+  be expected to state and justify in an interview.
+
+primary_artifact_mode: code
+include_quizzes: true
+include_measurement_plan: false
+
+core_claims_to_establish:
+  - id: claim-c2-01
+    type: judgment
+    statement: >
+      A general allocator is fast on average and occasionally slow, and the
+      occasional case is what makes it unusable on the critical path.
+  - id: claim-c2-02
+    type: judgment
+    statement: >
+      A fixed-capacity pool converts allocation into an index operation with a
+      bounded worst case.
+  - id: claim-c2-03
+    type: judgment
+    statement: >
+      Pool exhaustion is a policy decision, not an implementation detail, and it
+      has the same shape as a full queue.
+  - id: claim-c2-04
+    type: judgment
+    statement: >
+      Pool capacity is sized from the worst case the system must survive, not from
+      the average, because the average never exhausts it.
+  - id: claim-c2-05
+    type: judgment
+    statement: >
+      A pool converts a memory leak into an exhaustion failure, which is louder and
+      earlier but requires a return discipline that survives every error path.
+
+reader_misconceptions:
+  - "malloc is fast, I measured it."
+  - "Preallocation is about avoiding the cost of allocation."
+  - "If the pool is big enough I do not need an exhaustion policy."
+  - "RAII handles the return, so leaks are impossible."
+
+correctness_properties:
+  - Every acquired object is returned exactly once, on every path including errors.
+  - Acquire and release have a bounded worst case.
+  - Exhaustion is reported, never silently overwritten or ignored.
+
+sequencing_hazards:
+  - id: seq-c2-01
+    order:
+      - stop using the object
+      - return it to the pool
+    failure_if_violated: >
+      Returning an object while a reference to it is still live lets the pool hand
+      the same slot to another caller, so two owners mutate one object. The symptom
+      is a message with fields from two unrelated orders, appearing only under load.
+    detectability: timing-dependent
+
+operational_and_recovery_concerns:
+  - Pool high-water mark is the metric that predicts exhaustion before it happens.
+  - Exhaustion counts must be alarmed; they mean the sizing assumption was wrong.
+  - A slow leak shows as a rising high-water mark long before it shows as failure.
+
+when_not_to_use:
+  - Cold paths where allocation cost is irrelevant.
+  - Highly variable object sizes, where a pool wastes most of its capacity.
+  - Where the object outlives any bounded scope and ownership cannot be tracked.
+
+scope_exclusions:
+  - Arena and slab designs (c3-arenas-and-allocators)
+  - Page fault behaviour (c1-virtual-memory)
+  - Queue design (b2-spsc-ring-buffer)
+
+interview_competencies:
+  - Justify no-allocation-on-the-hot-path in terms of the tail, not the mean.
+  - Describe a pool with a bounded worst case.
+  - Answer the exhaustion question with a policy and a metric.
+  - Explain how return discipline survives error paths.

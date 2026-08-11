@@ -1,0 +1,110 @@
+schema_version: 1
+
+id: a1-system-data-flow
+title: Trading-system data flow
+module: A
+difficulty: foundation
+target_length: { min_words: 1200, max_words: 2000 }
+
+chapter_focus: >
+  Which stages sit on the critical path from packet arrival to order departure,
+  which do not, and why deciding that boundary is the central design act of a
+  trading system.
+
+reader_range: >
+  From an engineer with no trading exposure at all, through to someone who has
+  worked on one component and never seen the whole shape.
+
+reader_starting_point: >
+  Competent software engineer. Assumes no knowledge of exchanges, market data,
+  or trading. This is the first chapter of the handbook.
+
+opening_scenario: >
+  A trader at a market-making firm quotes both sides of NVDA on Nasdaq. Someone
+  lifts their offer. In the time it takes to notice, the market has moved and
+  their remaining quotes are now mispriced — they are offering to buy at a price
+  nobody sane would pay. Every microsecond between the exchange announcing that
+  trade and the firm's replacement quotes reaching the matching engine is time
+  spent exposed. Follow that one packet through the machine and you have the
+  map of the whole system.
+
+industry_usage_anchor: >
+  "Walk me through what happens between a packet arriving and an order leaving"
+  is one of the most common opening questions in a quant systems interview. It
+  is asked because the answer reveals immediately whether a candidate has seen
+  a whole system or only a component of one.
+
+primary_artifact_mode: none
+include_quizzes: true
+include_measurement_plan: false
+
+core_claims_to_establish:
+  - id: claim-a1-01
+    type: judgment
+    statement: >
+      The critical path is everything between a packet arriving at the NIC and
+      an order leaving it; tick-to-trade is the latency of that path, and it is
+      the number the business cares about.
+  - id: claim-a1-02
+    type: judgment
+    statement: >
+      Most of what a trading system does is not on the critical path, and the
+      main structural decision is which work is moved off it.
+  - id: claim-a1-03
+    type: judgment
+    statement: >
+      Work is moved off the critical path by handing it to another thread, which
+      makes the handoff itself the only on-path cost.
+  - id: claim-a1-04
+    type: judgment
+    statement: >
+      Pre-trade risk is the one mandatory addition to the critical path; it
+      cannot be moved off, only made fast.
+  - id: claim-a1-05
+    type: judgment
+    statement: >
+      Each stage owns distinct state, and most system-level bugs are a stage
+      reading state that another stage owns.
+
+reader_misconceptions:
+  - "The strategy is where the latency is, because that's where the thinking happens."
+  - "Making everything fast is the goal."
+  - "Logging is cheap because writing to a file is buffered."
+  - "The system processes one message at a time, start to finish, like a request handler."
+  - "Risk checks can be done asynchronously to save time on the path."
+
+correctness_properties:
+  - Every stage on the critical path has a bounded worst case, not just a good average.
+  - No on-path stage performs I/O, allocation, or blocking.
+
+operational_and_recovery_concerns:
+  - Each stage needs its own latency attribution, or a regression cannot be localised.
+  - Queue depths between stages are the earliest indicator of a stage falling behind.
+  - Off-path work failing must not stall on-path work; a full log queue is not a trading outage.
+
+when_not_to_use:
+  - Applying tick-to-trade thinking to systems where the path is not latency-sensitive.
+  - Optimising a stage before establishing it is on the critical path.
+
+diagram_expectations:
+  - id: fig-a1-1
+    purpose: The full data flow from exchange to exchange, with the critical path visually distinct from off-path work.
+    critical_distinction: On-path versus off-path is the primary visual division.
+    forbidden_implication: >
+      Must not imply the stages are separate processes, and must not imply off-path
+      work happens after the order is sent rather than concurrently.
+  - id: fig-a1-2
+    purpose: Ownership map — which stage owns which state.
+    critical_distinction: State has exactly one owner.
+    forbidden_implication: Must not suggest shared mutable state between stages is normal.
+
+scope_exclusions:
+  - Order state machine detail (a2-order-lifecycle)
+  - Latency terminology and tail behaviour (a3-latency-throughput)
+  - Any implementation technique (Modules B and C)
+  - Protocol specifics (d1-market-data-and-protocols)
+
+interview_competencies:
+  - Trace a packet from wire to order and name what each stage does.
+  - Identify what is and is not on the critical path, and justify the boundary.
+  - Explain how work gets moved off the path and what that costs.

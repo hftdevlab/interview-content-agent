@@ -1,0 +1,67 @@
+schema_version: 1
+id: d1-market-data-and-protocols
+title: Market data and exchange protocols
+display_title: "Reading the Wire"
+module: D
+difficulty: foundation
+order: 1
+target_length: { min_words: 1600, max_words: 2600 }
+chapter_focus: >
+  That a market-data feed is several channels with different jobs, and that the
+  bytes on each are a framing contract you must decode without allocating,
+  copying, or trusting your own assumptions about number representation.
+reader_starting_point: >
+  The reader knows the system map (a1) and the order lifecycle (a2). They have
+  never opened an exchange specification and do not know what is on the wire.
+opening_scenario: >
+  An engineer is handed a 300-page exchange market-data specification and told
+  to write a feed handler. The document describes four multicast channels, a
+  dozen message types, and a recovery service, with no obvious entry point. The
+  first question is not how to parse a message. It is which of those channels
+  the system needs, and in what order, before a single price can be trusted.
+industry_usage_anchor: >
+  Every feed handler starts here, and the ability to read a venue specification
+  and identify its framing, channel structure, and state assumptions is a
+  day-one skill. Interviews probe it through fixed-point prices and cold start.
+primary_artifact_mode: code
+include_quizzes: true
+include_measurement_plan: false
+core_claims_to_establish:
+  - id: claim-d1-01
+    type: judgment
+    statement: A feed is a set of channels — incremental, snapshot, reference data, status — each with a different job and different delivery semantics.
+  - id: claim-d1-02
+    type: judgment
+    statement: A packet carries a packet header and one or more self-describing messages, so framing must be parsed before content.
+  - id: claim-d1-03
+    type: normative
+    statement: Prices are transmitted as integers with an implied decimal exponent, not as floating point, because decimal values must round-trip exactly.
+  - id: claim-d1-04
+    type: judgment
+    statement: Decoding must not allocate or copy the payload; the safe idiom is a bounds-checked read into an aligned struct rather than casting a pointer over the buffer.
+  - id: claim-d1-05
+    type: judgment
+    statement: Order-based and level-based feeds carry different information and imply different book-building work.
+  - id: claim-d1-06
+    type: judgment
+    statement: Reference data is a prerequisite, not an extra; a message about an unknown instrument cannot be interpreted.
+reader_misconceptions:
+  - "A price is a double."
+  - "I can cast a struct pointer over the receive buffer."
+  - "One packet is one message."
+  - "The incremental feed is the whole feed."
+  - "Field order and endianness will match my machine."
+correctness_properties:
+  - No message is parsed beyond the bounds of the received packet.
+  - Prices round-trip exactly through the system.
+  - An unknown message type is skipped using its declared length, never guessed at.
+when_not_to_use:
+  - Building a custom decoder where the venue ships a supported one that meets the latency budget.
+scope_exclusions:
+  - Sequence numbers and recovery (d3-sequence-and-gap-recovery)
+  - Transport choice (d2-tcp-udp-multicast)
+  - Book construction (e2-order-book-construction)
+interview_competencies:
+  - Explain why prices are integers with an exponent.
+  - Describe packet framing and how an unknown message type is skipped.
+  - Say what a handler needs before it can trust a price at cold start.

@@ -1,0 +1,14 @@
+{
+  "question_id": "fund-sequence-lock",
+  "checks": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "review_notes": [
+    "The draft deliberately distinguishes the sequence-counter idea from a generally portable C++ implementation.",
+    "Human technical review should confirm the intended platform and payload constraints."
+  ]
+}
+

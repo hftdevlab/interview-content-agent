@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 714 318" width="714" height="318" role="img" aria-label="Address translation path: virtual address to TLB, hit goes straight to physical address, miss requires a page-table walk; below, TLB reach compared for 4KB and 2MB pages">
+<!--
+  figure: fig-c1-2
+  purpose: Show that translation is a separate lookup from the data access, with its own cache and its own miss cost.
+  critical distinction: A TLB miss is not a cache miss — the data may be in L1 and the translation still absent.
+  forbidden implication: Must not imply the page-table walk fetches your data, and must not imply huge pages help when the working set already fits.
+-->
+<style>
+  .t   { font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; fill:#1f2328; }
+  .lbl { font-size:13px; }
+  .ann { font-size:11px; fill:#6b7280; }
+  .ttl { font-size:14px; font-weight:600; }
+  .mono{ font-family: ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
+  .box { fill:#f3f4f6; stroke:#9aa4b2; stroke-width:1.2; }
+  .acc { fill:#dbeafe; stroke:#1a6fb5; stroke-width:1.5; }
+  .wrn { fill:#fde8d7; stroke:#b5501a; stroke-width:1.5; }
+  .ghost { fill:#ffffff; stroke:#9aa4b2; stroke-width:1.2; stroke-dasharray:4 3; }
+  .arw { stroke:#1f2328; stroke-width:1.4; fill:none; marker-end:url(#a); }
+  .arwA{ stroke:#1a6fb5; stroke-width:1.8; fill:none; marker-end:url(#aA); }
+  .arwW{ stroke:#b5501a; stroke-width:1.8; fill:none; marker-end:url(#aW); }
+</style>
+<defs>
+  <marker id="a"  markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#1f2328"/></marker>
+  <marker id="aA" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#1a6fb5"/></marker>
+  <marker id="aW" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#b5501a"/></marker>
+</defs>
+
+<text class="t ttl" x="12" y="22">Every access is translated. The TLB caches the translation, not the data.</text>
+
+<rect class="box" x="12" y="46" width="188" height="44"/>
+<text class="t lbl" x="106" y="66" text-anchor="middle">virtual address</text>
+<text class="t mono" x="106" y="83" text-anchor="middle">[ page number | offset ]</text>
+
+<path class="arwA" d="M204 68 L250 68"/>
+
+<rect class="acc" x="254" y="40" width="150" height="56"/>
+<text class="t lbl" x="329" y="62" text-anchor="middle">TLB</text>
+<text class="t ann" x="329" y="80" text-anchor="middle">cache of translations</text>
+
+<path class="arwA" d="M408 58 L470 58"/>
+<text class="t ann" x="414" y="50" fill="#1a6fb5">hit: fast</text>
+
+<rect class="box" x="474" y="40" width="220" height="56"/>
+<text class="t lbl" x="584" y="62" text-anchor="middle">physical address</text>
+<text class="t ann" x="584" y="80" text-anchor="middle">then the access proceeds</text>
+
+<path class="arwW" d="M329 100 L329 138"/>
+<text class="t ann" x="338" y="122" fill="#b5501a">miss</text>
+
+<rect class="wrn" x="180" y="142" width="300" height="60"/>
+<text class="t lbl" x="330" y="164" text-anchor="middle">page-table walk</text>
+<text class="t ann" x="330" y="182" text-anchor="middle">several DEPENDENT memory accesses,</text>
+<text class="t ann" x="330" y="196" text-anchor="middle">before your access can even start</text>
+
+<path class="arwW" d="M484 172 L560 172 L560 100"/>
+
+<line x1="12" y1="222" x2="702" y2="222" stroke="#9aa4b2" stroke-width="1"/>
+<text class="t lbl" x="12" y="246">TLB reach = entries x page size</text>
+<rect class="box" x="12"  y="258" width="330" height="44"/>
+<text class="t lbl" x="177" y="278" text-anchor="middle">4 KB pages: a few MB of reach</text>
+<text class="t ann" x="177" y="294" text-anchor="middle">a 400 MB scan spans ~100,000 pages</text>
+<rect class="acc" x="358" y="258" width="336" height="44"/>
+<text class="t lbl" x="526" y="278" text-anchor="middle">2 MB huge pages: 512x the reach</text>
+<text class="t ann" x="526" y="294" text-anchor="middle">the same scan spans ~200 pages</text>
+
+</svg>

@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "id": "sd-market-data-feed",
+  "type": "system_design",
+  "title": "Design a Low-Latency Market Data Feed and Normalization System",
+  "status": "needs_human_review",
+  "difficulty": 4,
+  "expected_duration_minutes": 60,
+  "categories": ["market-data", "data-pipeline", "low-latency", "reliability"],
+  "tags": [
+    "multicast",
+    "feed-arbitration",
+    "sequence-numbers",
+    "gap-recovery",
+    "retransmission",
+    "snapshot-resync",
+    "replay",
+    "normalization",
+    "schema-evolution",
+    "kernel-bypass",
+    "lock-free-ring",
+    "numa",
+    "ptp",
+    "capacity-planning",
+    "mermaid"
+  ],
+  "prerequisites": [],
+  "related_questions": ["code-multi-source-stream-merger", "fund-sequence-lock"],
+  "source": {
+    "input_type": "text",
+    "confidentiality": "public",
+    "original_company_removed": true,
+    "original_files": ["source/original.txt"]
+  },
+  "review": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "last_updated": "2026-08-11",
+  "content_file": "question.md",
+  "diagrams": [
+    {
+      "source_file": "diagrams/architecture.mmd",
+      "rendered_file": "architecture.svg",
+      "caption": "Latency-critical trading, recovery, capture, and research planes remain explicitly separated.",
+      "alt_text": "Exchange multicast feeds enter per-channel receivers, pass through decoding and normalization, then publish to consumers while a separate recovery service handles sequence gaps."
+    },
+    {
+      "source_file": "diagrams/gap-recovery.mmd",
+      "rendered_file": "gap-recovery.svg",
+      "caption": "Sequence gap detection and recovery without pausing the live feed.",
+      "alt_text": "The live receiver detects a missing sequence, continues buffering live packets, requests replay, merges the recovered range, and releases ordered events."
+    },
+    {
+      "source_file": "diagrams/delivery-rings.mmd",
+      "rendered_file": "delivery-rings.svg",
+      "caption": "Bounded ring delivery makes consumer independence and resynchronization explicit.",
+      "alt_text": "A single publisher chooses either per-consumer SPSC rings or a shared append-only ring with independent consumer cursors; lagging consumers recover without blocking publication."
+    }
+  ]
+}

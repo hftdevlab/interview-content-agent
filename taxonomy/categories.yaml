@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "values": [
+    "algorithms",
+    "api-design",
+    "concurrency",
+    "cpp-language",
+    "data-pipeline",
+    "distributed-systems",
+    "exchange-connectivity",
+    "low-latency",
+    "market-data",
+    "memory-model",
+    "networking",
+    "operating-systems",
+    "performance",
+    "reliability",
+    "storage-replay",
+    "testing",
+    "trading-systems"
+  ]
+}
+

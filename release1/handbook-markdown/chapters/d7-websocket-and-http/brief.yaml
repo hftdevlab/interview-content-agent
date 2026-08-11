@@ -1,0 +1,65 @@
+schema_version: 1
+id: d7-websocket-and-http
+title: WebSocket, HTTP polling, and venue APIs
+display_title: "The Control Plane"
+module: D
+difficulty: foundation
+order: 99
+appendix: true
+target_length: { min_words: 1200, max_words: 1800 }
+chapter_focus: >
+  That these protocols belong on the control plane rather than the data plane,
+  and that a venue whose only interface is one of them has made a decision about
+  what kind of trading it supports.
+reader_starting_point: >
+  The reader knows exchange feeds and transports (d1, d2). They may have built
+  web services and expect WebSocket to be the normal way to stream data.
+opening_scenario: >
+  An engineer arriving from web development looks at a crypto venue's API,
+  finds a WebSocket endpoint streaming order-book updates as JSON, and
+  reasonably concludes this is how market data works. It is how THIS venue's
+  market data works, and the difference between it and a multicast binary feed
+  explains a great deal about which strategies are viable on each.
+industry_usage_anchor: >
+  Crypto venues, broker APIs, admin and monitoring interfaces, and most vendor
+  control planes. Worth understanding because many engineers meet these first
+  and generalise from them incorrectly.
+primary_artifact_mode: none
+include_quizzes: false
+include_measurement_plan: false
+core_claims_to_establish:
+  - id: claim-d7-01
+    type: judgment
+    statement: WebSocket is a framed message stream over one TCP connection, so it inherits TCP's ordering, head-of-line blocking, and per-connection fan-out cost.
+  - id: claim-d7-02
+    type: judgment
+    statement: A per-client connection means the venue does work proportional to subscriber count, which bounds how many clients it can serve and how evenly.
+  - id: claim-d7-03
+    type: judgment
+    statement: Text encodings cost parsing time and lose exactness for decimal values unless handled deliberately.
+  - id: claim-d7-04
+    type: judgment
+    statement: HTTP polling introduces an interval that bounds staleness, making it suitable for state that changes slowly and unsuitable for prices.
+  - id: claim-d7-05
+    type: judgment
+    statement: These interfaces are appropriate for the control plane — configuration, position queries, administrative actions — where a millisecond is irrelevant.
+  - id: claim-d7-06
+    type: judgment
+    statement: >
+      The persistent bidirectional connection that makes WebSocket poor for market
+      data makes it well suited to live dashboards, operator control channels, and
+      RFQ workflows, which is where trading firms genuinely use it.
+reader_misconceptions:
+  - "WebSocket is the modern way to do market data."
+  - "JSON parsing is fast enough."
+  - "A REST endpoint is a reasonable source of prices."
+when_not_to_use:
+  - Anywhere on the tick-to-trade path when a binary multicast feed is available.
+scope_exclusions:
+  - Exchange binary protocols (d1-market-data-and-protocols)
+  - Transport fundamentals (d2-tcp-udp-multicast)
+interview_competencies:
+  - Name where firms actually use WebSocket internally: dashboards, control channels, monitoring consoles, RFQ.
+  - Place these protocols on the control plane and justify it.
+  - Explain why per-client connections limit fan-out and fairness.
+  - Say what changes when a venue offers only this interface.

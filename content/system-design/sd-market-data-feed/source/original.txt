@@ -1,0 +1,5 @@
+Design a low-latency market data feed and normalization system. Discuss the
+live path, ordering, gap detection and recovery, replay, failure handling,
+capacity, observability, and how downstream trading components consume the
+normalized events.
+

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Practice Question"
+  short_description: "Create and verify runnable C++ practice files"
+  default_prompt: "Use $build-practice-question to create a runnable package for this question."

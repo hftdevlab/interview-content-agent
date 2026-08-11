@@ -1,0 +1,87 @@
+schema_version: 1
+id: c6-mmap-and-zero-copy
+title: mmap, shared memory, and zero-copy claims
+display_title: "Counting the Copies"
+module: C
+difficulty: applied
+order: 4
+target_length: { min_words: 1600, max_words: 2600 }
+
+chapter_focus: >
+  That "zero-copy" is a claim to be checked by counting copies in the actual path,
+  and that mmap does not remove work so much as change when and how it is paid.
+
+reader_starting_point: >
+  The reader knows pages arrive on first touch (c1) and has built in-process queues
+  (b2). They have used read() and have heard mmap described as faster.
+
+opening_scenario: >
+  A team replaces read() with mmap in their capture-file replay tool, having read
+  that mmap is zero-copy. Throughput improves and everyone is satisfied. Some weeks
+  later the tool starts dying with a signal nobody recognises when it is pointed at
+  a file that another process is still writing, and the error handling that used to
+  catch a short read has nothing to catch.
+
+industry_usage_anchor: >
+  Capture-file replay, shared-memory transports between processes on the same host,
+  and the receive path in kernel-bypass stacks all rest on this. "What does
+  zero-copy actually mean here" is a good interview question precisely because the
+  phrase is used loosely.
+
+primary_artifact_mode: code
+include_quizzes: true
+include_measurement_plan: false
+
+core_claims_to_establish:
+  - id: claim-c6-01
+    type: judgment
+    statement: >
+      A copy moves bytes; a mapping installs page-table entries. mmap replaces
+      explicit copies with page faults, which is a different cost, not no cost.
+  - id: claim-c6-02
+    type: judgment
+    statement: >
+      mmap changes the error model: I/O problems arrive as signals on access rather
+      than as return values from a call you can check.
+  - id: claim-c6-03
+    type: judgment
+    statement: >
+      Shared-memory queues between processes have failure modes in-process queues do
+      not, because one participant can die or misbehave while the other continues.
+  - id: claim-c6-04
+    type: judgment
+    statement: >
+      Zero-copy on a network path means specific copies were removed; which ones
+      must be stated for the claim to mean anything.
+
+reader_misconceptions:
+  - "mmap is zero-copy, so it is free."
+  - "mmap avoids the kernel."
+  - "A shared-memory ring buffer is just a ring buffer in a different place."
+  - "If read() worked, mmap will work the same way but faster."
+
+correctness_properties:
+  - A consumer never acts on a partially written shared-memory record.
+  - Mapping lifetime is defined when the file or segment is removed or truncated.
+  - Every failure mode has a defined response, including the peer process dying.
+
+operational_and_recovery_concerns:
+  - Shared memory segments outlive processes and must be named, versioned, and cleaned up.
+  - A crashed writer leaves a consumer with a queue in an unknown state; recovery must be designed.
+  - Page-cache pressure from large mappings affects the whole machine.
+
+when_not_to_use:
+  - Small files, where the mapping setup costs more than the read.
+  - Paths that need explicit I/O error handling.
+  - Cross-process communication where a socket is fast enough and far simpler.
+
+scope_exclusions:
+  - Kernel bypass receive paths (d6-kernel-bypass)
+  - In-process queue design (b2-spsc-ring-buffer)
+  - Page fault mechanics (c1-virtual-memory)
+
+interview_competencies:
+  - Count the copies in a described data path.
+  - State what mmap changes about the error model.
+  - Explain what a shared-memory queue adds beyond an in-process one.
+  - Ask what "zero-copy" refers to when someone uses the phrase.

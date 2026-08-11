@@ -1,0 +1,12 @@
+flowchart LR
+    EX["Exchange A/B multicast"] --> NI["NIC RX queues"]
+    NI["NIC RX queues"] --> RX["Hot plane: poll and validate"]
+    RX["Hot plane: poll and validate"] --> AR["Arbitrate and sequence"]
+    AR["Arbitrate and sequence"] --> DE["Versioned decode"]
+    DE["Versioned decode"] --> PU["Book and publish"]
+    PU["Book and publish"] --> CO["Trading consumers"]
+    GR["Recovery plane: replay or snapshot"] --> AR["Arbitrate and sequence"]
+    CF["Control plane: schema and config"] -.-> DE["Versioned decode"]
+    RX["Hot plane: poll and validate"] -.-> CR["Bounded capture handoff"]
+    CR["Bounded capture handoff"] --> LG["Sealed raw logs and artifacts"]
+    LG["Sealed raw logs and artifacts"] --> RS["Versioned research datasets"]

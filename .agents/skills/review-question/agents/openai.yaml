@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Interview Question"
+  short_description: "Review correctness, realism, and content quality"
+  default_prompt: "Use $review-question to review this interview question package."

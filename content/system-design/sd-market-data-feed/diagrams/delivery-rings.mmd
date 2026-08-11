@@ -1,0 +1,12 @@
+flowchart LR
+    PU["Single publisher core"] --> A1["Option A: SPSC ring A"]
+    PU["Single publisher core"] --> A3["Option A: SPSC ring B"]
+    A1["Option A: SPSC ring A"] --> A2["Strategy A"]
+    A3["Option A: SPSC ring B"] --> A4["Strategy B"]
+    PU["Single publisher core"] --> B1["Option B: shared fan-out ring"]
+    B1["Option B: shared fan-out ring"] --> B2["Consumer cursor 1"]
+    B1["Option B: shared fan-out ring"] --> B3["Consumer cursor N"]
+    A2["Strategy A"] -.-> RE["Replay or snapshot resync"]
+    A4["Strategy B"] -.-> RE["Replay or snapshot resync"]
+    B2["Consumer cursor 1"] -.-> RE["Replay or snapshot resync"]
+    B3["Consumer cursor N"] -.-> RE["Replay or snapshot resync"]

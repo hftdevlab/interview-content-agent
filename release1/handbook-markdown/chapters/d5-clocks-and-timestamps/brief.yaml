@@ -1,0 +1,73 @@
+schema_version: 1
+id: d5-clocks-and-timestamps
+title: Clock synchronisation, timestamp semantics, and time domains
+display_title: "Whose Clock Was That?"
+module: D
+difficulty: applied
+order: 5
+target_length: { min_words: 1600, max_words: 2600 }
+chapter_focus: >
+  That every timestamp names a CLOCK and a POINT, and a subtraction is only
+  meaningful when both operands share a clock — which most latency numbers
+  quoted in this industry quietly do not.
+reader_starting_point: >
+  The reader knows tail latency (a3), measurement (a4), and transports (d2).
+  They have subtracted two timestamps and believed the answer.
+opening_scenario: >
+  A team reports their tick-to-trade as forty microseconds. They computed it by
+  subtracting the exchange's timestamp in the market-data message from the
+  timestamp their application recorded when the order was sent. The number is
+  stable, it is reported weekly, and it is not a measurement of anything: it
+  mixes two clocks with an unknown offset, and it includes an interval that
+  happened inside the exchange before the packet reached the wire.
+industry_usage_anchor: >
+  Latency attribution, regulatory timestamping obligations, and replay ordering
+  all rest on this, and "how would you measure tick-to-trade" is a standard
+  interview question with a specific right answer.
+primary_artifact_mode: pseudocode
+include_quizzes: true
+include_measurement_plan: false
+core_claims_to_establish:
+  - id: claim-d5-01
+    type: judgment
+    statement: A timestamp is only interpretable given the clock that produced it and the point in the path where it was taken.
+  - id: claim-d5-02
+    type: normative
+    statement: A monotonic clock is for measuring durations and a realtime clock is for naming instants; realtime can step backwards and monotonic cannot be compared across machines.
+  - id: claim-d5-03
+    type: judgment
+    statement: One-way latency between two machines requires synchronised clocks; round-trip latency measured on one clock does not.
+  - id: claim-d5-04
+    type: judgment
+    statement: Synchronisation quality differs by orders of magnitude between protocols, and the achievable error must be known before a one-way figure means anything.
+  - id: claim-d5-05
+    type: judgment
+    statement: Hardware timestamps taken at the network interface remove the software path from the measurement, which is what makes tick-to-trade attributable.
+reader_misconceptions:
+  - "A timestamp is a time."
+  - "I can subtract the exchange's timestamp from mine to get latency."
+  - "NTP is good enough for microsecond measurement."
+  - "The system clock always moves forward."
+correctness_properties:
+  - No subtraction is performed between timestamps from different clocks without a stated offset and error bound.
+  - Durations use a monotonic source; recorded instants use a realtime source; both are stored where both are needed.
+sequencing_hazards:
+  - id: seq-d5-01
+    order:
+      - record the clock source and the capture point alongside the value
+      - store or transmit the timestamp
+    failure_if_violated: >
+      A bare number loses which clock produced it, so later analysis subtracts
+      incompatible values and produces a plausible figure with no meaning. The
+      error is undetectable downstream because both operands look like times.
+    detectability: silent
+when_not_to_use:
+  - Hardware timestamping where software resolution is adequate and the operational cost is not.
+scope_exclusions:
+  - Measurement methodology (a4-measurement-and-profiling)
+  - Replay determinism (e4-deterministic-replay)
+interview_competencies:
+  - Ask which clock a timestamp came from.
+  - Explain why exchange timestamp minus local timestamp is not latency.
+  - Describe how to measure tick-to-trade correctly.
+  - Distinguish monotonic from realtime and say what each is for.

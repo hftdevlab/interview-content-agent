@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ingest Interview Question"
+  short_description: "Archive and normalize a raw interview prompt"
+  default_prompt: "Use $ingest-question to archive and normalize this raw interview prompt."

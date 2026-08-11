@@ -1,0 +1,125 @@
+schema_version: 1
+
+id: b5-waiting-strategies
+title: Busy spinning, blocking, and hybrid waiting
+difficulty: applied
+target_length: { min_words: 1400, max_words: 2600 }
+
+chapter_focus: >
+  That the choice between spinning and blocking is a whole-system CPU budgeting
+  decision, not a local optimisation, and that its cost is paid in cores while
+  its benefit is paid in wake-up latency.
+
+reader_range: >
+  From engineers who have used condition variables but never questioned them,
+  through to those refreshing before an interview at a latency-sensitive firm.
+
+reader_starting_point: >
+  The reader knows the concurrency primitives (b0) and how to measure (a4). They
+  have written consumer loops with condition variables and assume that is normal.
+  They have NOT yet met the memory model or progress guarantees — this chapter is
+  positioned before both, so it must not depend on either. References to queue
+  internals are forward links, not assumed knowledge.
+
+opening_scenario: >
+  A strategy thread waits for market-data updates from a feed handler over an
+  SPSC queue. Between messages it has nothing to do. On a quiet afternoon in an
+  illiquid name it may wait milliseconds; two seconds after an economic release
+  it will not wait at all. The engineer must decide what the thread does when
+  the queue is empty, and the two obvious answers — sleep until woken, or check
+  again immediately forever — differ by orders of magnitude in both wake-up
+  latency and CPU consumed.
+
+industry_usage_anchor: >
+  The consumer side of every hot-path queue in a trading system: strategy
+  polling the feed handler, gateway polling the strategy, and the receive loop
+  in any kernel-bypass stack, which is busy-poll by construction.
+
+primary_artifact_mode: pseudocode
+include_quizzes: true
+include_measurement_plan: true
+
+core_claims_to_establish:
+  - id: claim-b5-01
+    type: judgment
+    statement: >
+      Blocking costs wake-up latency because it involves the scheduler; spinning
+      removes that cost by never yielding the core.
+  - id: claim-b5-02
+    type: judgment
+    statement: >
+      A spinning thread consumes an entire core whether or not work arrives, so
+      spinning is a decision about core budget at the machine level.
+  - id: claim-b5-03
+    type: judgment
+    statement: >
+      Spinning is only safe when a dedicated core is available. Oversubscription
+      inverts the benefit and can make latency dramatically worse.
+  - id: claim-b5-04
+    type: normative
+    statement: >
+      A spin loop should contain a pause/yield hint, which reduces the cost of
+      the spin to the core and its sibling hyperthread.
+  - id: claim-b5-05
+    type: judgment
+    statement: >
+      Hybrid waiting — spin briefly, then block — bounds the CPU cost while
+      preserving low latency for the common case, and its spin budget should be
+      set from the observed inter-arrival distribution.
+  - id: claim-b5-06
+    type: empirical
+    statement: >
+      The latency difference between a spin wake and a blocked wake is large
+      enough to dominate the handoff. NOT MEASURABLE IN THIS REPOSITORY on
+      representative hardware. State the mechanism and the order-of-magnitude
+      relationship qualitatively, or label unmeasured. No invented figures.
+
+reader_misconceptions:
+  - "Spinning is what fast systems do, so I should spin."
+  - "A condition variable is basically free when there is no contention."
+  - "If spinning is faster, more spinning threads means a faster system."
+  - "sched_yield in the spin loop is a reasonable compromise."
+  - "The spin duration is a tuning constant I can pick arbitrarily."
+
+correctness_properties:
+  - A hybrid waiter never misses a wakeup that arrives during the transition from spinning to blocking.
+  - The waiting strategy is independent of the queue's correctness.
+
+sequencing_hazards:
+  - id: seq-b5-01
+    order:
+      - register as a waiter (publish intent to block)
+      - re-check the queue
+      - sleep
+    failure_if_violated: >
+      Checking before registering opens a window in which the producer can push
+      and signal with no waiter registered. The consumer then sleeps on a queue
+      that already holds data and stays asleep until the next message — which on
+      a quiet channel may be a very long time. The queue is correct throughout;
+      only the waiter is stuck.
+    detectability: timing-dependent
+
+measurement_questions:
+  - What does the inter-arrival distribution of your messages actually look like?
+  - What fraction of waits would be satisfied within a candidate spin budget?
+  - Does the tail change when the spinner shares a physical core with another thread?
+
+operational_and_recovery_concerns:
+  - A spinning thread shows 100% CPU permanently; monitoring must not treat this as a fault.
+  - Core budget is a machine-level constraint that must be documented and owned.
+  - Power and thermal behaviour differs between a spinning and a blocking host.
+
+when_not_to_use:
+  - More runnable threads than cores.
+  - Shared or virtualised hosts where a core cannot be dedicated.
+  - Cold paths, control planes, and anything where milliseconds are acceptable.
+
+scope_exclusions:
+  - Queue implementation (b2-spsc-ring-buffer)
+  - Thread pinning mechanics (c4-thread-affinity)
+  - Kernel bypass receive paths (d6-kernel-bypass)
+
+interview_competencies:
+  - Frame the choice as a core budget decision unprompted.
+  - Explain what happens when spinners outnumber cores.
+  - Describe hybrid waiting and how the spin budget should be chosen.

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "system-design.schema.json",
+  "title": "System design question metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "type",
+    "title",
+    "status",
+    "difficulty",
+    "expected_duration_minutes",
+    "categories",
+    "tags",
+    "prerequisites",
+    "related_questions",
+    "source",
+    "review",
+    "last_updated",
+    "content_file",
+    "diagrams"
+  ],
+  "properties": {
+    "schema_version": {"$ref": "common.schema.json#/$defs/schema_version"},
+    "id": {"$ref": "common.schema.json#/$defs/id"},
+    "type": {"const": "system_design"},
+    "title": {"$ref": "common.schema.json#/$defs/title"},
+    "status": {"$ref": "common.schema.json#/$defs/status"},
+    "difficulty": {"$ref": "common.schema.json#/$defs/difficulty"},
+    "expected_duration_minutes": {"$ref": "common.schema.json#/$defs/duration"},
+    "categories": {
+      "allOf": [
+        {"$ref": "common.schema.json#/$defs/slug_list"},
+        {"minItems": 1}
+      ]
+    },
+    "tags": {
+      "allOf": [
+        {"$ref": "common.schema.json#/$defs/slug_list"},
+        {"minItems": 2}
+      ]
+    },
+    "prerequisites": {"$ref": "common.schema.json#/$defs/question_id_list"},
+    "related_questions": {"$ref": "common.schema.json#/$defs/question_id_list"},
+    "source": {"$ref": "common.schema.json#/$defs/source"},
+    "review": {"$ref": "common.schema.json#/$defs/review"},
+    "last_updated": {"$ref": "common.schema.json#/$defs/last_updated"},
+    "content_file": {"$ref": "common.schema.json#/$defs/content_file"},
+    "diagrams": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_file", "rendered_file", "caption", "alt_text"],
+        "properties": {
+          "source_file": {
+            "type": "string",
+            "pattern": "^diagrams/[a-z0-9-]+\\.mmd$"
+          },
+          "rendered_file": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+\\.svg$"
+          },
+          "caption": {
+            "type": "string",
+            "minLength": 12
+          },
+          "alt_text": {
+            "type": "string",
+            "minLength": 20
+          }
+        }
+      }
+    }
+  }
+}
+

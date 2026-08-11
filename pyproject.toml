@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quant-dev-interview-content"
+version = "0.1.0"
+description = "Deterministic tooling for human-reviewed C++ quant interview content"
+requires-python = ">=3.9"
+dependencies = [
+    "pypdf==6.10.0",
+    "reportlab==4.4.9",
+]
+
+[tool.setuptools]
+packages = ["tools"]

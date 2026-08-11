@@ -1,0 +1,14 @@
+{
+  "question_id": "sd-market-data-feed",
+  "checks": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "review_notes": [
+    "Complete draft prepared as a gold-standard candidate.",
+    "Human confirmation is required for difficulty, realism, and approval."
+  ]
+}
+

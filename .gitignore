@@ -216,3 +216,20 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Interview content factory outputs and local inspection files
+.DS_Store
+/tmp/
+
+/generated/catalogs/*
+!/generated/catalogs/.gitkeep
+/generated/markdown/*
+!/generated/markdown/.gitkeep
+/generated/diagrams/*
+!/generated/diagrams/.gitkeep
+/generated/pdf-preview/
+/generated/refinement-diffs/
+
+!/dist/
+/dist/*
+!/dist/.gitkeep

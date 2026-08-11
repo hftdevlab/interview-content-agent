@@ -1,0 +1,6 @@
+Implement StreamMerger for several RecordSource objects. Each source emits
+records in non-decreasing timestamp order. RecordSource::next() is non-blocking
+and may return no value while the source is still active. is_exhausted() is the
+only end-of-stream signal. StreamMerger::next() must return the next globally
+safe record, or no value if no record is currently safe to emit.
+

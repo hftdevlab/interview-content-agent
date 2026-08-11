@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "common.schema.json",
+  "title": "Common question metadata definitions",
+  "$defs": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^(sd|code|fund)-[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 160
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "inbox",
+        "normalized",
+        "draft",
+        "agent_reviewed",
+        "needs_human_review",
+        "approved",
+        "published",
+        "deprecated"
+      ]
+    },
+    "difficulty": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "duration": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 60,
+      "multipleOf": 5
+    },
+    "slug_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "uniqueItems": true
+    },
+    "question_id_list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "uniqueItems": true
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_type",
+        "confidentiality",
+        "original_company_removed",
+        "original_files"
+      ],
+      "properties": {
+        "input_type": {
+          "type": "string",
+          "enum": ["text", "image"]
+        },
+        "confidentiality": {
+          "type": "string",
+          "enum": ["public", "sanitized_real_interview", "private_reference"]
+        },
+        "original_company_removed": {
+          "type": "boolean"
+        },
+        "original_files": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^source/[A-Za-z0-9._-]+$"
+          }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent_reviewed",
+        "human_reviewed",
+        "technical_accuracy_reviewed",
+        "interview_realism_reviewed"
+      ],
+      "properties": {
+        "agent_reviewed": {"type": "boolean"},
+        "human_reviewed": {"type": "boolean"},
+        "technical_accuracy_reviewed": {"type": "boolean"},
+        "interview_realism_reviewed": {"type": "boolean"}
+      }
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date"
+    },
+    "content_file": {
+      "type": "string",
+      "const": "question.md"
+    }
+  }
+}
+

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Draft System Design Question"
+  short_description: "Draft interview-ready system design content"
+  default_prompt: "Use $draft-system-design to draft this system design interview question."

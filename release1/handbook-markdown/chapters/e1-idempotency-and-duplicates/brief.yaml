@@ -1,0 +1,81 @@
+schema_version: 1
+id: e1-idempotency-and-duplicates
+title: Idempotency, duplicate handling, and retry semantics
+display_title: "Sending It Twice"
+module: E
+difficulty: applied
+order: 2
+target_length: { min_words: 1600, max_words: 2600 }
+chapter_focus: >
+  That a timeout tells you nothing about whether your message was processed, so
+  safety comes from a client-assigned identity that makes a repeat harmless —
+  never from checking first and then acting.
+reader_starting_point: >
+  The reader knows the order lifecycle and its pending states (a2) and has seen
+  duplicate handling on a market-data feed (d3).
+opening_scenario: >
+  An order gateway sends a new order and waits. Two hundred milliseconds pass
+  with no acknowledgement, which is far outside normal, so it retries. Both
+  copies arrive. The firm now holds twice the position it intended, and the
+  strategy believes it holds the intended amount because it counted one order.
+industry_usage_anchor: >
+  Every order gateway, every reconnection path, and every fill handler depends on
+  this. Client order ID design and the cancel-versus-new asymmetry are standard
+  interview material for execution roles.
+primary_artifact_mode: pseudocode
+include_quizzes: true
+include_measurement_plan: false
+core_claims_to_establish:
+  - id: claim-e1-01
+    type: judgment
+    statement: A timeout is indistinguishable from a slow response, so a retry is always a retry into an unknown state.
+  - id: claim-e1-02
+    type: judgment
+    statement: Exactly-once delivery is not achievable; exactly-once EFFECT is, by making the operation idempotent under a stable identity.
+  - id: claim-e1-03
+    type: judgment
+    statement: The identity must be assigned and recorded by the client before sending, and must never repeat across restarts.
+  - id: claim-e1-04
+    type: judgment
+    statement: Cancel is naturally idempotent and new-order is not, which makes retrying a cancel safe and retrying a new order dangerous.
+  - id: claim-e1-05
+    type: judgment
+    statement: Inbound messages can also be duplicated, so fills must be applied once, keyed by the venue's execution identifier.
+  - id: claim-e1-06
+    type: judgment
+    statement: Check-then-act across a network is not a substitute for idempotency, because the state can change between the check and the act.
+reader_misconceptions:
+  - "If I did not get an acknowledgement, nothing happened."
+  - "I can query the venue first, then decide whether to resend."
+  - "Exactly-once delivery is achievable with enough acknowledgements."
+  - "A per-session counter starting at one is a fine client order ID."
+correctness_properties:
+  - A retried request produces the same end state as a single request.
+  - Every fill is applied exactly once regardless of redelivery.
+  - No client order ID is ever reused, including across process restarts and session resets.
+sequencing_hazards:
+  - id: seq-e1-01
+    order:
+      - generate the client order ID
+      - persist it as used
+      - send the message
+    failure_if_violated: >
+      Sending before recording the identity means a crash between the two leaves an order
+      live at the venue that the restarted process has no identifier for and cannot ask about
+      or cancel. The order is unmanaged and effectively invisible.
+    detectability: silent
+operational_and_recovery_concerns:
+  - Reconnection requires reconciliation against the venue rather than assumption.
+  - Duplicate rejections from the venue should be counted, not treated as errors.
+  - Client order ID exhaustion or wraparound must be impossible by construction.
+when_not_to_use:
+  - Retrying anything whose effect is not idempotent and whose identity the venue does not deduplicate.
+scope_exclusions:
+  - Order state machine (a2-order-lifecycle)
+  - Market-data duplicates (d3-sequence-and-gap-recovery)
+  - Replay (e4-deterministic-replay)
+interview_competencies:
+  - Say that a timeout carries no information about processing.
+  - Explain exactly-once effect versus exactly-once delivery.
+  - Design a client order ID scheme that survives restarts.
+  - Explain why retrying a cancel is safe and retrying a new order is not.

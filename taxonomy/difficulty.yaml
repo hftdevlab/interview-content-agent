@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "levels": {
+    "1": "Foundational recall or direct implementation",
+    "2": "Standard interview question with limited edge cases",
+    "3": "Intermediate reasoning with meaningful trade-offs",
+    "4": "Senior-level design or subtle correctness constraints",
+    "5": "Expert-level depth, ambiguity, or adversarial behavior"
+  }
+}
+

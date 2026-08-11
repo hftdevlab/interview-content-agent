@@ -1,0 +1,93 @@
+schema_version: 1
+id: e4-deterministic-replay
+title: Deterministic replay and incident reconstruction
+display_title: "What Did It See, and Why Did It Do That?"
+module: E
+difficulty: applied
+order: 4
+carries_module_review: true
+target_length: { min_words: 1800, max_words: 3000 }
+chapter_focus: >
+  That determinism is designed in rather than discovered, and the sources of
+  nondeterminism are a short and known list — so the work is capturing every
+  input at a boundary and removing everything else that varies.
+reader_starting_point: >
+  The reader knows gap recovery (d3), clock semantics (d5), and idempotency (e1).
+  They have tried to reproduce a production issue from logs and failed.
+opening_scenario: >
+  At 09:41 a strategy sent an order nobody can explain. The logs show the order
+  and its acknowledgement. They do not show the sixty market-data messages that
+  arrived in the preceding two milliseconds, the state of the book at the moment
+  of the decision, or which of three conditions in the strategy was true. The
+  team can describe what happened and cannot say why, and the same conditions
+  will not recur on demand.
+industry_usage_anchor: >
+  Incident reconstruction, regression testing against real sessions, and strategy
+  debugging all depend on it, and a system that cannot be replayed cannot be
+  explained to a risk committee or a regulator.
+primary_artifact_mode: pseudocode
+include_quizzes: true
+include_measurement_plan: false
+core_claims_to_establish:
+  - id: claim-e4-01
+    type: judgment
+    statement: Replay requires the processing core to be a pure function of its recorded inputs and its initial state.
+  - id: claim-e4-02
+    type: judgment
+    statement: The sources of nondeterminism are enumerable — clock reads, randomness, thread interleaving, iteration order over addresses, uninitialised memory, and unrecorded inputs.
+  - id: claim-e4-03
+    type: judgment
+    statement: Time must be an input to the core rather than something it reads, or every replay differs from the original.
+  - id: claim-e4-04
+    type: judgment
+    statement: Capture must be at a boundary and must include every input, not only market data — configuration, control commands, and venue responses are inputs too.
+  - id: claim-e4-05
+    type: judgment
+    statement: A single ordered input log makes a multi-threaded system replayable by making the merge order a recorded fact rather than a race outcome.
+  - id: claim-e4-07
+    type: judgment
+    statement: >
+      A fact in a research system has two times — event time, when it happened,
+      and knowledge time, when the system learned it — and only storing the first
+      makes the point-in-time question permanently unanswerable.
+  - id: claim-e4-08
+    type: judgment
+    statement: >
+      Corrections must be appended as new records rather than applied in place,
+      and the point-in-time query must be the default interface, because the
+      convenient call is the one used under deadline.
+  - id: claim-e4-09
+    type: judgment
+    statement: >
+      Replay is a knowledge-time exercise and backtesting is an event-time
+      exercise constrained by knowledge time, which is why replay is exact and
+      backtesting requires a reconstructed information state.
+  - id: claim-e4-06
+    type: judgment
+    statement: Replay reproduces your system, not the market; it cannot show how the venue would have responded to a different order.
+reader_misconceptions:
+  - "Our logs are detailed, so we can reconstruct anything."
+  - "Replay means running the code again."
+  - "We can make it deterministic later."
+  - "If replay matches, the strategy is correct."
+correctness_properties:
+  - A replay of a captured session reproduces every output exactly.
+  - Divergence between replay and original is detectable and localisable.
+  - Captured input is sufficient to replay without access to the live environment.
+operational_and_recovery_concerns:
+  - Capture must be off the critical path and must not stall it when the sink is slow.
+  - Divergence in a routine replay is a defect in the system, not in the replay tool.
+  - Captured sessions and the binary that produced them must be identifiable together.
+when_not_to_use:
+  - Attempting deterministic replay of components whose value does not justify the design constraint it imposes.
+scope_exclusions:
+  - Backtesting methodology (deferred to release 2)
+  - Clock semantics (d5-clocks-and-timestamps)
+  - Capture transport and storage formats
+interview_competencies:
+  - Distinguish event time from knowledge time and explain the lookahead failure.
+  - Say why corrections are appended and why the safe query gets the short name.
+  - Enumerate the sources of nondeterminism in a trading process.
+  - Explain why the clock must be an input.
+  - Describe a capture boundary and what must be recorded.
+  - Say what replay cannot establish.
