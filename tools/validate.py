@@ -383,6 +383,153 @@ def _review_file_issues(
     return []
 
 
+def _workflow_file_issues(
+    root: Path, package_dir: Path, metadata: Mapping[str, Any]
+) -> List[ValidationIssue]:
+    path = package_dir / "workflow.yaml"
+    status = metadata.get("status")
+    if not path.is_file():
+        if status in {"needs_clarification", "changes_requested"}:
+            return [
+                ValidationIssue(
+                    str(path.relative_to(root)),
+                    f"status {status!r} requires workflow state",
+                )
+            ]
+        return []
+    try:
+        workflow = load_data(path)
+    except (OSError, ValueError) as exc:
+        return [ValidationIssue(str(path.relative_to(root)), str(exc))]
+    issues: List[ValidationIssue] = []
+    if not isinstance(workflow, dict):
+        return [ValidationIssue(str(path.relative_to(root)), "must contain an object")]
+    required = {
+        "schema_version",
+        "run_id",
+        "question_id",
+        "question_type",
+        "state",
+        "branch",
+        "agent_threads",
+        "attempts",
+        "pending_clarifications",
+        "created_at",
+        "updated_at",
+        "events",
+    }
+    missing = sorted(required - set(workflow))
+    if missing:
+        issues.append(
+            ValidationIssue(
+                str(path.relative_to(root)),
+                "missing workflow fields: " + ", ".join(missing),
+            )
+        )
+    if workflow.get("schema_version") != 1:
+        issues.append(ValidationIssue(str(path.relative_to(root)), "schema_version must be 1"))
+    if workflow.get("question_id") != metadata.get("id"):
+        issues.append(ValidationIssue(str(path.relative_to(root)), "question_id must match metadata"))
+    if workflow.get("question_type") != metadata.get("type"):
+        issues.append(ValidationIssue(str(path.relative_to(root)), "question_type must match metadata"))
+    state = workflow.get("state")
+    allowed_status_by_state = {
+        "normalized": "normalized",
+        "needs_clarification": "needs_clarification",
+        "drafting": "draft",
+        "agent_failed": "draft",
+        "agent_validation_failed": "draft",
+        "agent_review_failed": "draft",
+        "needs_human_review": "needs_human_review",
+        "changes_requested": "changes_requested",
+        "approved": "approved",
+        "rejected_duplicate": "deprecated",
+    }
+    expected_status = allowed_status_by_state.get(state)
+    if expected_status is None:
+        issues.append(ValidationIssue(str(path.relative_to(root)), "invalid workflow state"))
+    elif metadata.get("status") != expected_status:
+        issues.append(
+            ValidationIssue(
+                str(path.relative_to(root)),
+                f"workflow state {state!r} requires status {expected_status!r}",
+            )
+        )
+    if not isinstance(workflow.get("branch"), str):
+        issues.append(ValidationIssue(str(path.relative_to(root)), "branch must be a string"))
+    if not isinstance(workflow.get("agent_threads"), dict):
+        issues.append(ValidationIssue(str(path.relative_to(root)), "agent_threads must be an object"))
+    if not isinstance(workflow.get("attempts"), dict):
+        issues.append(ValidationIssue(str(path.relative_to(root)), "attempts must be an object"))
+    if not isinstance(workflow.get("pending_clarifications"), list):
+        issues.append(
+            ValidationIssue(str(path.relative_to(root)), "pending_clarifications must be an array")
+        )
+    events = workflow.get("events")
+    if not isinstance(events, list) or any(not isinstance(item, dict) for item in events):
+        issues.append(ValidationIssue(str(path.relative_to(root)), "events must be an object array"))
+    return issues
+
+
+def _deduplication_file_issues(
+    root: Path, package_dir: Path, metadata: Mapping[str, Any]
+) -> List[ValidationIssue]:
+    path = package_dir / "deduplication.yaml"
+    if not path.is_file():
+        return []
+    try:
+        report = load_data(path)
+    except (OSError, ValueError) as exc:
+        return [ValidationIssue(str(path.relative_to(root)), str(exc))]
+    if not isinstance(report, dict):
+        return [ValidationIssue(str(path.relative_to(root)), "must contain an object")]
+    issues: List[ValidationIssue] = []
+    if report.get("schema_version") != 1:
+        issues.append(ValidationIssue(str(path.relative_to(root)), "schema_version must be 1"))
+    if report.get("human_decision") not in {
+        "pending",
+        "not_required",
+        "distinct",
+        "duplicate",
+    }:
+        issues.append(ValidationIssue(str(path.relative_to(root)), "invalid human_decision"))
+    candidates = report.get("candidates")
+    blocking = report.get("blocking_candidates")
+    if not isinstance(blocking, list) or any(
+        not isinstance(item, str) for item in blocking
+    ):
+        issues.append(
+            ValidationIssue(
+                str(path.relative_to(root)),
+                "blocking_candidates must be a string array",
+            )
+        )
+    if not isinstance(candidates, list):
+        issues.append(ValidationIssue(str(path.relative_to(root)), "candidates must be an array"))
+    else:
+        for index, candidate in enumerate(candidates):
+            if not isinstance(candidate, dict) or not isinstance(
+                candidate.get("question_id"), str
+            ):
+                issues.append(
+                    ValidationIssue(
+                        f"{path.relative_to(root)}.candidates[{index}]",
+                        "candidate must contain a question_id",
+                    )
+                )
+    if report.get("human_decision") == "pending" and metadata.get("status") not in {
+        "needs_clarification",
+        "deprecated",
+    }:
+        issues.append(
+            ValidationIssue(
+                str(path.relative_to(root)),
+                "pending duplicate review must pause the question lifecycle",
+            )
+        )
+    return issues
+
+
 def _publication_issues(
     metadata_path: Path,
     metadata: Mapping[str, Any],
@@ -929,6 +1076,8 @@ def validate_repository(root: Path = ROOT) -> List[ValidationIssue]:
                 )
 
         issues.extend(_review_file_issues(package_dir, metadata))
+        issues.extend(_workflow_file_issues(root, package_dir, metadata))
+        issues.extend(_deduplication_file_issues(root, package_dir, metadata))
 
         practice_links = []
         for field in ("practice", "runnable_experiment"):

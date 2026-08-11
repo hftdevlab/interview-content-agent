@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "image-transcription-output.schema.json",
+  "title": "Interview prompt image transcription",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["transcription", "uncertainties", "clarification_questions"],
+  "properties": {
+    "transcription": {"type": "string"},
+    "uncertainties": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text", "blocking"],
+        "properties": {
+          "text": {"type": "string"},
+          "blocking": {"type": "boolean"}
+        }
+      }
+    },
+    "clarification_questions": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  }
+}

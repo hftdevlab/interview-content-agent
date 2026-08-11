@@ -12,5 +12,8 @@ dependencies = [
     "reportlab==4.4.9",
 ]
 
+[project.scripts]
+contentctl = "tools.workflow:main"
+
 [tool.setuptools]
 packages = ["tools"]

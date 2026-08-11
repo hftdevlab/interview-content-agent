@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-stage-output.schema.json",
+  "title": "Agent workflow stage result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "outcome",
+    "summary",
+    "clarification_questions",
+    "validation_commands"
+  ],
+  "properties": {
+    "outcome": {
+      "type": "string",
+      "enum": ["ready", "needs_clarification", "failed"]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "clarification_questions": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "validation_commands": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  }
+}
