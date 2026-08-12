@@ -98,6 +98,87 @@ make docker-test
 
 ## Content workflow
 
+### Human-in-the-loop agent workflow
+
+`contentctl` provides the CLI-first orchestration layer. Run it from a clean
+`main` worktree; a normal submission creates `question/<id>`, preserves the raw
+input, records early duplicate candidates, invokes the relevant repository
+skills, builds coding practice when required, and requests an independent
+read-only agent review.
+
+```bash
+contentctl submit \
+  --type coding \
+  --input inbox/question.txt \
+  --expert-note "The interviewer cared about ownership and shutdown."
+
+contentctl status --id code-example
+```
+
+Question-type aliases include `design` for system design and `general` or
+`general-system` for systems fundamentals. Image submissions can include
+`--transcription`; otherwise Codex attempts a faithful image transcription and
+pauses when unreadable text changes the core contract.
+
+When duplicate screening or the drafting agent needs human input:
+
+```bash
+contentctl resolve-duplicate \
+  --id code-example \
+  --decision distinct \
+  --reason "Same container, but this question tests iterator invalidation."
+
+contentctl clarify \
+  --id code-example \
+  --response "The API owns its input records and close() is idempotent." \
+  --continue
+```
+
+Record feedback in a file so the exact human wording remains archived, then
+resume the drafting and independent-review loop:
+
+```bash
+contentctl feedback \
+  --id code-example \
+  --file inbox/feedback.md \
+  --continue
+```
+
+Feedback starts a fresh, focused drafting context while retaining the previous
+thread ID in the workflow audit log. The controller runs the complete C++ and
+PDF gates once after the revision, then requires a new independent review.
+Structured agent summaries are streamed as progress while longer revisions run.
+
+Once the independent review passes, build the preview bundle and open a draft
+pull request for human review. This command validates the repository, builds the
+PDF previews and any required C++ practice, and refuses to stage unrelated
+worktree changes:
+
+```bash
+contentctl open-pr --id code-example
+```
+
+Approval is deliberately interactive and cannot run from a non-interactive
+agent process:
+
+```bash
+contentctl approve --id code-example
+```
+
+The command requires the human to type `APPROVE <id>` exactly. Publishing
+remains a separate approved-only operation through `make release` and the
+`$publish-guides` skill.
+
+If a submission command is interrupted after its package is created, resume it
+with `contentctl continue --id <id>`. Re-running `submit` for that stable ID is
+rejected with a direct resume instruction.
+
+Use `--offline --no-branch` on `contentctl submit` only for deterministic intake
+testing. Workflow and duplicate audit records are stored beside the question as
+JSON-compatible `workflow.yaml` and `deduplication.yaml`.
+
+### Deterministic low-level commands
+
 Archive and normalize a text prompt:
 
 ```bash

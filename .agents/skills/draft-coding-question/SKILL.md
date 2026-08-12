@@ -27,7 +27,10 @@ chapter concise enough to rehearse.
 6. Keep at most three improvements and three realistic follow-ups. Omit weak
    alternatives that do not teach a meaningful trade-off.
 7. Reconcile the prose with any runnable API and tests.
-8. Return the package to `needs_human_review`; never set human review flags.
+8. When `workflow.yaml` shows a `contentctl` run, leave lifecycle ownership to
+   the controller: do not edit `workflow.yaml`, keep status `draft`, and keep
+   every review flag false. Otherwise return the package to
+   `needs_human_review`; never set human review flags.
 
 The rendered chapter must fit six pages.
 
@@ -49,4 +52,6 @@ make pdf-preview
 
 If practice is linked, also run `make practice-test`. Inspect the rendered
 chapter for duplicate code and page count, then run `make all` after a major
-revision.
+revision. During a `contentctl` run, keep the agent turn focused: run targeted
+package and question-specific practice checks only. The controller runs PDF and
+repository-wide gates once before independent review.

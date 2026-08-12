@@ -21,7 +21,9 @@
       "enum": [
         "inbox",
         "normalized",
+        "needs_clarification",
         "draft",
+        "changes_requested",
         "agent_reviewed",
         "needs_human_review",
         "approved",
@@ -113,4 +115,3 @@
     }
   }
 }
-

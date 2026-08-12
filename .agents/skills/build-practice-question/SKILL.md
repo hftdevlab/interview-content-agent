@@ -50,4 +50,6 @@ make practice-test
 Run `make practice-sanitize` for ownership, bounds, lifetime, atomics, or
 concurrency changes. Confirm the solution passes and the untouched starter is
 rejected by the starter-negative gate. Finish substantial changes with
-`make all`.
+`make all`. During a `contentctl` run, do not edit `workflow.yaml`, lifecycle
+status, or review flags. Run only the selected exercise's targets; the
+controller runs the complete practice and repository gates once.

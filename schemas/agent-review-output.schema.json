@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-review-output.schema.json",
+  "title": "Independent agent review result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["passed", "summary", "issues"],
+  "properties": {
+    "passed": {"type": "boolean"},
+    "summary": {"type": "string"},
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "message", "file"],
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["blocking", "important", "suggestion"]
+          },
+          "message": {"type": "string"},
+          "file": {"type": "string"}
+        }
+      }
+    }
+  }
+}

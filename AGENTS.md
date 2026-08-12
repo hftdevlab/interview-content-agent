@@ -12,6 +12,11 @@
   and identifying details from published-facing content.
 - Never mark AI-created or AI-revised content `approved` or `published`; final
   publication authority belongs to the human editor.
+- Never invoke `contentctl approve`. It is an interactive, human-only lifecycle
+  transition even when an agent has completed every technical review.
+- During a `contentctl` run, never edit `workflow.yaml` or advance lifecycle
+  status/review flags. The controller owns those transitions and requires a
+  separate read-only agent review before human approval.
 
 ## Change discipline
 

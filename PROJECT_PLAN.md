@@ -1780,6 +1780,83 @@ Create versioned release artifacts.
 
 One release command produces all distributable artifacts from a clean checkout. 
 
+### Task 16: Add the agentic CLI control plane
+
+#### **Goal**
+
+Provide one human-facing command that accepts a question, preserves its source,
+and drives the repository workflow without bypassing deterministic tools.
+
+#### **Done when**
+
+- Text and image submissions use one CLI.
+
+- Coding, system-design, and systems-fundamentals aliases route correctly.
+
+- Every run can be inspected and resumed by stable question ID.
+
+### Task 17: Add early duplicate screening
+
+#### **Goal**
+
+Prevent obvious duplicate questions from consuming drafting and review effort,
+while leaving room for a later semantic similarity judge.
+
+#### **Done when**
+
+- Normalized IDs, titles, and prompt vocabulary produce a deterministic shortlist.
+
+- High-confidence candidates pause for an explicit human decision.
+
+- The report and human rationale are persisted with the question.
+
+- An AI or embedding score can be added behind the same interface later.
+
+### Task 18: Orchestrate drafting and independent review
+
+#### **Goal**
+
+Dispatch the relevant repository skills, require runnable coding packages, run
+deterministic gates, and request a fresh read-only quality review.
+
+#### **Done when**
+
+- Incomplete contracts pause with focused clarification questions.
+
+- Failed validation or review gets one bounded correction attempt.
+
+- Passing content stops at `needs_human_review`; agents cannot approve or publish.
+
+### Task 19: Persist the human review lifecycle
+
+#### **Goal**
+
+Make clarification, feedback, correction, and approval resumable and auditable.
+
+#### **Done when**
+
+- Workflow state, agent thread IDs, attempts, and events are stored beside content.
+
+- Human feedback is append-only and becomes authoritative agent context.
+
+- Approval requires an exact interactive human confirmation.
+
+### Task 20: Hand off a review-ready pull request
+
+#### **Goal**
+
+Turn an agent-reviewed question into a bounded draft pull request for human review.
+
+#### **Done when**
+
+- Preview PDFs and applicable C++ practice are built first.
+
+- Only files belonging to the question and its practice package are staged.
+
+- Unrelated worktree changes stop the operation.
+
+- Publication remains a separate approved-only operation.
+
 ## 20. Initial commands 
 
 The repository should eventually support a workflow similar to: 

@@ -26,7 +26,10 @@ communication layer over the explanation.
 5. Add at most three strong-answer improvements and three follow-ups.
 6. Add a runnable experiment only when it tests a material claim and state what
    a passing run does and does not prove.
-7. Return the package to `needs_human_review`; never set human review flags.
+7. When `workflow.yaml` shows a `contentctl` run, do not edit it; keep status
+   `draft` and every review flag false because the controller owns lifecycle
+   transitions and independent review. Otherwise return the package to
+   `needs_human_review`; never set human review flags.
 
 Avoid recreating foundational handbook chapters. Apply the foundation to this
 question and link it.
@@ -49,3 +52,6 @@ make pdf-preview
 When an experiment is linked, also run `make practice-test` and
 `make practice-sanitize` where it provides relevant coverage. Inspect the
 rendered chapter, then run `make all` after a substantial revision.
+During a `contentctl` run, keep the agent turn to targeted package and
+question-specific experiment checks. The controller runs PDF and repository-wide
+gates once before independent review.
