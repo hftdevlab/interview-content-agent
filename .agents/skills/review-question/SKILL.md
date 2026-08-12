@@ -14,6 +14,7 @@ just against the schema.
 - `content/STYLE_GUIDE.md`, the type schema, taxonomy, related questions, and
   linked practice package.
 - The rendered preview for page and diagram inspection.
+- Human-approved `editorial-memory.yaml` entries matching the question type.
 
 ## Review order
 
@@ -29,9 +30,13 @@ just against the schema.
 6. Reconcile code prose with headers, tests, diagrams, metadata, and links.
 7. Record actionable findings in `review.yaml`. Set `agent_reviewed` true only
    after all agent-fixable issues are resolved.
+8. Verify that relevant approved editorial-memory lessons were applied. Treat
+   pending question-local candidates as proposals, not requirements.
 
 Never set `human_reviewed`, `technical_accuracy_reviewed`, or
 `interview_realism_reviewed`. Never change status to `approved` or `published`.
+Never promote, reject, or rewrite editorial-memory records; those are explicit
+human lifecycle decisions.
 
 ## Outputs and edit boundary
 

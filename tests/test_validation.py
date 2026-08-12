@@ -53,6 +53,7 @@ class SchemaValidationTests(unittest.TestCase):
 
 class RepositoryGateTests(unittest.TestCase):
     def _make_root(self, destination: Path) -> Path:
+        shutil.copy2(ROOT / "editorial-memory.yaml", destination / "editorial-memory.yaml")
         for name in ("schemas", "taxonomy", "practice"):
             shutil.copytree(ROOT / name, destination / name)
         for content_type in ("system-design", "coding", "fundamentals"):

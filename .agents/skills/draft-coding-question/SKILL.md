@@ -13,6 +13,8 @@ chapter concise enough to rehearse.
 - The package's metadata, current question, source, and expert notes.
 - `content/STYLE_GUIDE.md`, applicable schema and taxonomy files.
 - Existing practice API or tests when the package is already runnable.
+- Human-approved entries in `editorial-memory.yaml` scoped to coding or all
+  questions. Apply them when relevant; current source and human notes win.
 
 ## Workflow
 
@@ -40,6 +42,11 @@ Edit only the selected package's `question.md`, `metadata.yaml`, and
 `review.yaml`. Preserve `source/` and `expert-notes.md`. Use
 `$build-practice-question` for files under `practice/`; do not hand-edit
 `generated/` or `dist/`.
+
+During a feedback-driven `contentctl` revision, do not edit
+`editorial-memory.yaml` or `memory-candidates.yaml`. In the structured stage
+result, propose at most three reusable lessons only when the newest human
+feedback supports a general rule; return none for question-specific feedback.
 
 ## Validation
 

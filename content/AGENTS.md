@@ -1,6 +1,8 @@
 # Content instructions
 
 - Preserve source inputs and expert notes.
+- Apply human-approved, type-matched lessons from root `editorial-memory.yaml`;
+  current source and expert notes remain authoritative.
 - Keep generated artifacts outside `content/`.
 - Never mark AI-created material approved or published.
 - Read `STYLE_GUIDE.md` before drafting or substantially revising a question.

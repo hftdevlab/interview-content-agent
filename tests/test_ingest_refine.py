@@ -21,6 +21,7 @@ class IngestAndRefineTests(unittest.TestCase):
         root = Path(temporary)
         shutil.copytree(ROOT / "schemas", root / "schemas")
         shutil.copytree(ROOT / "taxonomy", root / "taxonomy")
+        shutil.copy2(ROOT / "editorial-memory.yaml", root / "editorial-memory.yaml")
         (root / "content").mkdir()
         return root
 

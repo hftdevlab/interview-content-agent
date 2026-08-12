@@ -113,7 +113,10 @@ contentctl submit \
   --expert-note "The interviewer cared about ownership and shutdown."
 
 contentctl status --id code-example
+contentctl next --id code-example
 ```
+
+`status` includes a `next_action` field; `next` prints only that recommendation.
 
 Question-type aliases include `design` for system design and `general` or
 `general-system` for systems fundamentals. Image submissions can include
@@ -134,13 +137,18 @@ contentctl clarify \
   --continue
 ```
 
-Record feedback in a file so the exact human wording remains archived, then
-resume the drafting and independent-review loop:
+Record feedback from a file or directly in the command. Either form preserves
+the exact human wording, then resumes the drafting and independent-review loop:
 
 ```bash
 contentctl feedback \
   --id code-example \
   --file inbox/feedback.md \
+  --continue
+
+contentctl feedback \
+  --id code-example \
+  --text "Derive shutdown behavior from the ownership contract." \
   --continue
 ```
 
@@ -148,6 +156,9 @@ Feedback starts a fresh, focused drafting context while retaining the previous
 thread ID in the workflow audit log. The controller runs the complete C++ and
 PDF gates once after the revision, then requires a new independent review.
 Structured agent summaries are streamed as progress while longer revisions run.
+When feedback contains a broadly useful quality rule, the revision agent may
+propose up to three reusable editorial-memory candidates. They remain local and
+inactive until a human explicitly approves them.
 
 Once the independent review passes, build the preview bundle and open a draft
 pull request for human review. This command validates the repository, builds the
@@ -165,17 +176,36 @@ agent process:
 contentctl approve --id code-example
 ```
 
-The command requires the human to type `APPROVE <id>` exactly. Publishing
-remains a separate approved-only operation through `make release` and the
-`$publish-guides` skill.
+The command requires the human to type `APPROVE <id>` exactly. Review any
+proposed reusable lessons separately:
+
+```bash
+contentctl memory-list --id code-example
+contentctl memory-approve --id memory-0123456789ab
+contentctl memory-reject \
+  --id memory-abcdef012345 \
+  --reason "This is specific to the current contract."
+```
+
+Memory approval is available after the source question is approved and requires
+typing `REMEMBER <memory-id>` exactly. Approved lessons retain their source
+feedback and apply only to future drafts and reviews of matching question
+types. Rejected lessons remain auditable but inactive.
+
+Run `contentctl open-pr --id <id>` again after feedback or approval. It updates
+the existing PR instead of creating a duplicate and marks an approved draft PR
+ready for merge. Publishing remains a separate approved-only operation through
+`make release` and the `$publish-guides` skill.
 
 If a submission command is interrupted after its package is created, resume it
 with `contentctl continue --id <id>`. Re-running `submit` for that stable ID is
 rejected with a direct resume instruction.
 
 Use `--offline --no-branch` on `contentctl submit` only for deterministic intake
-testing. Workflow and duplicate audit records are stored beside the question as
-JSON-compatible `workflow.yaml` and `deduplication.yaml`.
+testing. Workflow, duplicate, and pending-memory audit records are stored beside
+the question as JSON-compatible `workflow.yaml`, `deduplication.yaml`, and (when
+needed) `memory-candidates.yaml`. Human-approved reusable lessons live in root
+`editorial-memory.yaml`.
 
 ### Deterministic low-level commands
 

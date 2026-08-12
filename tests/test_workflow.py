@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,6 +10,7 @@ from typing import Optional, Sequence
 from unittest.mock import patch
 
 from tools.agent_runtime import AgentResult
+from tools.editorial_memory import approve_memory_candidate
 from tools.ingest import ingest_question
 from tools.validate import validate_repository
 from tools.workflow import (
@@ -18,6 +20,7 @@ from tools.workflow import (
     add_feedback,
     approve_question,
     continue_question,
+    open_review_pr,
     question_status,
     resolve_duplicate,
     submit_question,
@@ -109,6 +112,21 @@ READY = {
     "summary": "Draft completed.",
     "clarification_questions": [],
     "validation_commands": ["python -m tools.validate"],
+    "memory_candidates": [],
+}
+REVISION_READY = {
+    **READY,
+    "memory_candidates": [
+        {
+            "principle": (
+                "For bounded systems, make overload ownership and the saturation policy explicit."
+            ),
+            "rationale": (
+                "This exposes the decision that determines backpressure, loss, and recovery behavior."
+            ),
+            "question_types": ["system_design"],
+        }
+    ],
 }
 PASSED = {"passed": True, "summary": "Review passed.", "issues": []}
 
@@ -118,6 +136,7 @@ class WorkflowTests(unittest.TestCase):
         root = Path(temporary)
         shutil.copytree(ROOT / "schemas", root / "schemas")
         shutil.copytree(ROOT / "taxonomy", root / "taxonomy")
+        shutil.copy2(ROOT / "editorial-memory.yaml", root / "editorial-memory.yaml")
         (root / "content").mkdir()
         return root
 
@@ -239,7 +258,7 @@ class WorkflowTests(unittest.TestCase):
             continue_question(
                 root=root,
                 question_id=package.name,
-                runner=(revision_runner := FakeRunner([READY, PASSED])),
+                runner=(revision_runner := FakeRunner([REVISION_READY, PASSED])),
             )
             self.assertIn("focused contentctl revision", revision_runner.calls[0][1])
             self.assertEqual(revision_runner.calls[0][0], "run:workspace-write")
@@ -266,6 +285,18 @@ class WorkflowTests(unittest.TestCase):
             status = question_status(root=root, question_id=package.name)
             self.assertEqual(status["status"], "approved")
             self.assertTrue(all(status["review"].values()))
+            self.assertEqual(len(status["pending_memory_candidates"]), 1)
+            candidate_id = status["pending_memory_candidates"][0]["id"]
+            self.assertIn("memory-list", status["next_action"])
+            approve_memory_candidate(
+                root=root,
+                candidate_id=candidate_id,
+                reviewer="Human Editor",
+                confirmation=f"REMEMBER {candidate_id}",
+            )
+            status = question_status(root=root, question_id=package.name)
+            self.assertEqual(status["pending_memory_candidates"], [])
+            self.assertEqual(status["active_editorial_memory_count"], 1)
             self.assertEqual(validate_repository(root), [])
 
     def test_controller_reclaims_lifecycle_and_runs_independent_review(self) -> None:
@@ -408,6 +439,11 @@ class WorkflowTests(unittest.TestCase):
                 "practice/CMakeLists.txt", package, root, "code-example"
             )
         )
+        self.assertTrue(
+            _review_path_allowed(
+                "editorial-memory.yaml", package, root, "code-example"
+            )
+        )
         self.assertFalse(
             _review_path_allowed("tools/workflow.py", package, root, "code-example")
         )
@@ -419,6 +455,62 @@ class WorkflowTests(unittest.TestCase):
                 "code-example",
             )
         )
+
+    def test_review_pr_handoff_updates_and_readies_existing_approved_pr(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self._root(temporary)
+            source = root / "prompt.txt"
+            source.write_text("Design a bounded event stream.\n", encoding="utf-8")
+            package = submit_question(
+                root=root,
+                question_kind="design",
+                input_path=source,
+                runner=None,
+                question_id="sd-repeatable-pr",
+                title="Repeatable review PR",
+                create_branch=False,
+                run_agent=False,
+            )
+            metadata_path = package / "metadata.yaml"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata["status"] = "approved"
+            metadata_path.write_text(json.dumps(metadata, indent=2) + "\n")
+
+            git_calls: list[tuple[str, ...]] = []
+            process_calls: list[tuple[str, ...]] = []
+
+            def fake_git(_root: Path, *args: str, **_kwargs: object):
+                git_calls.append(args)
+                stdout = "question/sd-repeatable-pr\n" if args[0] == "branch" else ""
+                return subprocess.CompletedProcess(args, 0, stdout=stdout, stderr="")
+
+            def fake_process(command, **_kwargs):
+                call = tuple(str(item) for item in command)
+                process_calls.append(call)
+                stdout = (
+                    '{"url":"https://example.test/pr/7","isDraft":true}'
+                    if call[:3] == ("gh", "pr", "view")
+                    else ""
+                )
+                return subprocess.CompletedProcess(command, 0, stdout=stdout, stderr="")
+
+            changed = f"content/system-design/{package.name}/workflow.yaml"
+            with patch(
+                "tools.workflow._git", side_effect=fake_git
+            ), patch(
+                "tools.workflow._changed_paths", return_value=[changed]
+            ), patch(
+                "tools.workflow.validate_repository", return_value=[]
+            ), patch(
+                "tools.workflow.subprocess.run", side_effect=fake_process
+            ):
+                url = open_review_pr(root=root, question_id=package.name)
+
+            self.assertEqual(url, "https://example.test/pr/7")
+            self.assertTrue(any(call[:3] == ("gh", "pr", "edit") for call in process_calls))
+            self.assertTrue(any(call[:3] == ("gh", "pr", "ready") for call in process_calls))
+            self.assertFalse(any(call[:3] == ("gh", "pr", "create") for call in process_calls))
+            self.assertIn(("push", "-u", "origin", "question/sd-repeatable-pr"), git_calls)
 
 
 if __name__ == "__main__":
