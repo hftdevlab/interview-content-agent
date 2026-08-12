@@ -4,10 +4,31 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.agent_runtime import AgentResult, CodexExecRunner
+from tools.agent_runtime import (
+    AgentResult,
+    CodexExecRunner,
+    _is_recoverable_diagnostic,
+    _progress_summary,
+)
 
 
 class AgentRuntimeTests(unittest.TestCase):
+    def test_known_incompatible_models_cache_diagnostic_is_suppressed(self) -> None:
+        self.assertTrue(
+            _is_recoverable_diagnostic(
+                "ERROR codex_models_manager::cache: failed to load models cache: "
+                "missing field `base_instructions` at line 94 column 5"
+            )
+        )
+        self.assertFalse(_is_recoverable_diagnostic("ERROR authentication failed"))
+
+    def test_structured_agent_summary_becomes_progress_text(self) -> None:
+        self.assertEqual(
+            _progress_summary('{"outcome":"ready","summary":"Focused revision done."}'),
+            "Focused revision done.",
+        )
+        self.assertEqual(_progress_summary("not JSON"), "")
+
     def test_new_thread_uses_requested_sandbox_and_schema(self) -> None:
         runner = CodexExecRunner(codex_bin="/opt/codex")
         result = AgentResult("thread-1", "{}", ())

@@ -11,7 +11,7 @@ import sys
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Iterable, Mapping, Optional
+from typing import Iterable, Mapping, Optional, Sequence
 
 from tools.agent_runtime import AgentResult, AgentRunner, CodexExecRunner
 from tools.content import ROOT, load_data
@@ -218,6 +218,15 @@ def submit_question(
     root = root.resolve()
     input_path = input_path.resolve()
     resolved_kind = _resolve_kind(question_kind)
+    if question_id:
+        matches = list((root / "content").glob(f"*/{question_id}/metadata.yaml"))
+        if matches:
+            if (matches[0].parent / "workflow.yaml").is_file():
+                raise WorkflowError(
+                    f"question workflow {question_id!r} already exists; "
+                    f"run 'contentctl continue --id {question_id}'"
+                )
+            raise WorkflowError(f"question ID {question_id!r} already exists")
     is_image = input_path.suffix.casefold() in IMAGE_SUFFIXES
     transcription: Optional[str] = None
     uncertainties: list[dict[str, object]] = []
@@ -379,9 +388,25 @@ def _draft_prompt(package: Path, metadata: Mapping[str, object]) -> str:
         "invent a missing constraint that changes the problem; return needs_clarification "
         "when that decision requires the human. Generate the tested skills, natural reasoning, "
         "primary solution, concise improvements, pitfalls, realistic follow-ups, and evaluation "
-        f"criteria according to the repository rules.{practice} Never approve or publish. "
-        "Run the applicable validation commands. In the final structured response, report "
+        f"criteria according to the repository rules.{practice} This run is controlled by "
+        "contentctl: never edit workflow.yaml; keep metadata status draft and every review flag "
+        "false. The controller owns lifecycle transitions, full PDF builds, and repository-wide "
+        "gates. Run only targeted package validation and question-specific practice tests. "
+        "Never approve or publish. In the final structured response, report "
         "ready only when all required source edits and tests are complete."
+    )
+
+
+def _feedback_revision_prompt(package: Path, metadata: Mapping[str, object]) -> str:
+    return (
+        f"Revise {metadata['id']} using only the newest human feedback appended to "
+        "expert-notes.md and its matching file under feedback/. Preserve accepted material "
+        "unless the feedback requires it to change, and reconcile the linked practice package. "
+        "This is a focused contentctl revision: do not edit workflow.yaml; keep metadata status "
+        "draft and every review flag false. Do not rebuild or visually inspect PDFs and do not "
+        "run repository-wide gates; the controller will do those once. Run targeted package "
+        "validation and only the affected question-specific practice tests. Never approve or "
+        "publish. Return the required structured stage result."
     )
 
 
@@ -485,6 +510,35 @@ def _run_review(
     return parsed
 
 
+def _run_gate(root: Path, command: Sequence[str], label: str) -> None:
+    print(f"[contentctl] {label}...", file=sys.stderr, flush=True)
+    result = subprocess.run(
+        list(command),
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode:
+        output = "\n".join(
+            line for line in (result.stdout + "\n" + result.stderr).splitlines() if line
+        )
+        tail = "\n".join(output.splitlines()[-40:])
+        raise WorkflowError(f"{label} failed:\n{tail}")
+
+
+def _run_deterministic_gates(root: Path, metadata: Mapping[str, object]) -> None:
+    """Run expensive gates once under controller ownership, not inside agent turns."""
+
+    if not (root / "Makefile").is_file():
+        return
+    if metadata.get("type") == "coding" or isinstance(
+        metadata.get("runnable_experiment"), dict
+    ):
+        _run_gate(root, ("make", "practice-test"), "C++ practice gate")
+    _run_gate(root, ("make", "pdf-preview"), "review PDF gate")
+
+
 def continue_question(
     *,
     root: Path,
@@ -506,12 +560,28 @@ def continue_question(
     if workflow.get("pending_clarifications"):
         raise WorkflowError("resolve pending clarifications before continuing")
 
+    starting_status = str(metadata.get("status", ""))
     _sync_status(package, "draft", REVIEW_FLAGS_FALSE)
     workflow["state"] = "drafting"
+    if starting_status == "changes_requested":
+        threads = _agent_threads(workflow)
+        previous_thread = threads.get("draft", "")
+        threads["draft"] = ""
+        workflow["agent_threads"] = threads
+        _event(
+            workflow,
+            "draft_context_rotated",
+            actor="system",
+            detail={"previous_thread": previous_thread},
+        )
     _event(workflow, "draft_started", actor="system", detail={})
     _save_workflow(package, workflow)
 
-    revision_message: Optional[str] = None
+    revision_message: Optional[str] = (
+        _feedback_revision_prompt(package, metadata)
+        if starting_status == "changes_requested"
+        else None
+    )
     for round_number in range(max_revision_rounds + 1):
         metadata = dict(load_data(package / "metadata.yaml"))
         draft = _run_draft(
@@ -522,6 +592,11 @@ def continue_question(
             runner=runner,
             revision_message=revision_message,
         )
+        # Lifecycle state belongs to the controller. Reassert it after every agent
+        # turn so a drafting skill cannot accidentally bypass independent review.
+        _sync_status(package, "draft", REVIEW_FLAGS_FALSE)
+        workflow["state"] = "drafting"
+        _save_workflow(package, workflow)
         outcome = str(draft.get("outcome", "failed"))
         if outcome == "needs_clarification":
             questions = [str(item) for item in draft.get("clarification_questions", [])]
@@ -571,6 +646,25 @@ def continue_question(
             workflow["state"] = "agent_validation_failed"
             _save_workflow(package, workflow)
             raise WorkflowError(revision_message)
+
+        try:
+            _run_deterministic_gates(root, metadata)
+        except WorkflowError as exc:
+            revision_message = (
+                "Fix this controller-owned deterministic gate failure without changing the "
+                f"core question:\n- {exc}"
+            )
+            if round_number < max_revision_rounds:
+                continue
+            workflow["state"] = "agent_validation_failed"
+            _event(
+                workflow,
+                "validation_failed",
+                actor="system",
+                detail=[str(exc)],
+            )
+            _save_workflow(package, workflow)
+            raise
 
         review = _run_review(
             root=root,
@@ -771,8 +865,29 @@ def approve_question(
     if confirmation != expected:
         raise WorkflowError(f"approval confirmation must exactly match {expected!r}")
     metadata = dict(load_data(package / "metadata.yaml"))
+    workflow = _load_workflow(package)
     if metadata.get("status") != "needs_human_review":
         raise WorkflowError("only content awaiting human review can be approved")
+    if workflow.get("state") != "needs_human_review":
+        raise WorkflowError("workflow must complete independent review before approval")
+    attempts = _attempts(workflow)
+    agent_review_path = package / "agent-review.yaml"
+    if attempts.get("review", 0) < 1 or not agent_review_path.is_file():
+        raise WorkflowError("independent agent review record is required before approval")
+    agent_review = load_data(agent_review_path)
+    if not isinstance(agent_review, dict) or agent_review.get("passed") is not True:
+        raise WorkflowError("independent agent review must pass before approval")
+    review_issues = agent_review.get("issues")
+    if not isinstance(review_issues, list):
+        raise WorkflowError("independent agent review record is malformed")
+    blocking = [
+        item
+        for item in review_issues
+        if isinstance(item, dict)
+        and item.get("severity") in {"blocking", "important"}
+    ]
+    if blocking:
+        raise WorkflowError("independent agent review still contains unresolved issues")
     if not metadata.get("review", {}).get("agent_reviewed"):
         raise WorkflowError("independent agent review must pass before human approval")
     if metadata.get("type") == "coding" and not isinstance(metadata.get("practice"), dict):
@@ -785,7 +900,6 @@ def approve_question(
         flags,
         review_note=f"Approved interactively by {reviewer} at {_now()}.",
     )
-    workflow = _load_workflow(package)
     workflow["state"] = "approved"
     _event(
         workflow,

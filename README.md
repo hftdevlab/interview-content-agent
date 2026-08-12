@@ -144,6 +144,11 @@ contentctl feedback \
   --continue
 ```
 
+Feedback starts a fresh, focused drafting context while retaining the previous
+thread ID in the workflow audit log. The controller runs the complete C++ and
+PDF gates once after the revision, then requires a new independent review.
+Structured agent summaries are streamed as progress while longer revisions run.
+
 Once the independent review passes, build the preview bundle and open a draft
 pull request for human review. This command validates the repository, builds the
 PDF previews and any required C++ practice, and refuses to stage unrelated
@@ -163,6 +168,10 @@ contentctl approve --id code-example
 The command requires the human to type `APPROVE <id>` exactly. Publishing
 remains a separate approved-only operation through `make release` and the
 `$publish-guides` skill.
+
+If a submission command is interrupted after its package is created, resume it
+with `contentctl continue --id <id>`. Re-running `submit` for that stable ID is
+rejected with a direct resume instruction.
 
 Use `--offline --no-branch` on `contentctl submit` only for deterministic intake
 testing. Workflow and duplicate audit records are stored beside the question as

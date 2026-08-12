@@ -6,12 +6,14 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Optional, Sequence
+from unittest.mock import patch
 
 from tools.agent_runtime import AgentResult
 from tools.ingest import ingest_question
 from tools.validate import validate_repository
 from tools.workflow import (
     WorkflowError,
+    _run_deterministic_gates,
     _review_path_allowed,
     add_feedback,
     approve_question,
@@ -64,6 +66,44 @@ class FakeRunner:
         return self._result("resume", prompt)
 
 
+class LifecycleMutatingRunner(FakeRunner):
+    """Reproduce a drafting skill trying to take over controller lifecycle state."""
+
+    def run(
+        self,
+        prompt: str,
+        *,
+        root: Path,
+        sandbox: str,
+        images: Sequence[Path] = (),
+        output_schema: Optional[Path] = None,
+    ) -> AgentResult:
+        if sandbox == "workspace-write":
+            package = root / "content/system-design/sd-lifecycle-race"
+            metadata_path = package / "metadata.yaml"
+            review_path = package / "review.yaml"
+            workflow_path = package / "workflow.yaml"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            review = json.loads(review_path.read_text(encoding="utf-8"))
+            workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+            flags = dict(metadata["review"])
+            flags["agent_reviewed"] = True
+            metadata["status"] = "needs_human_review"
+            metadata["review"] = flags
+            review["checks"] = flags
+            workflow["state"] = "needs_human_review"
+            metadata_path.write_text(json.dumps(metadata, indent=2) + "\n")
+            review_path.write_text(json.dumps(review, indent=2) + "\n")
+            workflow_path.write_text(json.dumps(workflow, indent=2) + "\n")
+        return super().run(
+            prompt,
+            root=root,
+            sandbox=sandbox,
+            images=images,
+            output_schema=output_schema,
+        )
+
+
 READY = {
     "outcome": "ready",
     "summary": "Draft completed.",
@@ -103,6 +143,18 @@ class WorkflowTests(unittest.TestCase):
             self.assertTrue((package / "workflow.yaml").is_file())
             self.assertTrue((package / "deduplication.yaml").is_file())
             self.assertEqual(validate_repository(root), [])
+
+            with self.assertRaisesRegex(WorkflowError, "contentctl continue"):
+                submit_question(
+                    root=root,
+                    question_kind="design",
+                    input_path=source,
+                    runner=None,
+                    question_id="sd-order-audit-stream",
+                    title="Bounded order audit stream",
+                    create_branch=False,
+                    run_agent=False,
+                )
 
     def test_duplicate_submission_pauses_until_human_resolution(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -187,7 +239,16 @@ class WorkflowTests(unittest.TestCase):
             continue_question(
                 root=root,
                 question_id=package.name,
-                runner=FakeRunner([READY, PASSED]),
+                runner=(revision_runner := FakeRunner([READY, PASSED])),
+            )
+            self.assertIn("focused contentctl revision", revision_runner.calls[0][1])
+            self.assertEqual(revision_runner.calls[0][0], "run:workspace-write")
+            workflow = json.loads((package / "workflow.yaml").read_text())
+            self.assertTrue(
+                any(
+                    event.get("type") == "draft_context_rotated"
+                    for event in workflow["events"]
+                )
             )
             with self.assertRaisesRegex(WorkflowError, "exactly match"):
                 approve_question(
@@ -206,6 +267,89 @@ class WorkflowTests(unittest.TestCase):
             self.assertEqual(status["status"], "approved")
             self.assertTrue(all(status["review"].values()))
             self.assertEqual(validate_repository(root), [])
+
+    def test_controller_reclaims_lifecycle_and_runs_independent_review(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self._root(temporary)
+            source = root / "prompt.txt"
+            source.write_text("Design a bounded event stream.\n", encoding="utf-8")
+            runner = LifecycleMutatingRunner([READY, PASSED])
+
+            with patch("tools.workflow._run_deterministic_gates") as gates:
+                package = submit_question(
+                    root=root,
+                    question_kind="design",
+                    input_path=source,
+                    runner=runner,
+                    question_id="sd-lifecycle-race",
+                    title="Bounded lifecycle race stream",
+                    create_branch=False,
+                    run_agent=True,
+                )
+
+            status = question_status(root=root, question_id=package.name)
+            self.assertEqual(status["workflow_state"], "needs_human_review")
+            self.assertEqual(status["attempts"]["draft"], 1)
+            self.assertEqual(status["attempts"]["review"], 1)
+            self.assertTrue((package / "agent-review.yaml").is_file())
+            gates.assert_called_once()
+            self.assertEqual(validate_repository(root), [])
+
+    def test_approval_rejects_missing_independent_review_record(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self._root(temporary)
+            source = root / "prompt.txt"
+            source.write_text("Design a bounded audit stream.\n", encoding="utf-8")
+            package = submit_question(
+                root=root,
+                question_kind="design",
+                input_path=source,
+                runner=None,
+                question_id="sd-no-independent-review",
+                title="Bounded audit stream without review",
+                create_branch=False,
+                run_agent=False,
+            )
+            metadata_path = package / "metadata.yaml"
+            review_path = package / "review.yaml"
+            workflow_path = package / "workflow.yaml"
+            metadata = json.loads(metadata_path.read_text())
+            review = json.loads(review_path.read_text())
+            workflow = json.loads(workflow_path.read_text())
+            metadata["status"] = "needs_human_review"
+            metadata["review"]["agent_reviewed"] = True
+            review["checks"] = metadata["review"]
+            workflow["state"] = "needs_human_review"
+            metadata_path.write_text(json.dumps(metadata, indent=2) + "\n")
+            review_path.write_text(json.dumps(review, indent=2) + "\n")
+            workflow_path.write_text(json.dumps(workflow, indent=2) + "\n")
+
+            validation = "\n".join(str(issue) for issue in validate_repository(root))
+            self.assertIn("requires a completed independent review", validation)
+            self.assertIn("requires an independent review report", validation)
+            with self.assertRaisesRegex(WorkflowError, "independent agent review record"):
+                approve_question(
+                    root=root,
+                    question_id=package.name,
+                    reviewer="Human Editor",
+                    confirmation=f"APPROVE {package.name}",
+                )
+
+    def test_controller_gate_selection(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "Makefile").write_text("all:\n\t@true\n", encoding="utf-8")
+            with patch("tools.workflow._run_gate") as gate:
+                _run_deterministic_gates(root, {"type": "coding"})
+            self.assertEqual(gate.call_count, 2)
+            self.assertEqual(gate.call_args_list[0].args[1], ("make", "practice-test"))
+            self.assertEqual(gate.call_args_list[1].args[1], ("make", "pdf-preview"))
+
+            with patch("tools.workflow._run_gate") as gate:
+                _run_deterministic_gates(root, {"type": "system_design"})
+            gate.assert_called_once_with(
+                root, ("make", "pdf-preview"), "review PDF gate"
+            )
 
     def test_image_transcription_is_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

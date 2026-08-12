@@ -468,6 +468,49 @@ def _workflow_file_issues(
     events = workflow.get("events")
     if not isinstance(events, list) or any(not isinstance(item, dict) for item in events):
         issues.append(ValidationIssue(str(path.relative_to(root)), "events must be an object array"))
+    if state == "needs_human_review":
+        attempts = workflow.get("attempts", {})
+        review_attempts = attempts.get("review", 0) if isinstance(attempts, dict) else 0
+        report_path = package_dir / "agent-review.yaml"
+        if not isinstance(review_attempts, int) or review_attempts < 1:
+            issues.append(
+                ValidationIssue(
+                    str(path.relative_to(root)),
+                    "needs_human_review requires a completed independent review attempt",
+                )
+            )
+        if not report_path.is_file():
+            issues.append(
+                ValidationIssue(
+                    str(report_path.relative_to(root)),
+                    "needs_human_review requires an independent review report",
+                )
+            )
+        else:
+            try:
+                report = load_data(report_path)
+            except (OSError, ValueError) as exc:
+                issues.append(ValidationIssue(str(report_path.relative_to(root)), str(exc)))
+            else:
+                report_issues = report.get("issues") if isinstance(report, dict) else None
+                blocking = [
+                    item
+                    for item in report_issues
+                    if isinstance(item, dict)
+                    and item.get("severity") in {"blocking", "important"}
+                ] if isinstance(report_issues, list) else ["invalid report"]
+                if (
+                    not isinstance(report, dict)
+                    or report.get("passed") is not True
+                    or not isinstance(report_issues, list)
+                    or blocking
+                ):
+                    issues.append(
+                        ValidationIssue(
+                            str(report_path.relative_to(root)),
+                            "independent review must pass without unresolved blocking issues",
+                        )
+                    )
     return issues
 
 

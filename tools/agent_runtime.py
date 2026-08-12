@@ -6,9 +6,11 @@ import json
 import os
 import shutil
 import subprocess
+import sys
+import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Protocol, Sequence
+from typing import IO, Optional, Protocol, Sequence
 
 
 @dataclass(frozen=True)
@@ -57,16 +59,52 @@ def _codex_binary() -> str:
     )
 
 
+RECOVERABLE_DIAGNOSTICS = (
+    "codex_models_manager::cache: failed to load models cache: "
+    "missing field `base_instructions`",
+)
+
+
+def _is_recoverable_diagnostic(line: str) -> bool:
+    return any(marker in line for marker in RECOVERABLE_DIAGNOSTICS)
+
+
+def _forward_stderr(stream: IO[str], captured: list[str]) -> None:
+    for line in stream:
+        captured.append(line.rstrip())
+        if not _is_recoverable_diagnostic(line):
+            sys.stderr.write(line)
+            sys.stderr.flush()
+
+
+def _progress_summary(message: str) -> str:
+    try:
+        parsed = json.loads(message)
+    except json.JSONDecodeError:
+        return ""
+    if not isinstance(parsed, dict):
+        return ""
+    return str(parsed.get("summary", "")).strip()
+
+
 def _consume(command: list[str], *, root: Path) -> AgentResult:
     process = subprocess.Popen(
         command,
         cwd=root,
         stdout=subprocess.PIPE,
-        stderr=None,
+        stderr=subprocess.PIPE,
         text=True,
         encoding="utf-8",
     )
     assert process.stdout is not None
+    assert process.stderr is not None
+    stderr_lines: list[str] = []
+    stderr_thread = threading.Thread(
+        target=_forward_stderr,
+        args=(process.stderr, stderr_lines),
+        daemon=True,
+    )
+    stderr_thread.start()
     events: list[dict[str, object]] = []
     thread_id = ""
     final_output = ""
@@ -87,9 +125,15 @@ def _consume(command: list[str], *, root: Path) -> AgentResult:
             item = event.get("item")
             if isinstance(item, dict) and item.get("type") == "agent_message":
                 final_output = str(item.get("text", final_output))
+                summary = _progress_summary(final_output)
+                if summary:
+                    print(f"[contentctl] {summary}", file=sys.stderr, flush=True)
     exit_code = process.wait()
+    stderr_thread.join()
     if exit_code:
-        raise RuntimeError(f"Codex exited with status {exit_code}")
+        tail = "\n".join(stderr_lines[-20:])
+        detail = f"\n{tail}" if tail else ""
+        raise RuntimeError(f"Codex exited with status {exit_code}{detail}")
     if not final_output:
         raise RuntimeError("Codex completed without a final agent message")
     return AgentResult(thread_id, final_output, tuple(events))

@@ -29,8 +29,11 @@ than resolving them silently.
    Do not repeat the good solution.
 6. Add Mermaid only where a diagram clarifies architecture, ownership, or an
    event sequence. Give it a caption, alt text, and metadata entry.
-7. Set status to `needs_human_review`; set only `agent_reviewed` true and leave
-   all human review flags false.
+7. When `workflow.yaml` shows a `contentctl` run, do not edit it; keep status
+   `draft` and every review flag false because the controller owns lifecycle
+   transitions and independent review. Otherwise set status to
+   `needs_human_review`, set only `agent_reviewed` true, and leave all human
+   review flags false.
 
 A typical chapter must fit ten rendered pages. A genuinely complex flagship
 question may use up to fourteen when the extra pages contain interview-relevant
@@ -53,4 +56,6 @@ make pdf-preview
 ```
 
 Inspect the rendered chapter for page count, diagram legibility, and density.
-Finish with `make all` after a substantial revision.
+Finish with `make all` after a substantial revision. During a `contentctl` run,
+run targeted package checks only; the controller renders PDFs and runs
+repository-wide gates once before independent review.
