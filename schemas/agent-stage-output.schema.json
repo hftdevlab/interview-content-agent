@@ -48,7 +48,6 @@
           "question_types": {
             "type": "array",
             "minItems": 1,
-            "uniqueItems": true,
             "items": {
               "type": "string",
               "enum": ["all", "coding", "system_design", "fundamentals"]

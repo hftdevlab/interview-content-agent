@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import io
+import json
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -7,7 +9,10 @@ from unittest.mock import patch
 from tools.agent_runtime import (
     AgentResult,
     CodexExecRunner,
+    _consume,
+    _failure_from_message,
     _is_recoverable_diagnostic,
+    _process_failure,
     _progress_summary,
 )
 
@@ -21,6 +26,72 @@ class AgentRuntimeTests(unittest.TestCase):
             )
         )
         self.assertFalse(_is_recoverable_diagnostic("ERROR authentication failed"))
+
+    def test_nested_api_failure_has_stable_code_message_and_status(self) -> None:
+        failure = _failure_from_message(
+            {
+                "message": json.dumps(
+                    {
+                        "type": "error",
+                        "error": {
+                            "type": "invalid_request_error",
+                            "code": "invalid_json_schema",
+                            "message": "uniqueItems is not permitted",
+                        },
+                        "status": 400,
+                    }
+                )
+            }
+        )
+        self.assertEqual(failure.code, "invalid_json_schema")
+        self.assertEqual(failure.message, "uniqueItems is not permitted")
+        self.assertEqual(failure.status, 400)
+
+    def test_models_cache_exit_has_explicit_stable_remediation(self) -> None:
+        message = _process_failure(
+            1,
+            [
+                "ERROR codex_models_manager::cache: failed to load models cache: "
+                "missing field `base_instructions` at line 94 column 5"
+            ],
+        )
+        self.assertIn("[incompatible_models_cache]", message)
+        self.assertIn("models_cache.json", message)
+        self.assertNotIn("Codex exited with status 1", message)
+
+    def test_turn_failed_event_is_reported_even_when_process_exits_zero(self) -> None:
+        payload = json.dumps(
+            {
+                "type": "turn.failed",
+                "error": {
+                    "message": json.dumps(
+                        {
+                            "error": {
+                                "code": "invalid_json_schema",
+                                "message": "uniqueItems is not permitted",
+                            },
+                            "status": 400,
+                        }
+                    )
+                },
+            }
+        )
+
+        class FakeProcess:
+            stdout = io.StringIO(payload + "\n")
+            stderr = io.StringIO("")
+
+            @staticmethod
+            def wait() -> int:
+                return 0
+
+        with patch("tools.agent_runtime.subprocess.Popen", return_value=FakeProcess()):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                r"Codex agent failed \[invalid_json_schema\] \(HTTP 400\): "
+                r"uniqueItems is not permitted",
+            ):
+                _consume(["codex", "exec"], root=Path("/tmp"))
 
     def test_structured_agent_summary_becomes_progress_text(self) -> None:
         self.assertEqual(

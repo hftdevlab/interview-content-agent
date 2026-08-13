@@ -20,6 +20,15 @@ class AgentResult:
     events: tuple[dict[str, object], ...]
 
 
+@dataclass(frozen=True)
+class CodexFailure:
+    """Normalized failure details extracted from a Codex JSON event."""
+
+    code: str
+    message: str
+    status: Optional[int] = None
+
+
 class AgentRunner(Protocol):
     def run(
         self,
@@ -87,6 +96,65 @@ def _progress_summary(message: str) -> str:
     return str(parsed.get("summary", "")).strip()
 
 
+def _failure_from_message(raw: object) -> CodexFailure:
+    """Normalize nested Codex/API error payloads into a stable user-facing shape."""
+
+    value: object = raw
+    if isinstance(value, dict) and "message" in value:
+        value = value["message"]
+    if isinstance(value, str):
+        try:
+            decoded = json.loads(value)
+        except json.JSONDecodeError:
+            return CodexFailure("agent_failure", value.strip() or "unknown Codex failure")
+        value = decoded
+    if not isinstance(value, dict):
+        return CodexFailure("agent_failure", str(value) or "unknown Codex failure")
+
+    status = value.get("status")
+    error = value.get("error", value)
+    if isinstance(error, dict):
+        code = str(error.get("code") or error.get("type") or "agent_failure")
+        message = str(error.get("message") or value.get("message") or "unknown Codex failure")
+    else:
+        code = "agent_failure"
+        message = str(error)
+    return CodexFailure(
+        code=code,
+        message=" ".join(message.split()),
+        status=status if isinstance(status, int) else None,
+    )
+
+
+def _failure_text(failure: CodexFailure) -> str:
+    status = f" (HTTP {failure.status})" if failure.status is not None else ""
+    guidance = ""
+    if failure.code == "invalid_json_schema":
+        guidance = (
+            " The agent response schema is incompatible with the current Codex structured-"
+            "output subset; this is a tooling error, not a content error."
+        )
+    message = failure.message.rstrip(".")
+    return f"Codex agent failed [{failure.code}]{status}: {message}.{guidance}"
+
+
+def _process_failure(exit_code: int, stderr_lines: Sequence[str]) -> str:
+    cache_error = next(
+        (line for line in stderr_lines if _is_recoverable_diagnostic(line)),
+        "",
+    )
+    if cache_error:
+        return (
+            "Codex startup failed [incompatible_models_cache]: the local Codex models cache "
+            "does not match this CLI version (missing base_instructions). Restart or update "
+            "Codex so it refreshes ~/.codex/models_cache.json, then rerun contentctl continue."
+        )
+    meaningful = [line.strip() for line in stderr_lines if line.strip()]
+    detail = " | ".join(meaningful[-8:])
+    suffix = f" Stderr: {detail}" if detail else " No stderr detail was emitted."
+    return f"Codex process failed [process_exit]: exit status {exit_code}.{suffix}"
+
+
 def _consume(command: list[str], *, root: Path) -> AgentResult:
     process = subprocess.Popen(
         command,
@@ -108,6 +176,7 @@ def _consume(command: list[str], *, root: Path) -> AgentResult:
     events: list[dict[str, object]] = []
     thread_id = ""
     final_output = ""
+    failure: Optional[CodexFailure] = None
     for line in process.stdout:
         line = line.strip()
         if not line:
@@ -128,14 +197,21 @@ def _consume(command: list[str], *, root: Path) -> AgentResult:
                 summary = _progress_summary(final_output)
                 if summary:
                     print(f"[contentctl] {summary}", file=sys.stderr, flush=True)
+        if event.get("type") == "turn.failed":
+            failure = _failure_from_message(event.get("error", event))
+        elif event.get("type") == "error" and failure is None:
+            failure = _failure_from_message(event.get("message", event))
     exit_code = process.wait()
     stderr_thread.join()
+    if failure is not None:
+        raise RuntimeError(_failure_text(failure))
     if exit_code:
-        tail = "\n".join(stderr_lines[-20:])
-        detail = f"\n{tail}" if tail else ""
-        raise RuntimeError(f"Codex exited with status {exit_code}{detail}")
+        raise RuntimeError(_process_failure(exit_code, stderr_lines))
     if not final_output:
-        raise RuntimeError("Codex completed without a final agent message")
+        raise RuntimeError(
+            "Codex agent failed [missing_final_message]: the process exited successfully "
+            "without a final agent message. Inspect the preceding Codex events and retry."
+        )
     return AgentResult(thread_id, final_output, tuple(events))
 
 

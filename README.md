@@ -207,6 +207,25 @@ the question as JSON-compatible `workflow.yaml`, `deduplication.yaml`, and (when
 needed) `memory-candidates.yaml`. Human-approved reusable lessons live in root
 `editorial-memory.yaml`.
 
+### Codex execution errors
+
+`contentctl` reports Codex subprocess failures with a stable category in square
+brackets. For example:
+
+- `[invalid_json_schema]` means the controller's structured response schema is
+  incompatible with the installed Codex version. It is a tooling defect; the
+  question artifacts remain resumable.
+- `[incompatible_models_cache]` means `~/.codex/models_cache.json` belongs to an
+  incompatible Codex version. Restart or update Codex so the cache refreshes,
+  then rerun `contentctl continue`.
+- `[process_exit]` preserves the exit status and the final meaningful stderr
+  lines for otherwise unclassified CLI failures.
+- `[missing_final_message]` means Codex exited successfully without returning
+  the structured stage result.
+
+Do not resubmit the same stable question ID after an agent failure. Inspect
+`contentctl status --id <id>` and resume with `contentctl continue --id <id>`.
+
 ### Deterministic low-level commands
 
 Archive and normalize a text prompt:
