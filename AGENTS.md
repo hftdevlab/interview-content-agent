@@ -8,6 +8,9 @@
   the source of truth. Never edit `generated/`, `dist/`, or `build/` by hand.
 - Preserve original source inputs and `expert-notes.md`. Human expert notes
   override generated suggestions.
+- `editorial-memory.yaml` contains only human-approved, reusable feedback. Apply
+  entries matching the question type, but let the current source and human
+  notes take precedence.
 - Never invent interview provenance or employer attribution. Remove confidential
   and identifying details from published-facing content.
 - Never mark AI-created or AI-revised content `approved` or `published`; final
@@ -17,6 +20,9 @@
 - During a `contentctl` run, never edit `workflow.yaml` or advance lifecycle
   status/review flags. The controller owns those transitions and requires a
   separate read-only agent review before human approval.
+- Never promote or reject `memory-candidates.yaml` entries and never edit
+  `editorial-memory.yaml` during a drafting or review turn. Agents may only
+  propose generalized lessons in the structured feedback-revision result.
 
 ## Change discipline
 

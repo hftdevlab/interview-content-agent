@@ -16,6 +16,15 @@ from typing import Iterable, Mapping, Optional, Sequence
 from tools.agent_runtime import AgentResult, AgentRunner, CodexExecRunner
 from tools.content import ROOT, load_data
 from tools.deduplicate import duplicate_candidates, report_dict
+from tools.editorial_memory import (
+    EditorialMemoryError,
+    active_memory_entries,
+    approve_memory_candidate,
+    list_memory_candidates,
+    memory_prompt,
+    record_memory_candidates,
+    reject_memory_candidate,
+)
 from tools.ingest import IMAGE_SUFFIXES, TYPE_CONFIG, ingest_question
 from tools.validate import validate_repository
 
@@ -371,7 +380,9 @@ def submit_question(
     return package
 
 
-def _draft_prompt(package: Path, metadata: Mapping[str, object]) -> str:
+def _draft_prompt(
+    root: Path, package: Path, metadata: Mapping[str, object]
+) -> str:
     question_id = str(metadata["id"])
     skill = SKILL_BY_METADATA_TYPE[str(metadata["type"])]
     practice = (
@@ -380,6 +391,7 @@ def _draft_prompt(package: Path, metadata: Mapping[str, object]) -> str:
         if metadata["type"] == "coding"
         else " Add a runnable experiment only when it tests a material claim."
     )
+    editorial_guidance = memory_prompt(root, str(metadata["type"]))
     return (
         f"Use {skill} to draft the normalized question {question_id}. Also use "
         "$link-interview-foundations where prerequisites are already taught. Read the "
@@ -392,12 +404,18 @@ def _draft_prompt(package: Path, metadata: Mapping[str, object]) -> str:
         "contentctl: never edit workflow.yaml; keep metadata status draft and every review flag "
         "false. The controller owns lifecycle transitions, full PDF builds, and repository-wide "
         "gates. Run only targeted package validation and question-specific practice tests. "
-        "Never approve or publish. In the final structured response, report "
-        "ready only when all required source edits and tests are complete."
+        "Never approve or publish.\n\n"
+        f"Editorial memory:\n{editorial_guidance}\n\n"
+        "This is an initial draft, not a response to new human feedback, so return an empty "
+        "memory_candidates array. In the final structured response, report ready only when "
+        "all required source edits and tests are complete."
     )
 
 
-def _feedback_revision_prompt(package: Path, metadata: Mapping[str, object]) -> str:
+def _feedback_revision_prompt(
+    root: Path, package: Path, metadata: Mapping[str, object]
+) -> str:
+    editorial_guidance = memory_prompt(root, str(metadata["type"]))
     return (
         f"Revise {metadata['id']} using only the newest human feedback appended to "
         "expert-notes.md and its matching file under feedback/. Preserve accepted material "
@@ -406,17 +424,28 @@ def _feedback_revision_prompt(package: Path, metadata: Mapping[str, object]) -> 
         "draft and every review flag false. Do not rebuild or visually inspect PDFs and do not "
         "run repository-wide gates; the controller will do those once. Run targeted package "
         "validation and only the affected question-specific practice tests. Never approve or "
-        "publish. Return the required structured stage result."
+        "publish.\n\n"
+        f"Editorial memory:\n{editorial_guidance}\n\n"
+        "In memory_candidates, propose zero to three concise lessons only when the newest "
+        "human feedback contains a rule that should improve other questions. Generalize the "
+        "lesson: exclude this question's answer facts, company details, and project-specific "
+        "instructions. Return an empty array for question-specific feedback. Candidates are "
+        "only proposals for later human approval; do not edit editorial-memory.yaml or "
+        "memory-candidates.yaml. Return the required structured stage result."
     )
 
 
-def _review_prompt(package: Path, metadata: Mapping[str, object]) -> str:
+def _review_prompt(
+    root: Path, package: Path, metadata: Mapping[str, object]
+) -> str:
+    editorial_guidance = memory_prompt(root, str(metadata["type"]))
     return (
         f"Use $review-question to independently review {metadata['id']}. Do not edit any files. "
         "Read the preserved source, expert notes, deduplication report, question, metadata, "
         "and linked practice code. Judge source fidelity, interview realism, reasoning flow, "
         "technical correctness, page-budget discipline, follow-up quality, and runnable-code "
         "consistency. A coding question cannot pass without a question-specific runnable package. "
+        f"Also verify applicable approved guidance below:\n{editorial_guidance}\n"
         "Return blocking or important issues precisely; suggestions alone do not fail the review."
     )
 
@@ -466,7 +495,7 @@ def _run_draft(
     schema = root / "schemas/agent-stage-output.schema.json"
     threads = _agent_threads(workflow)
     thread_id = threads.get("draft", "")
-    prompt = revision_message or _draft_prompt(package, metadata)
+    prompt = revision_message or _draft_prompt(root, package, metadata)
     if thread_id:
         result = runner.resume(
             thread_id,
@@ -497,7 +526,7 @@ def _run_review(
     runner: AgentRunner,
 ) -> dict[str, object]:
     result = runner.run(
-        _review_prompt(package, metadata),
+        _review_prompt(root, package, metadata),
         root=root,
         sandbox="read-only",
         output_schema=root / "schemas/agent-review-output.schema.json",
@@ -561,6 +590,8 @@ def continue_question(
         raise WorkflowError("resolve pending clarifications before continuing")
 
     starting_status = str(metadata.get("status", ""))
+    is_feedback_revision = starting_status == "changes_requested"
+    proposed_memory: list[Mapping[str, object]] = []
     _sync_status(package, "draft", REVIEW_FLAGS_FALSE)
     workflow["state"] = "drafting"
     if starting_status == "changes_requested":
@@ -578,8 +609,8 @@ def continue_question(
     _save_workflow(package, workflow)
 
     revision_message: Optional[str] = (
-        _feedback_revision_prompt(package, metadata)
-        if starting_status == "changes_requested"
+        _feedback_revision_prompt(root, package, metadata)
+        if is_feedback_revision
         else None
     )
     for round_number in range(max_revision_rounds + 1):
@@ -614,6 +645,13 @@ def continue_question(
             workflow["state"] = "agent_failed"
             _save_workflow(package, workflow)
             raise WorkflowError(f"drafting agent outcome was {outcome!r}")
+
+        if is_feedback_revision:
+            current_candidates = draft.get("memory_candidates", [])
+            if isinstance(current_candidates, list) and current_candidates:
+                proposed_memory = [
+                    dict(item) for item in current_candidates if isinstance(item, dict)
+                ]
 
         issues = validate_repository(root)
         if issues:
@@ -680,6 +718,17 @@ def continue_question(
             and item.get("severity") in {"blocking", "important"}
         ]
         if bool(review.get("passed")) and not blocking:
+            recorded_memory = record_memory_candidates(
+                package=package,
+                candidates=proposed_memory,
+            )
+            if recorded_memory:
+                _event(
+                    workflow,
+                    "memory_candidates_proposed",
+                    actor="agent",
+                    detail=[str(item["id"]) for item in recorded_memory],
+                )
             flags = dict(REVIEW_FLAGS_FALSE)
             flags["agent_reviewed"] = True
             _sync_status(
@@ -917,10 +966,12 @@ def approve_question(
 
 
 def question_status(*, root: Path, question_id: str) -> dict[str, object]:
-    package = _package(root.resolve(), question_id)
+    root = root.resolve()
+    package = _package(root, question_id)
     metadata = dict(load_data(package / "metadata.yaml"))
     workflow = _load_workflow(package)
     dedup = dict(load_data(package / "deduplication.yaml"))
+    pending_memory = list_memory_candidates(root, question_id=question_id)
     return {
         "question_id": question_id,
         "title": metadata.get("title"),
@@ -932,13 +983,51 @@ def question_status(*, root: Path, question_id: str) -> dict[str, object]:
         "duplicate_candidates": dedup.get("candidates", []),
         "duplicate_decision": dedup.get("human_decision"),
         "attempts": workflow.get("attempts", {}),
+        "pending_memory_candidates": pending_memory,
+        "active_editorial_memory_count": sum(1 for _ in active_memory_entries(root)),
+        "next_action": recommended_next_action(
+            metadata=metadata,
+            workflow=workflow,
+            deduplication=dedup,
+            pending_memory=pending_memory,
+        ),
     }
+
+
+def recommended_next_action(
+    *,
+    metadata: Mapping[str, object],
+    workflow: Mapping[str, object],
+    deduplication: Mapping[str, object],
+    pending_memory: Sequence[Mapping[str, object]],
+) -> str:
+    """Return the safest useful CLI action for the current lifecycle state."""
+
+    question_id = str(metadata.get("id", ""))
+    status = str(metadata.get("status", ""))
+    if deduplication.get("human_decision") == "pending":
+        return f"contentctl resolve-duplicate --id {question_id} ..."
+    if workflow.get("pending_clarifications"):
+        return f"contentctl clarify --id {question_id} --response ... --continue"
+    if status in {"normalized", "draft", "changes_requested", "needs_clarification"}:
+        return f"contentctl continue --id {question_id}"
+    if status == "needs_human_review":
+        return f"contentctl open-pr --id {question_id}"
+    if status == "approved" and pending_memory:
+        return "contentctl memory-list (then approve or reject each proposed lesson)"
+    if status == "approved":
+        return f"contentctl open-pr --id {question_id}"
+    if status == "published":
+        return "No action required; this question is published."
+    if status == "deprecated":
+        return "No action required; this question is deprecated."
+    return "Inspect contentctl status and workflow.yaml before continuing."
 
 
 def _review_path_allowed(path: str, package: Path, root: Path, question_id: str) -> bool:
     package_relative = package.relative_to(root).as_posix()
     return (
-        path == "practice/CMakeLists.txt"
+        path in {"practice/CMakeLists.txt", "editorial-memory.yaml"}
         or path.startswith(f"{package_relative}/")
         or path.startswith(f"practice/questions/{question_id}/")
     )
@@ -972,14 +1061,16 @@ def _changed_paths(root: Path) -> list[str]:
 
 
 def open_review_pr(*, root: Path, question_id: str, base: str = "main") -> str:
-    """Build the review bundle, commit only question-scoped files, and open a draft PR."""
+    """Build, commit, and create or update the question's review PR."""
 
     root = root.resolve()
     package = _package(root, question_id)
     metadata = dict(load_data(package / "metadata.yaml"))
     workflow = _load_workflow(package)
-    if metadata.get("status") != "needs_human_review":
-        raise WorkflowError("a draft PR requires status 'needs_human_review'")
+    if metadata.get("status") not in {"needs_human_review", "approved"}:
+        raise WorkflowError(
+            "a review PR requires status 'needs_human_review' or 'approved'"
+        )
     branch = _git(root, "branch", "--show-current").stdout.strip()
     expected_branch = str(workflow.get("branch", ""))
     if not branch or branch == base:
@@ -1043,36 +1134,68 @@ def open_review_pr(*, root: Path, question_id: str, base: str = "main") -> str:
             "refusing to include unrelated changes in the question PR: "
             + ", ".join(disallowed)
         )
-    if not changed:
-        raise WorkflowError("there are no question changes to commit")
-    _git(root, "add", "--", *changed)
-    _git(root, "commit", "-m", f"Add {question_id} for human review")
-    _git(root, "push", "-u", "origin", branch)
+    if changed:
+        _git(root, "add", "--", *changed)
+        _git(root, "commit", "-m", f"Update {question_id} review package")
+        _git(root, "push", "-u", "origin", branch)
     body = (
         f"## Question review\n\n"
         f"- Question: `{question_id}`\n"
         f"- Type: `{metadata.get('type')}`\n"
         f"- Status: `{metadata.get('status')}`\n"
         f"- Agent review: passed\n"
-        f"- Human approval: required\n\n"
-        "Review the source fidelity, technical accuracy, interview realism, page budget, "
-        "and any runnable practice before approval. Preview PDFs are produced by CI."
+        f"- Human approval: "
+        f"{'complete' if metadata.get('status') == 'approved' else 'required'}\n\n"
+        + (
+            "Human approval is complete. Confirm CI and merge when ready."
+            if metadata.get("status") == "approved"
+            else "Review source fidelity, technical accuracy, interview realism, the page "
+            "budget, and any runnable practice before approval."
+        )
+        + " Preview PDFs are produced by CI."
+    )
+    existing = subprocess.run(
+        ["gh", "pr", "view", branch, "--json", "url,isDraft"],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if existing.returncode == 0:
+        details = json.loads(existing.stdout)
+        url = str(details.get("url", "")).strip()
+        if not url:
+            raise WorkflowError("GitHub returned an existing PR without a URL")
+        subprocess.run(
+            ["gh", "pr", "edit", url, "--body", body],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        if metadata.get("status") == "approved" and details.get("isDraft") is True:
+            subprocess.run(
+                ["gh", "pr", "ready", url],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        return url
+
+    command = ["gh", "pr", "create"]
+    if metadata.get("status") != "approved":
+        command.append("--draft")
+    command.extend(
+        [
+            "--base", base,
+            "--head", branch,
+            "--title", f"Review {question_id}: {metadata.get('title')}",
+            "--body", body,
+        ]
     )
     result = subprocess.run(
-        [
-            "gh",
-            "pr",
-            "create",
-            "--draft",
-            "--base",
-            base,
-            "--head",
-            branch,
-            "--title",
-            f"Review {question_id}: {metadata.get('title')}",
-            "--body",
-            body,
-        ],
+        command,
         cwd=root,
         check=True,
         capture_output=True,
@@ -1119,6 +1242,9 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     status_parser = subparsers.add_parser("status", help="show workflow state")
     status_parser.add_argument("--id", required=True, dest="question_id")
 
+    next_parser = subparsers.add_parser("next", help="show the next recommended action")
+    next_parser.add_argument("--id", required=True, dest="question_id")
+
     duplicate_parser = subparsers.add_parser(
         "resolve-duplicate", help="record the human duplicate decision"
     )
@@ -1134,7 +1260,9 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
 
     feedback_parser = subparsers.add_parser("feedback", help="record human feedback")
     feedback_parser.add_argument("--id", required=True, dest="question_id")
-    feedback_parser.add_argument("--file", required=True, type=Path)
+    feedback_source = feedback_parser.add_mutually_exclusive_group(required=True)
+    feedback_source.add_argument("--file", type=Path)
+    feedback_source.add_argument("--text")
     feedback_parser.add_argument("--reviewer")
     feedback_parser.add_argument("--continue", action="store_true", dest="run_agent")
 
@@ -1142,9 +1270,28 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     approve.add_argument("--id", required=True, dest="question_id")
     approve.add_argument("--reviewer")
 
-    pr_parser = subparsers.add_parser("open-pr", help="open a draft human-review PR")
+    pr_parser = subparsers.add_parser("open-pr", help="create or update the review PR")
     pr_parser.add_argument("--id", required=True, dest="question_id")
     pr_parser.add_argument("--base", default="main")
+
+    memory_list = subparsers.add_parser(
+        "memory-list", help="list proposed reusable feedback lessons"
+    )
+    memory_list.add_argument("--id", dest="question_id")
+    memory_list.add_argument("--all", action="store_true", dest="include_decided")
+
+    memory_approve = subparsers.add_parser(
+        "memory-approve", help="interactively activate a reusable feedback lesson"
+    )
+    memory_approve.add_argument("--id", required=True, dest="candidate_id")
+    memory_approve.add_argument("--reviewer")
+
+    memory_reject = subparsers.add_parser(
+        "memory-reject", help="reject a proposed reusable feedback lesson"
+    )
+    memory_reject.add_argument("--id", required=True, dest="candidate_id")
+    memory_reject.add_argument("--reason", required=True)
+    memory_reject.add_argument("--reviewer")
 
     args = parser.parse_args(list(argv) if argv is not None else None)
     root = args.root.resolve()
@@ -1176,6 +1323,9 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
                 print(open_review_pr(root=root, question_id=package.name))
         elif args.command == "status":
             print(json.dumps(question_status(root=root, question_id=args.question_id), indent=2))
+        elif args.command == "next":
+            status = question_status(root=root, question_id=args.question_id)
+            print(status["next_action"])
         elif args.command == "resolve-duplicate":
             package = resolve_duplicate(
                 root=root,
@@ -1197,10 +1347,15 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
             print(json.dumps(question_status(root=root, question_id=package.name), indent=2))
         elif args.command == "feedback":
             reviewer = args.reviewer or _default_reviewer(root)
+            feedback = (
+                args.text
+                if args.text is not None
+                else args.file.read_text(encoding="utf-8")
+            )
             package = add_feedback(
                 root=root,
                 question_id=args.question_id,
-                feedback=args.file.read_text(encoding="utf-8"),
+                feedback=feedback,
                 reviewer=reviewer,
                 run_agent=args.run_agent,
                 runner=_runner() if args.run_agent else None,
@@ -1221,14 +1376,70 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
                 reviewer=reviewer,
                 confirmation=confirmation,
             )
-            print(f"approved: {package.relative_to(root)}")
+            print(json.dumps(question_status(root=root, question_id=package.name), indent=2))
         elif args.command == "open-pr":
             print(
                 open_review_pr(
                     root=root, question_id=args.question_id, base=args.base
                 )
             )
-    except (OSError, RuntimeError, WorkflowError, json.JSONDecodeError, subprocess.CalledProcessError) as exc:
+        elif args.command == "memory-list":
+            print(
+                json.dumps(
+                    list_memory_candidates(
+                        root,
+                        question_id=args.question_id,
+                        include_decided=args.include_decided,
+                    ),
+                    indent=2,
+                )
+            )
+        elif args.command == "memory-approve":
+            if not sys.stdin.isatty():
+                raise WorkflowError(
+                    "memory approval requires an interactive terminal and cannot run "
+                    "non-interactively"
+                )
+            reviewer = args.reviewer or _default_reviewer(root)
+            expected = f"REMEMBER {args.candidate_id}"
+            print(f"Type {expected!r} to activate this lesson for future questions:")
+            confirmation = input().strip()
+            entry = approve_memory_candidate(
+                root=root,
+                candidate_id=args.candidate_id,
+                reviewer=reviewer,
+                confirmation=confirmation,
+            )
+            issues = validate_repository(root)
+            if issues:
+                raise WorkflowError(
+                    "memory approval failed validation:\n"
+                    + "\n".join(f"- {issue}" for issue in issues)
+                )
+            print(json.dumps(entry, indent=2))
+        elif args.command == "memory-reject":
+            reviewer = args.reviewer or _default_reviewer(root)
+            candidate = reject_memory_candidate(
+                root=root,
+                candidate_id=args.candidate_id,
+                reviewer=reviewer,
+                reason=args.reason,
+            )
+            issues = validate_repository(root)
+            if issues:
+                raise WorkflowError(
+                    "memory rejection failed validation:\n"
+                    + "\n".join(f"- {issue}" for issue in issues)
+                )
+            print(json.dumps(candidate, indent=2))
+    except (
+        EditorialMemoryError,
+        OSError,
+        RuntimeError,
+        WorkflowError,
+        json.JSONDecodeError,
+        subprocess.CalledProcessError,
+    ) as exc:
         parser.error(str(exc))
     return 0
 

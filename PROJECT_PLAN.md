@@ -1857,6 +1857,58 @@ Turn an agent-reviewed question into a bounded draft pull request for human revi
 
 - Publication remains a separate approved-only operation.
 
+### Task 21: Add curated editorial memory
+
+#### **Goal**
+
+Turn generalizable human feedback into durable guidance without allowing an
+agent-generated mistake to silently influence later questions.
+
+#### **Done when**
+
+- A feedback revision can propose at most three question-type-scoped lessons.
+
+- Proposals preserve their source question and exact feedback artifact.
+
+- Only an explicit, interactive human decision can activate a lesson globally.
+
+- Drafting and independent review receive only approved, relevant lessons.
+
+- Rejected lessons remain auditable and inactive.
+
+### Task 22: Add guided and repeatable CLI handoff
+
+#### **Goal**
+
+Reduce the operator knowledge needed to move a question through review.
+
+#### **Done when**
+
+- Status exposes the next safe lifecycle command.
+
+- Short feedback can be supplied inline without creating a temporary file.
+
+- Re-running PR handoff updates an existing question PR and an approved PR can
+  be marked ready for merge.
+
+- Pending editorial-memory decisions are visible before final handoff.
+
+### Task 23: Add semantic duplicate judgment
+
+#### **Goal**
+
+Extend the deterministic duplicate shortlist with an AI or embedding-based
+similarity judgment while keeping the human override and audit record.
+
+#### **Done when**
+
+- Similarity compares normalized prompts, tested skills, and solution shape.
+
+- Scores explain the likely overlap instead of acting as an opaque veto.
+
+- Only high-confidence candidates pause ingestion, and a human can always mark
+  the question distinct with a reason.
+
 ## 20. Initial commands 
 
 The repository should eventually support a workflow similar to: 

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "editorial-memory.schema.json",
+  "title": "Human-approved reusable editorial memory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "entries"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "principle",
+          "rationale",
+          "question_types",
+          "source",
+          "approved_by",
+          "approved_at"
+        ],
+        "properties": {
+          "id": {"type": "string", "pattern": "^memory-[a-f0-9]{12}$"},
+          "principle": {"type": "string", "minLength": 20, "maxLength": 240},
+          "rationale": {"type": "string", "minLength": 20, "maxLength": 500},
+          "question_types": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": ["all", "coding", "system_design", "fundamentals"]
+            }
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["question_id", "feedback_file"],
+            "properties": {
+              "question_id": {"type": "string"},
+              "feedback_file": {"type": "string"}
+            }
+          },
+          "approved_by": {"type": "string", "minLength": 1},
+          "approved_at": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

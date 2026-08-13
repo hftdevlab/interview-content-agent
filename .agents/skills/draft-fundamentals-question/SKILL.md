@@ -14,6 +14,8 @@ communication layer over the explanation.
 - `content/STYLE_GUIDE.md`, schemas, taxonomy, and related questions.
 - Relevant handbook or authoritative sources chosen with
   `$link-interview-foundations`.
+- Human-approved entries in `editorial-memory.yaml` scoped to fundamentals or
+  all questions. Apply them when relevant; current source and human notes win.
 
 ## Workflow
 
@@ -39,6 +41,11 @@ question and link it.
 Edit only the selected package's `question.md`, `metadata.yaml`, and
 `review.yaml`. Preserve `source/` and `expert-notes.md`. Use
 `$build-practice-question` for runnable files; never hand-edit generated output.
+
+During a feedback-driven `contentctl` revision, do not edit
+`editorial-memory.yaml` or `memory-candidates.yaml`. In the structured stage
+result, propose at most three reusable lessons only when the newest human
+feedback supports a general rule; return none for question-specific feedback.
 
 ## Validation
 

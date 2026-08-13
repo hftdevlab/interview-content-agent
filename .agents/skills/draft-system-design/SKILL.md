@@ -12,6 +12,8 @@ Write for a real interview conversation, not for schema completion.
 - The package's `metadata.yaml`, `question.md`, `expert-notes.md`, and `source/`.
 - `content/STYLE_GUIDE.md`, relevant taxonomy, and related questions.
 - Relevant foundations selected with `$link-interview-foundations`.
+- Human-approved entries in `editorial-memory.yaml` scoped to system design or
+  all questions. Apply them when relevant; current source and human notes win.
 
 Human notes and original source are authoritative. Flag contradictions rather
 than resolving them silently.
@@ -44,6 +46,11 @@ decisions rather than prerequisite tutorials.
 Edit only `question.md`, `metadata.yaml`, `review.yaml`, and `diagrams/*.mmd`
 inside the selected package. Preserve `source/` and `expert-notes.md`. Do not
 edit rendered SVGs, catalogs, PDFs, or other generated artifacts by hand.
+
+During a feedback-driven `contentctl` revision, do not edit
+`editorial-memory.yaml` or `memory-candidates.yaml`. In the structured stage
+result, propose at most three reusable lessons only when the newest human
+feedback supports a general rule; return none for question-specific feedback.
 
 ## Validation
 

@@ -929,10 +929,180 @@ def _practice_issues(
     return issues
 
 
+def _source_feedback_issues(
+    root: Path,
+    source: object,
+    location: str,
+) -> List[ValidationIssue]:
+    if not isinstance(source, dict):
+        return []
+    question_id = source.get("question_id")
+    feedback_file = source.get("feedback_file")
+    if not isinstance(question_id, str) or not isinstance(feedback_file, str):
+        return []
+    packages = list((root / "content").glob(f"*/{question_id}"))
+    if len(packages) != 1:
+        return [
+            ValidationIssue(location, f"source question {question_id!r} does not exist")
+        ]
+    package = packages[0].resolve()
+    feedback_path = Path(feedback_file)
+    if (
+        feedback_path.is_absolute()
+        or not feedback_path.parts
+        or feedback_path.parts[0] != "feedback"
+        or feedback_path.suffix != ".md"
+    ):
+        return [
+            ValidationIssue(
+                location,
+                "feedback_file must name a Markdown artifact under feedback/",
+            )
+        ]
+    candidate = (package / feedback_file).resolve()
+    try:
+        candidate.relative_to(package)
+    except ValueError:
+        return [ValidationIssue(location, "feedback_file escapes its question package")]
+    if not candidate.is_file():
+        return [
+            ValidationIssue(location, f"source feedback {feedback_file!r} does not exist")
+        ]
+    return []
+
+
+def _editorial_memory_issues(
+    root: Path, validator: SchemaValidator
+) -> Tuple[List[ValidationIssue], set[str]]:
+    path = root / "editorial-memory.yaml"
+    if not path.is_file():
+        return [ValidationIssue("editorial-memory.yaml", "required file is missing")], set()
+    try:
+        memory = load_data(path)
+    except (OSError, ValueError) as exc:
+        return [ValidationIssue("editorial-memory.yaml", str(exc))], set()
+    issues = validator.validate(
+        memory,
+        root / "schemas" / "editorial-memory.schema.json",
+        location="editorial-memory.yaml",
+    )
+    entries = memory.get("entries", []) if isinstance(memory, dict) else []
+    ids: list[str] = []
+    principles: list[str] = []
+    if isinstance(entries, list):
+        for index, entry in enumerate(entries):
+            if not isinstance(entry, dict):
+                continue
+            if isinstance(entry.get("id"), str):
+                ids.append(entry["id"])
+            if isinstance(entry.get("principle"), str):
+                principles.append(
+                    " ".join(re.findall(r"[a-z0-9]+", entry["principle"].casefold()))
+                )
+            issues.extend(
+                _source_feedback_issues(
+                    root,
+                    entry.get("source"),
+                    f"editorial-memory.yaml.entries[{index}].source",
+                )
+            )
+    if len(ids) != len(set(ids)):
+        issues.append(ValidationIssue("editorial-memory.yaml.entries", "IDs must be unique"))
+    if len(principles) != len(set(principles)):
+        issues.append(
+            ValidationIssue(
+                "editorial-memory.yaml.entries",
+                "principles must be unique after case and whitespace normalization",
+            )
+        )
+    return issues, set(ids)
+
+
+def _memory_candidate_issues(
+    root: Path,
+    package_dir: Path,
+    question_id: str,
+    validator: SchemaValidator,
+    active_memory_ids: set[str],
+) -> List[ValidationIssue]:
+    path = package_dir / "memory-candidates.yaml"
+    if not path.is_file():
+        return []
+    relative = str(path.relative_to(root))
+    try:
+        document = load_data(path)
+    except (OSError, ValueError) as exc:
+        return [ValidationIssue(relative, str(exc))]
+    issues = validator.validate(
+        document,
+        root / "schemas" / "memory-candidates.schema.json",
+        location=relative,
+    )
+    if not isinstance(document, dict):
+        return issues
+    if document.get("question_id") != question_id:
+        issues.append(
+            ValidationIssue(f"{relative}.question_id", "must match the package question ID")
+        )
+    candidates = document.get("candidates", [])
+    ids: list[str] = []
+    if not isinstance(candidates, list):
+        return issues
+    for index, candidate in enumerate(candidates):
+        if not isinstance(candidate, dict):
+            continue
+        location = f"{relative}.candidates[{index}]"
+        candidate_id = candidate.get("id")
+        if isinstance(candidate_id, str):
+            ids.append(candidate_id)
+        source = candidate.get("source")
+        if isinstance(source, dict) and source.get("question_id") != question_id:
+            issues.append(
+                ValidationIssue(
+                    f"{location}.source.question_id",
+                    "must match the package question ID",
+                )
+            )
+        issues.extend(_source_feedback_issues(root, source, f"{location}.source"))
+        status = candidate.get("status")
+        if status == "pending" and any(
+            field in candidate
+            for field in ("decided_by", "decided_at", "decision_reason", "merged_into")
+        ):
+            issues.append(
+                ValidationIssue(location, "pending candidates cannot contain decision fields")
+            )
+        if status in {"approved", "rejected"} and not all(
+            isinstance(candidate.get(field), str)
+            for field in ("decided_by", "decided_at")
+        ):
+            issues.append(
+                ValidationIssue(location, "decided candidates require decided_by and decided_at")
+            )
+        if status == "approved":
+            resolved_id = candidate.get("merged_into", candidate_id)
+            if resolved_id not in active_memory_ids:
+                issues.append(
+                    ValidationIssue(
+                        location,
+                        "approved candidate must resolve to an active editorial-memory entry",
+                    )
+                )
+        if status == "rejected" and not isinstance(candidate.get("decision_reason"), str):
+            issues.append(
+                ValidationIssue(location, "rejected candidates require decision_reason")
+            )
+    if len(ids) != len(set(ids)):
+        issues.append(ValidationIssue(f"{relative}.candidates", "IDs must be unique"))
+    return issues
+
+
 def validate_repository(root: Path = ROOT) -> List[ValidationIssue]:
     root = root.resolve()
     validator = SchemaValidator(root / "schemas")
     issues: List[ValidationIssue] = []
+    memory_issues, active_memory_ids = _editorial_memory_issues(root, validator)
+    issues.extend(memory_issues)
 
     try:
         allowed_categories = _load_taxonomy(root, "categories")
@@ -1121,6 +1291,15 @@ def validate_repository(root: Path = ROOT) -> List[ValidationIssue]:
         issues.extend(_review_file_issues(package_dir, metadata))
         issues.extend(_workflow_file_issues(root, package_dir, metadata))
         issues.extend(_deduplication_file_issues(root, package_dir, metadata))
+        issues.extend(
+            _memory_candidate_issues(
+                root,
+                package_dir,
+                question_id_text,
+                validator,
+                active_memory_ids,
+            )
+        )
 
         practice_links = []
         for field in ("practice", "runnable_experiment"):

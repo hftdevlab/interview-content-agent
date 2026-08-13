@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "memory-candidates.schema.json",
+  "title": "Question-local reusable editorial memory candidates",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "question_id", "candidates"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "question_id": {"type": "string"},
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "status",
+          "principle",
+          "rationale",
+          "question_types",
+          "source",
+          "proposed_at"
+        ],
+        "properties": {
+          "id": {"type": "string", "pattern": "^memory-[a-f0-9]{12}$"},
+          "status": {"type": "string", "enum": ["pending", "approved", "rejected"]},
+          "principle": {"type": "string", "minLength": 20, "maxLength": 240},
+          "rationale": {"type": "string", "minLength": 20, "maxLength": 500},
+          "question_types": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": ["all", "coding", "system_design", "fundamentals"]
+            }
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["question_id", "feedback_file"],
+            "properties": {
+              "question_id": {"type": "string"},
+              "feedback_file": {"type": "string"}
+            }
+          },
+          "proposed_at": {"type": "string", "minLength": 1},
+          "decided_by": {"type": "string", "minLength": 1},
+          "decided_at": {"type": "string", "minLength": 1},
+          "decision_reason": {"type": "string", "minLength": 1},
+          "merged_into": {"type": "string", "pattern": "^memory-[a-f0-9]{12}$"}
+        }
+      }
+    }
+  }
+}
