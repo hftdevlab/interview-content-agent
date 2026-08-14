@@ -62,7 +62,9 @@ for a design the reader already understands:
   Readers should know what constitutes a passing 45-minute answer before the
   final rubric.
 - Keep only diagrams whose edges, ownership, ordering, or failure annotations
-  teach something the surrounding prose cannot show as clearly.
+  teach something the surrounding prose cannot show as clearly. Place each
+  diagram after the complete reasoning unit it depicts so a landscape page
+  does not strand an unfinished section on a sparse portrait page.
 
 For a flagship complex question, the upper budget is available for genuine
 interview depth; do not compress away the decisions that make the question

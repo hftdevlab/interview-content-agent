@@ -45,7 +45,9 @@ than resolving them silently.
 10. Express at most three great improvements and three realistic follow-ups.
    Do not repeat the good solution.
 11. Add Mermaid only when labeled edges, ownership, ordering, or failure states
-   teach more than prose. Give it a caption, alt text, and metadata entry.
+   teach more than prose. Place it after the complete reasoning unit it depicts;
+   do not strand half a section before a forced landscape page. Give it a
+   caption, alt text, and metadata entry.
 12. When `workflow.yaml` shows a `contentctl` run, do not edit it; keep status
    `draft` and every review flag false because the controller owns lifecycle
    transitions and independent review. Otherwise set status to

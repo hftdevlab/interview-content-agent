@@ -87,6 +87,8 @@ INLINE_TOKEN = re.compile(
 IMAGE_LINE = re.compile(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$")
 HEADING_LINE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 LIST_LINE = re.compile(r"^(\s*)([-*]|\d+\.)\s+(.+)$")
+BLOCKQUOTE_LINE = re.compile(r"^>\s?(.*)$")
+TABLE_SEPARATOR_CELL = re.compile(r"^:?-{3,}:?$")
 
 
 def _ascii(value: str) -> str:
@@ -127,14 +129,18 @@ def _inline_markup(value: str) -> str:
     return "".join(output)
 
 
-def _styles(accent: str) -> dict[str, ParagraphStyle]:
+def _styles(
+    accent: str,
+    *,
+    body_leading: float = 13,
+) -> dict[str, ParagraphStyle]:
     sample = getSampleStyleSheet()
     body = ParagraphStyle(
         "GuideBody",
         parent=sample["BodyText"],
         fontName="Helvetica",
         fontSize=9.2,
-        leading=13,
+        leading=body_leading,
         textColor=HexColor("#1F2937"),
         spaceAfter=6,
         allowWidows=0,
@@ -246,12 +252,40 @@ def _styles(accent: str) -> dict[str, ParagraphStyle]:
             spaceBefore=4,
             spaceAfter=10,
         ),
+        "quote": ParagraphStyle(
+            "GuideQuote",
+            parent=body,
+            leftIndent=12,
+            rightIndent=8,
+            borderColor=HexColor(accent),
+            borderWidth=1.5,
+            borderPadding=7,
+            textColor=HexColor("#263B50"),
+            spaceBefore=4,
+            spaceAfter=8,
+        ),
         "small": ParagraphStyle(
             "GuideSmall",
             parent=body,
             fontSize=8,
             leading=10.5,
             textColor=HexColor("#52606D"),
+        ),
+        "table_cell": ParagraphStyle(
+            "GuideTableCell",
+            parent=body,
+            fontSize=7.4,
+            leading=8.8,
+            spaceAfter=0,
+        ),
+        "table_header": ParagraphStyle(
+            "GuideTableHeader",
+            parent=body,
+            fontName="Helvetica-Bold",
+            fontSize=7.5,
+            leading=9,
+            textColor=HexColor("#263B50"),
+            spaceAfter=0,
         ),
     }
 
@@ -372,10 +406,22 @@ def _join_markdown_lines(lines: Sequence[str]) -> str:
     return " ".join(line.strip() for line in lines).strip()
 
 
+def _markdown_table_cells(line: str) -> Optional[list[str]]:
+    stripped = line.strip()
+    if not (stripped.startswith("|") and stripped.endswith("|")):
+        return None
+    return [cell.strip() for cell in stripped[1:-1].split("|")]
+
+
+def _is_markdown_table_separator(cells: Optional[Sequence[str]]) -> bool:
+    return bool(cells) and all(TABLE_SEPARATOR_CELL.fullmatch(cell) for cell in cells)
+
+
 def markdown_flowables(
     record: QuestionRecord,
     styles: Mapping[str, ParagraphStyle],
-    available_width: float,
+    diagram_width: float,
+    body_width: float,
 ) -> list[Flowable]:
     """Convert the repository's intentionally small Markdown subset."""
 
@@ -418,7 +464,7 @@ def markdown_flowables(
         if image:
             alt_text, raw_target = image.groups()
             image_path = (record.package_dir / raw_target).resolve()
-            drawing = svg_drawing(image_path, available_width)
+            drawing = svg_drawing(image_path, diagram_width)
             caption = diagram_captions.get(image_path.name, alt_text)
             # A diagram always starts a landscape page. Move any immediately
             # preceding heading chain with it so section titles are not left
@@ -457,6 +503,68 @@ def markdown_flowables(
             index += 1
             continue
 
+        header_cells = _markdown_table_cells(line)
+        separator_cells = (
+            _markdown_table_cells(lines[index + 1])
+            if index + 1 < len(lines)
+            else None
+        )
+        if (
+            header_cells is not None
+            and _is_markdown_table_separator(separator_cells)
+            and len(header_cells) == len(separator_cells)
+        ):
+            rows = [header_cells]
+            index += 2
+            while index < len(lines):
+                cells = _markdown_table_cells(lines[index])
+                if cells is None or len(cells) != len(header_cells):
+                    break
+                rows.append(cells)
+                index += 1
+
+            column_count = len(header_cells)
+            if column_count == 2:
+                column_widths = [body_width * 0.32, body_width * 0.68]
+            else:
+                column_widths = [body_width / column_count] * column_count
+            table_data = [
+                [
+                    Paragraph(
+                        _inline_markup(cell),
+                        styles["table_header" if row_index == 0 else "table_cell"],
+                    )
+                    for cell in row
+                ]
+                for row_index, row in enumerate(rows)
+            ]
+            table = Table(
+                table_data,
+                colWidths=column_widths,
+                repeatRows=1,
+                splitByRow=1,
+                hAlign="LEFT",
+            )
+            table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E8F0F3")),
+                        ("GRID", (0, 0), (-1, -1), 0.35, HexColor("#C8D2DA")),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 3),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+                        ("TOPPADDING", (0, 0), (-1, -1), 2.5),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
+                    ]
+                )
+            )
+            # Short interview tables read as one decision unit. Keeping them
+            # together avoids a one-row continuation page that can collide
+            # visually with the running header/footer. Larger tables retain
+            # normal row splitting.
+            flowables.append(KeepTogether([table]) if len(rows) <= 9 else table)
+            continue
+
         heading = HEADING_LINE.match(line)
         if heading:
             level = len(heading.group(1))
@@ -467,6 +575,24 @@ def markdown_flowables(
                 Paragraph(_inline_markup(heading.group(2)), heading_style)
             )
             index += 1
+            continue
+
+        quote = BLOCKQUOTE_LINE.match(line)
+        if quote:
+            quote_lines = [quote.group(1)]
+            index += 1
+            while index < len(lines):
+                continuation = BLOCKQUOTE_LINE.match(lines[index])
+                if continuation is None:
+                    break
+                quote_lines.append(continuation.group(1))
+                index += 1
+            flowables.append(
+                Paragraph(
+                    _inline_markup(_join_markdown_lines(quote_lines)),
+                    styles["quote"],
+                )
+            )
             continue
 
         list_match = LIST_LINE.match(line)
@@ -592,24 +718,28 @@ class GuideDocTemplate(BaseDocTemplate):
             landscape_height - 35 * mm,
             id="diagram-body",
         )
-        self.diagram_width = landscape_width - 36 * mm
+        # Frame paddings consume six points on each horizontal edge.
+        self.body_width = self.width - 12
+        self.diagram_width = landscape_width - 36 * mm - 12
         self.addPageTemplates(
             [
                 PageTemplate(
                     id="guide",
                     frames=[frame],
-                    onPage=self._draw_page,
+                    onPage=self._draw_page_background,
+                    onPageEnd=self._draw_running_furniture,
                 ),
                 PageTemplate(
                     id="diagram",
                     frames=[landscape_frame],
                     pagesize=landscape(A4),
-                    onPage=self._draw_page,
+                    onPage=self._draw_page_background,
+                    onPageEnd=self._draw_running_furniture,
                 ),
             ]
         )
 
-    def _draw_page(self, canvas, document) -> None:
+    def _draw_page_background(self, canvas, document) -> None:
         canvas.saveState()
         canvas.setTitle(self.guide_title)
         canvas.setAuthor("C++ Quant Developer Interview Content Factory")
@@ -622,21 +752,32 @@ class GuideDocTemplate(BaseDocTemplate):
             f"build date {self.build_date}"
         )
         canvas.setCreator("Deterministic ReportLab publisher")
-        page_width, page_height = canvas._pagesize
         if document.page == 1:
+            page_width, page_height = canvas._pagesize
             canvas.setFillColor(HexColor(self.accent))
             canvas.rect(0, 0, page_width, page_height, fill=1, stroke=0)
-        else:
-            canvas.setStrokeColor(HexColor("#D5DEE5"))
-            canvas.line(18 * mm, page_height - 13 * mm, page_width - 18 * mm, page_height - 13 * mm)
-            canvas.setFont("Helvetica", 7.5)
-            canvas.setFillColor(HexColor("#667788"))
-            canvas.drawString(18 * mm, page_height - 10 * mm, self.guide_title)
-            canvas.drawRightString(
-                page_width - 18 * mm,
-                10 * mm,
-                f"{'REVIEW PREVIEW - ' if self.preview else ''}v{self.version} | {document.page}",
-            )
+        canvas.restoreState()
+
+    def _draw_running_furniture(self, canvas, document) -> None:
+        if document.page == 1:
+            return
+        canvas.saveState()
+        page_width, page_height = canvas._pagesize
+        canvas.setStrokeColor(HexColor("#D5DEE5"))
+        canvas.line(
+            18 * mm,
+            page_height - 13 * mm,
+            page_width - 18 * mm,
+            page_height - 13 * mm,
+        )
+        canvas.setFont("Helvetica", 7.5)
+        canvas.setFillColor(HexColor("#667788"))
+        canvas.drawString(18 * mm, page_height - 10 * mm, self.guide_title)
+        canvas.drawRightString(
+            page_width - 18 * mm,
+            10 * mm,
+            f"{'REVIEW PREVIEW - ' if self.preview else ''}v{self.version} | {document.page}",
+        )
         canvas.restoreState()
 
     def afterFlowable(self, flowable: Flowable) -> None:
@@ -876,7 +1017,14 @@ def build_pdf(
                 ),
             ]
         )
-        story.extend(markdown_flowables(record, styles, document.diagram_width))
+        story.extend(
+            markdown_flowables(
+                record,
+                styles,
+                document.diagram_width,
+                document.body_width,
+            )
+        )
         if record_index != len(records) - 1:
             story.append(PageBreak())
 

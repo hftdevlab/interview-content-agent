@@ -34,7 +34,17 @@ just against the schema.
    a coherent argument; buried theses and uniform maximum density are important
    findings, not cosmetic suggestions.
 7. Enforce the page budget and the limit of three improvements and three
-   follow-ups.
+   follow-ups. Inspect the rendered preview rather than trusting only its page
+   count: literal Markdown markers, cramped leading, tangled diagrams, or
+   mostly empty portrait pages created by diagram breaks are important issues.
+   If an inspection surface appears to crop running page furniture, corroborate
+   it against the actual raster pixels and positioned PDF text before filing a
+   defect; do not confuse a viewer crop with missing PDF content.
+   In an automated read-only agent review, do not invoke browser, image,
+   screenshot, or raster-rendering tools and do not create scratch files. The
+   controller owns raster QA. Use pypdf/pdfplumber on the existing PDF,
+   positioned text, generated SVGs, and the deterministic PDF-gate result;
+   display-tool limitations are not content failures.
 8. Reconcile code prose with headers, tests, diagrams, metadata, and links.
 9. Record actionable findings in `review.yaml`. Set `agent_reviewed` true only
    after all agent-fixable issues are resolved.

@@ -84,6 +84,44 @@ def _page_budget_issues(reader, records, path: Path) -> list[PdfIssue]:
     return issues
 
 
+def _running_furniture_issues(
+    reader,
+    *,
+    guide_title: str,
+    path: Path,
+    review_preview: bool,
+) -> list[PdfIssue]:
+    """Require running furniture at valid coordinates on every non-cover page."""
+
+    issues: list[PdfIssue] = []
+    footer_marker = "REVIEW PREVIEW" if review_preview else "v"
+    for page_number, page in enumerate(reader.pages[1:], start=2):
+        positioned_text: list[tuple[str, float]] = []
+
+        def collect(text, _cm, tm, _font, _size) -> None:
+            if text.strip():
+                positioned_text.append((text.strip(), float(tm[5])))
+
+        page.extract_text(visitor_text=collect)
+        page_height = float(page.mediabox.height)
+        has_header = any(
+            guide_title in text and y >= page_height - 45
+            for text, y in positioned_text
+        )
+        has_footer = any(
+            footer_marker in text and y <= 40 for text, y in positioned_text
+        )
+        if not has_header:
+            issues.append(
+                PdfIssue(path, f"page {page_number} is missing its positioned running header")
+            )
+        if not has_footer:
+            issues.append(
+                PdfIssue(path, f"page {page_number} is missing its positioned running footer")
+            )
+    return issues
+
+
 def validate_pdf_outputs(
     root: Path = ROOT,
     *,
@@ -155,6 +193,14 @@ def validate_pdf_outputs(
                 )
         issues.extend(
             _page_budget_issues(reader, selected[question_type], path)
+        )
+        issues.extend(
+            _running_furniture_issues(
+                reader,
+                guide_title=spec["title"],
+                path=path,
+                review_preview=review_preview,
+            )
         )
 
         if not review_preview:
