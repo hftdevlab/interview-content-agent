@@ -1,0 +1,12 @@
+sequenceDiagram
+    participant R as S7 receiver thread
+    participant D as Dispatcher process
+    participant A as Scope sequencer
+    participant G as Gate7 order thread
+    participant C as Local monotonic clock
+
+    R->>D: Fresh challenge n902
+    D-->>A: Forward n902 fails: authority link down
+    D-->>R: No matching HEAD proof
+    G->>C: Per order: read monotonic time
+    G-->>G: Expired: enter STALE; perform A_stale

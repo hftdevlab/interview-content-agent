@@ -39,6 +39,33 @@ Use diagrams after the reader understands the decision they represent. A
 typical system-design chapter should render in at most ten pages; an unusually
 complex question may use up to fourteen.
 
+Write the answer as a tutorial for deriving the design, not as a specification
+for a design the reader already understands:
+
+- Before architecture, establish one concrete running scenario in three to
+  five sentences: named actors, illustrative numbers, and the real consequence
+  of failure. Reuse it throughout the chapter.
+- Execute one tempting simple design and break it at an exact step. State the
+  governing invariant as the conclusion of that trace.
+- Attach abstractions to physical things. On first use, say whether a component
+  is a process, thread, file, queue, socket, or shared-memory region, and define
+  uncommon terms before diagrams use them.
+- Keep requirements symbolic where the interviewer must choose policy, but use
+  clearly labeled illustrative values in exposition and explain what the
+  arithmetic teaches about the actual bottleneck.
+- Lead paragraphs with the decision or insight, then explain the mechanism and
+  why it is sufficient. Alternate dense reasoning with a trace, example, or
+  plain-language restatement.
+- Show meaningful design forks and adjudicate them from the contract. A verdict
+  without the rejected alternative teaches recognition rather than reasoning.
+- Mark the interview path inline as **Core**, **Deep dive**, or **Stretch**.
+  Readers should know what constitutes a passing 45-minute answer before the
+  final rubric.
+- Keep only diagrams whose edges, ownership, ordering, or failure annotations
+  teach something the surrounding prose cannot show as clearly. Place each
+  diagram after the complete reasoning unit it depicts so a landscape page
+  does not strand an unfinished section on a sparse portrait page.
+
 For a flagship complex question, the upper budget is available for genuine
 interview depth; do not compress away the decisions that make the question
 valuable. Show the complete context, make the likely deep dives explicit, and
@@ -90,6 +117,7 @@ interview frequency and learning value, not to demonstrate completeness.
 - Use natural engineering language and short transitions that explain why the
   next section exists.
 - Prefer a worked example, state trace, or formula over generic adjectives.
+- Prefer one running example over a sequence of unrelated miniature examples.
 - Define uncommon terms once; link to a primary tutorial/specification instead
   of re-teaching a large prerequisite.
 - Prefer the companion handbook for foundations it already covers. Use a

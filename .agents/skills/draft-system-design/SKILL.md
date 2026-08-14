@@ -21,17 +21,34 @@ than resolving them silently.
 ## Workflow
 
 1. Settle the system boundary, core requirements, scale, and failure contract.
-2. State prominently when the full platform is too large for one interview;
+2. Open the answer with one concrete running scenario: named actors,
+   illustrative values, and a visible consequence. Reuse it through the major
+   decisions; do not introduce architecture vocabulary first.
+3. Execute the simplest plausible design and show the exact step where the
+   scenario violates correctness, boundedness, or latency. Derive the central
+   invariant from that failure rather than announcing it as a premise.
+4. Define each uncommon term in plain language on first use and attach every
+   abstract component to a process, thread, file, queue, connection, or memory
+   structure before it appears in a diagram.
+5. State prominently when the full platform is too large for one interview;
    sketch it, then offer a few likely deep dives for agreement.
-3. Explain what is tested and develop the candidate's reasoning toward a
+6. Explain what is tested and develop the candidate's reasoning toward a
    minimal correct design.
-4. Deepen the decisions that control correctness or performance. Keep adjacent
+7. Use symbolic requirements but concrete exposition. Add illustrative
+   arithmetic and state what it reveals about the scarce resource. Present
+   defensible forks before adjudicating them from the contract.
+8. Mark material inline as **Core**, **Deep dive**, or **Stretch**. Lead each
+   paragraph with its thesis, then mechanism, then sufficiency; vary density
+   with traces and plain-language restatements.
+9. Deepen the decisions that control correctness or performance. Keep adjacent
    subsystems concise.
-5. Express at most three great improvements and three realistic follow-ups.
+10. Express at most three great improvements and three realistic follow-ups.
    Do not repeat the good solution.
-6. Add Mermaid only where a diagram clarifies architecture, ownership, or an
-   event sequence. Give it a caption, alt text, and metadata entry.
-7. When `workflow.yaml` shows a `contentctl` run, do not edit it; keep status
+11. Add Mermaid only when labeled edges, ownership, ordering, or failure states
+   teach more than prose. Place it after the complete reasoning unit it depicts;
+   do not strand half a section before a forced landscape page. Give it a
+   caption, alt text, and metadata entry.
+12. When `workflow.yaml` shows a `contentctl` run, do not edit it; keep status
    `draft` and every review flag false because the controller owns lifecycle
    transitions and independent review. Otherwise set status to
    `needs_human_review`, set only `agent_reviewed` true, and leave all human

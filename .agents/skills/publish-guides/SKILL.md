@@ -24,6 +24,9 @@ make pdf-preview
 
 Inspect the PDFs under `generated/pdf-preview/`. They may include
 human-review-stage content and must not be distributed as approved guides.
+When a viewer appears to crop a header or footer, verify the actual raster file
+and positioned PDF text before changing the publisher. The PDF validation gate
+checks running-furniture coordinates on every non-cover page.
 
 For a release:
 

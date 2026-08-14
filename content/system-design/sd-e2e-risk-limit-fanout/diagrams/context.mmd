@@ -1,0 +1,20 @@
+sequenceDiagram
+    participant API as risk-api process
+    participant S as Scope sequencer
+    participant L as Replicated log files
+    participant D as Dispatcher process
+    participant R as S7 receiver thread
+    participant G as Gate7 order thread
+    participant C as Local monotonic clock
+
+    API->>S: Authenticated, validated command
+    S->>L: Quorum commit complete version
+    L-->>D: Tail committed log
+    R->>D: Fresh challenge nonce
+    D->>S: Forward challenge
+    S-->>D: Certified HEAD: epoch, version, hash, nonce
+    D->>R: Bounded delivery: versions, then proof
+    R->>G: Atomic view: table, epoch, proof deadline
+    G->>C: Every order: read monotonic time
+    D-->>R: Proof or queue bound: stop confirmations
+    G-->>G: If expired: perform A_stale
