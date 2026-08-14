@@ -25,12 +25,20 @@ just against the schema.
    distinctions. Prefer primary specifications for unstable or exact claims.
 4. Check interview calibration and remove material that does not affect a
    decision, invariant, or realistic follow-up.
-5. Enforce the page budget and the limit of three improvements and three
+5. For system design, reject a technically correct specification that does not
+   teach derivation. Require a reusable concrete scenario, a fully traced naive
+   failure, physical definitions before architecture, illustrative sizing with
+   a conclusion, visible core/deep-dive/stretch tiers, and diagrams with
+   meaningful edges or failure states.
+6. Read only the first sentence of each explanatory paragraph. They should form
+   a coherent argument; buried theses and uniform maximum density are important
+   findings, not cosmetic suggestions.
+7. Enforce the page budget and the limit of three improvements and three
    follow-ups.
-6. Reconcile code prose with headers, tests, diagrams, metadata, and links.
-7. Record actionable findings in `review.yaml`. Set `agent_reviewed` true only
+8. Reconcile code prose with headers, tests, diagrams, metadata, and links.
+9. Record actionable findings in `review.yaml`. Set `agent_reviewed` true only
    after all agent-fixable issues are resolved.
-8. Verify that relevant approved editorial-memory lessons were applied. Treat
+10. Verify that relevant approved editorial-memory lessons were applied. Treat
    pending question-local candidates as proposals, not requirements.
 
 Never set `human_reviewed`, `technical_accuracy_reviewed`, or

@@ -391,6 +391,17 @@ def _draft_prompt(
         if metadata["type"] == "coding"
         else " Add a runnable experiment only when it tests a material claim."
     )
+    tutorial_guidance = (
+        " Write the answer as an interview tutorial, not an implementation specification: "
+        "open with one concrete running scenario, execute and break a plausible naive design, "
+        "then derive the architecture from the failure. Define each abstraction through the "
+        "process, thread, queue, log, or file that implements it before using it in prose or a "
+        "diagram. Keep the formal contract, but pair symbolic sizing with illustrative values "
+        "and state the resulting bottleneck. Mark Core, Deep dive, and Stretch material inline "
+        "so a realistic interview path is obvious."
+        if metadata["type"] == "system_design"
+        else ""
+    )
     editorial_guidance = memory_prompt(root, str(metadata["type"]))
     return (
         f"Use {skill} to draft the normalized question {question_id}. Also use "
@@ -400,7 +411,7 @@ def _draft_prompt(
         "invent a missing constraint that changes the problem; return needs_clarification "
         "when that decision requires the human. Generate the tested skills, natural reasoning, "
         "primary solution, concise improvements, pitfalls, realistic follow-ups, and evaluation "
-        f"criteria according to the repository rules.{practice} This run is controlled by "
+        f"criteria according to the repository rules.{tutorial_guidance}{practice} This run is controlled by "
         "contentctl: never edit workflow.yaml; keep metadata status draft and every review flag "
         "false. The controller owns lifecycle transitions, full PDF builds, and repository-wide "
         "gates. Run only targeted package validation and question-specific practice tests. "
@@ -419,7 +430,9 @@ def _feedback_revision_prompt(
     return (
         f"Revise {metadata['id']} using only the newest human feedback appended to "
         "expert-notes.md and its matching file under feedback/. Preserve accepted material "
-        "unless the feedback requires it to change, and reconcile the linked practice package. "
+        "unless the feedback requires it to change, but freely restructure or rewrite the draft "
+        "when the feedback identifies a reader-experience, reasoning-flow, or tutorial-quality "
+        "problem. Reconcile the linked practice package. "
         "This is a focused contentctl revision: do not edit workflow.yaml; keep metadata status "
         "draft and every review flag false. Do not rebuild or visually inspect PDFs and do not "
         "run repository-wide gates; the controller will do those once. Run targeted package "
@@ -439,12 +452,25 @@ def _review_prompt(
     root: Path, package: Path, metadata: Mapping[str, object]
 ) -> str:
     editorial_guidance = memory_prompt(root, str(metadata["type"]))
+    tutorial_review = (
+        " For system design, reject a technically correct answer that reads like a specification "
+        "instead of an interview tutorial. Require a concrete running scenario before the "
+        "architecture; a plausible naive design traced to failure; definitions tied to physical "
+        "components before abstractions appear in prose or diagrams; illustrative sizing with a "
+        "bottleneck conclusion; and visible Core, Deep dive, and Stretch paths. Sweep the first "
+        "sentence of each paragraph to verify that the argument remains understandable and flag "
+        "uniformly dense exposition or diagrams whose edges do not explain flow, ownership, or "
+        "failure behavior."
+        if metadata["type"] == "system_design"
+        else ""
+    )
     return (
         f"Use $review-question to independently review {metadata['id']}. Do not edit any files. "
         "Read the preserved source, expert notes, deduplication report, question, metadata, "
         "and linked practice code. Judge source fidelity, interview realism, reasoning flow, "
         "technical correctness, page-budget discipline, follow-up quality, and runnable-code "
-        "consistency. A coding question cannot pass without a question-specific runnable package. "
+        "consistency. A coding question cannot pass without a question-specific runnable package."
+        f"{tutorial_review} "
         f"Also verify applicable approved guidance below:\n{editorial_guidance}\n"
         "Return blocking or important issues precisely; suggestions alone do not fail the review."
     )
@@ -862,8 +888,17 @@ def add_feedback(
         raise WorkflowError("feedback must not be empty")
     package = _package(root.resolve(), question_id)
     metadata = dict(load_data(package / "metadata.yaml"))
-    if metadata.get("status") not in {"needs_human_review", "changes_requested"}:
-        raise WorkflowError("feedback is accepted only during human review")
+    workflow = _load_workflow(package)
+    status = metadata.get("status")
+    workflow_state = workflow.get("state")
+    feedback_allowed = status in {"needs_human_review", "changes_requested"} or (
+        status == "draft"
+        and workflow_state in {"agent_review_failed", "agent_validation_failed"}
+    )
+    if not feedback_allowed:
+        raise WorkflowError(
+            "feedback is accepted during human review or after an agent review/validation failure"
+        )
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     filename = f"{stamp}-{uuid.uuid4().hex[:8]}.md"
     feedback_path = package / "feedback" / filename
@@ -884,7 +919,6 @@ def add_feedback(
         REVIEW_FLAGS_FALSE,
         review_note=f"Human feedback recorded in feedback/{filename}.",
     )
-    workflow = _load_workflow(package)
     workflow["state"] = "changes_requested"
     _event(
         workflow,

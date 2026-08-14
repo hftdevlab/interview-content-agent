@@ -227,11 +227,12 @@ class WorkflowTests(unittest.TestCase):
             root = self._root(temporary)
             source = root / "prompt.txt"
             source.write_text("Design a bounded risk-event stream.\n", encoding="utf-8")
+            runner = FakeRunner([READY, PASSED])
             package = submit_question(
                 root=root,
                 question_kind="system-design",
                 input_path=source,
-                runner=FakeRunner([READY, PASSED]),
+                runner=runner,
                 question_id="sd-risk-event-stream",
                 title="Bounded risk event stream",
                 create_branch=False,
@@ -240,6 +241,9 @@ class WorkflowTests(unittest.TestCase):
             status = question_status(root=root, question_id=package.name)
             self.assertEqual(status["status"], "needs_human_review")
             self.assertTrue(status["review"]["agent_reviewed"])
+            self.assertIn("interview tutorial", runner.calls[0][1])
+            self.assertIn("concrete running scenario", runner.calls[0][1])
+            self.assertIn("reject a technically correct answer", runner.calls[1][1])
 
             add_feedback(
                 root=root,
@@ -261,6 +265,7 @@ class WorkflowTests(unittest.TestCase):
                 runner=(revision_runner := FakeRunner([REVISION_READY, PASSED])),
             )
             self.assertIn("focused contentctl revision", revision_runner.calls[0][1])
+            self.assertIn("freely restructure or rewrite", revision_runner.calls[0][1])
             self.assertEqual(revision_runner.calls[0][0], "run:workspace-write")
             workflow = json.loads((package / "workflow.yaml").read_text())
             self.assertTrue(
@@ -298,6 +303,45 @@ class WorkflowTests(unittest.TestCase):
             self.assertEqual(status["pending_memory_candidates"], [])
             self.assertEqual(status["active_editorial_memory_count"], 1)
             self.assertEqual(validate_repository(root), [])
+
+    def test_feedback_is_accepted_after_agent_review_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self._root(temporary)
+            source = root / "prompt.txt"
+            source.write_text("Design a bounded risk-event stream.\n", encoding="utf-8")
+            package = submit_question(
+                root=root,
+                question_kind="system-design",
+                input_path=source,
+                runner=None,
+                question_id="sd-review-failed-feedback",
+                title="Risk event stream needing revision",
+                create_branch=False,
+                run_agent=False,
+            )
+            metadata_path = package / "metadata.yaml"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata["status"] = "draft"
+            metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            workflow_path = package / "workflow.yaml"
+            workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+            workflow["state"] = "agent_review_failed"
+            workflow_path.write_text(json.dumps(workflow, indent=2) + "\n", encoding="utf-8")
+
+            add_feedback(
+                root=root,
+                question_id=package.name,
+                feedback="Turn the specification into a scenario-led tutorial.",
+                reviewer="Human Editor",
+            )
+
+            status = question_status(root=root, question_id=package.name)
+            self.assertEqual(status["status"], "changes_requested")
+            self.assertEqual(status["workflow_state"], "changes_requested")
+            self.assertIn(
+                "Turn the specification into a scenario-led tutorial.",
+                (package / "expert-notes.md").read_text(encoding="utf-8"),
+            )
 
     def test_controller_reclaims_lifecycle_and_runs_independent_review(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
