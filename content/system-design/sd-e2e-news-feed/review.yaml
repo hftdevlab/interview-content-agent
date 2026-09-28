@@ -1,0 +1,16 @@
+{
+  "question_id": "sd-e2e-news-feed",
+  "checks": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "review_notes": [
+    "Foundational draft uses a compact social following feed baseline; assumptions are labeled and advanced fan-out and media processing remain optional. Independent review and human approval remain required.",
+    "Foundation links cover retry semantics and overload. No runnable experiment is attached because material claims need database/service integration tests.",
+    "Removed the duplicate source caption identified in the prior controller review; the diagram caption is provided by metadata. Controller owns PDF rendering and repository-wide gates.",
+    "Workflow is preserved; metadata status remains draft and all review flags remain false.",
+    "Independent agent review passed; human review is required."
+  ]
+}

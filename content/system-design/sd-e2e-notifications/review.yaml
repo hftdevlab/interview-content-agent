@@ -1,0 +1,17 @@
+{
+  "question_id": "sd-e2e-notifications",
+  "checks": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "review_notes": [
+    "Initial foundational tutorial drafted from the source and expert-authorized in-app, email, and mobile push interpretation. Workload and delivery policy are explicitly illustrative.",
+    "Core covers durable acceptance, inbox access, pending delivery rows, retries, and duplicate risk. Scaling and stronger producer guarantees remain optional. Companion handbook links cover existing prerequisites.",
+    "No runnable experiment: the material claims are transaction and failure-boundary reasoning, not a local performance measurement. Independent review and human approval remain required; all review flags remain false.",
+    "Passed python -m tools.validate --id sd-e2e-notifications, including diagram renderability and local reference checks. No practice package applies. PDF rendering, visual inspection, and repository-wide gates remain with contentctl.",
+    "Addressed independent layout review: condensed the complete pre-diagram delivery reasoning while preserving its behavior and sufficiency conditions. Removed the detached italic Figure paragraph and consolidated its meaning into the metadata caption, which the renderer keeps with the diagram. Targeted validation passed; pagination confirmation remains with the controller PDF rebuild and fresh review.",
+    "Independent agent review passed; human review is required."
+  ]
+}

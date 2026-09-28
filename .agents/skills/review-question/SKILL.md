@@ -26,13 +26,20 @@ just against the schema.
 4. Check interview calibration and remove material that does not affect a
    decision, invariant, or realistic follow-up.
 5. For system design, reject a technically correct specification that does not
-   teach derivation. Require a reusable concrete scenario, a fully traced naive
-   failure, physical definitions before architecture, illustrative sizing with
-   a conclusion, visible core/deep-dive/stretch tiers, and diagrams with
-   meaningful edges or failure states.
+   teach derivation. Require a reusable concrete scenario, a traced limitation
+   that motivates the next design choice, physical definitions before
+   architecture, illustrative sizing with a conclusion, visible
+   core/deep-dive/stretch tiers, and meaningful diagram edges or failure states.
+   A simple design may be sufficient at small scale; do not fail it for omitting
+   optional production machinery. For foundational prompts, verify the core
+   stands alone and that difficulty matches the actual passing answer.
 6. Read only the first sentence of each explanatory paragraph. They should form
    a coherent argument; buried theses and uniform maximum density are important
    findings, not cosmetic suggestions.
+   Repeated depth labels on every paragraph, an up-front symbol inventory, or
+   editorial process language can also obscure an otherwise correct answer.
+   Require changes when those patterns materially interrupt the teaching flow;
+   do not replace them with a rigid word-count or readability-score threshold.
 7. Enforce the page budget and the limit of three improvements and three
    follow-ups. Inspect the rendered preview rather than trusting only its page
    count: literal Markdown markers, cramped leading, tangled diagrams, or

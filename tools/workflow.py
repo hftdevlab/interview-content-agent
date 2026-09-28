@@ -26,6 +26,7 @@ from tools.editorial_memory import (
     reject_memory_candidate,
 )
 from tools.ingest import IMAGE_SUFFIXES, TYPE_CONFIG, ingest_question
+from tools.render_diagrams import render_source
 from tools.validate import validate_repository
 
 
@@ -393,12 +394,15 @@ def _draft_prompt(
     )
     tutorial_guidance = (
         " Write the answer as an interview tutorial, not an implementation specification: "
-        "open with one concrete running scenario, execute and break a plausible naive design, "
-        "then derive the architecture from the failure. Define each abstraction through the "
+        "open with one concrete running scenario, walk through a plausible simple design, "
+        "and derive the next decision from a specific workload limit or failure. Explain when "
+        "the simple design is sufficient. Define each abstraction through the "
         "process, thread, queue, log, or file that implements it before using it in prose or a "
-        "diagram. Keep the formal contract, but pair symbolic sizing with illustrative values "
-        "and state the resulting bottleneck. Mark Core, Deep dive, and Stretch material inline "
-        "so a realistic interview path is obvious."
+        "diagram. State only the contract details that drive the design; introduce symbols "
+        "where a calculation needs them, use illustrative values, and explain the bottleneck. "
+        "Mark Core, Deep dive, and Stretch at section boundaries rather than every paragraph. "
+        "For a foundational prompt, keep a complete small passing answer readable on its own "
+        "and leave advanced machinery optional. Follow the style guide's depth calibration."
         if metadata["type"] == "system_design"
         else ""
     )
@@ -455,9 +459,12 @@ def _review_prompt(
     tutorial_review = (
         " For system design, reject a technically correct answer that reads like a specification "
         "instead of an interview tutorial. Require a concrete running scenario before the "
-        "architecture; a plausible naive design traced to failure; definitions tied to physical "
+        "architecture; a simple design traced to a concrete limit or failure; definitions tied to physical "
         "components before abstractions appear in prose or diagrams; illustrative sizing with a "
-        "bottleneck conclusion; and visible Core, Deep dive, and Stretch paths. Sweep the first "
+        "bottleneck conclusion; and visible Core, Deep dive, and Stretch paths. For foundational "
+        "prompts, verify that the passing core stands alone and does not inherit the complexity "
+        "of a flagship example. Depth labels should guide sections, not interrupt every "
+        "paragraph. Do not demand extra machinery when the baseline meets the contract. Sweep the first "
         "sentence of each paragraph to verify that the argument remains understandable and flag "
         "uniformly dense exposition or diagrams whose edges do not explain flow, ownership, or "
         "failure behavior. If a visual inspection surface appears to crop running headers or "
@@ -601,6 +608,35 @@ def _run_deterministic_gates(root: Path, metadata: Mapping[str, object]) -> None
     _run_gate(root, ("make", "pdf-preview"), "review PDF gate")
 
 
+def _refresh_question_diagrams(root: Path, package: Path) -> None:
+    """Rebuild valid source diagrams before checking generated-artifact freshness."""
+
+    for source in sorted((package / "diagrams").glob("*.mmd")):
+        try:
+            svg = render_source(source.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            # The validator reports missing/invalid sources with package context.
+            # Do not replace a previous output with a failed rendering.
+            continue
+        output = root / "generated" / "diagrams" / package.name / f"{source.stem}.svg"
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(svg, encoding="utf-8")
+
+
+def _review_revision_prompt(review: Mapping[str, object]) -> str:
+    issues = review.get("issues", [])
+    blocking = [
+        item for item in issues
+        if isinstance(item, dict) and item.get("severity") in {"blocking", "important"}
+    ]
+    return (
+        "Address the independent review findings below. Preserve accepted material, source, "
+        "and expert notes. Keep workflow.yaml and lifecycle flags under controller ownership; "
+        "run targeted validation only. The controller rebuilds PDFs and runs a fresh review.\n"
+        + json.dumps(blocking or issues, indent=2)
+    )
+
+
 def continue_question(
     *,
     root: Path,
@@ -623,6 +659,7 @@ def continue_question(
         raise WorkflowError("resolve pending clarifications before continuing")
 
     starting_status = str(metadata.get("status", ""))
+    starting_state = str(workflow.get("state", ""))
     is_feedback_revision = starting_status == "changes_requested"
     proposed_memory: list[Mapping[str, object]] = []
     _sync_status(package, "draft", REVIEW_FLAGS_FALSE)
@@ -646,6 +683,10 @@ def continue_question(
         if is_feedback_revision
         else None
     )
+    if not is_feedback_revision and starting_state == "agent_review_failed":
+        review_path = package / "agent-review.yaml"
+        if review_path.is_file():
+            revision_message = _review_revision_prompt(load_data(review_path))
     for round_number in range(max_revision_rounds + 1):
         metadata = dict(load_data(package / "metadata.yaml"))
         draft = _run_draft(
@@ -686,6 +727,10 @@ def continue_question(
                     dict(item) for item in current_candidates if isinstance(item, dict)
                 ]
 
+        # A draft may change Mermaid while an earlier SVG still exists. Refresh
+        # it under controller ownership instead of spending a model revision
+        # asking the author to repair an otherwise valid generated artifact.
+        _refresh_question_diagrams(root, package)
         issues = validate_repository(root)
         if issues:
             revision_message = (
@@ -786,11 +831,7 @@ def continue_question(
                 )
             return package
 
-        revision_message = (
-            "Address the independent review findings below. Preserve source and expert notes, "
-            "then rerun applicable tests.\n"
-            + json.dumps(blocking or review.get("issues", []), indent=2)
-        )
+        revision_message = _review_revision_prompt(review)
         if round_number >= max_revision_rounds:
             workflow["state"] = "agent_review_failed"
             _event(

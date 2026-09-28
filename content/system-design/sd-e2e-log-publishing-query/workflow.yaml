@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "run_id": "ac62da9d-1151-4287-849d-d69ef7a223a2",
+  "question_id": "sd-e2e-log-publishing-query",
+  "question_type": "system_design",
+  "state": "needs_human_review",
+  "branch": "",
+  "agent_threads": {
+    "transcription": "",
+    "draft": "01a0e630-4abd-7912-8b62-e289b252d542",
+    "review": "01a0e631-edbc-70c1-b591-fb738a282895"
+  },
+  "attempts": {
+    "draft": 1,
+    "review": 1
+  },
+  "pending_clarifications": [],
+  "created_at": "2026-09-28T04:05:19+00:00",
+  "updated_at": "2026-09-28T04:08:02+00:00",
+  "events": [
+    {
+      "at": "2026-09-28T04:05:19+00:00",
+      "actor": "human",
+      "type": "submission_archived",
+      "detail": {
+        "input": "log-publishing-query.md",
+        "question_type": "system_design"
+      }
+    },
+    {
+      "at": "2026-09-28T04:05:19+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-09-28T04:07:06+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Drafted question.md, metadata.yaml, review.yaml, and the sequence diagram with a complete foundational tutorial and three verified handbook links. Targeted validation passed; no practice experiment was warranted. Workflow, source, and expert notes were preserved. Status remains draft with all review flags false. PDF generation and human review remain controller-owned.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "python -m tools.validate --id sd-e2e-log-publishing-query",
+          "git diff --check"
+        ],
+        "memory_candidates": []
+      }
+    },
+    {
+      "at": "2026-09-28T04:08:02+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": true,
+        "summary": "Independent review passed. The source-faithful tutorial provides a concrete scenario, justified minimal design, clear physical components, correct sizing and failure reasoning, and distinct Core, Deep dive, and Stretch paths. Paragraph openings form a coherent argument; three improvements and three follow-ups are focused. Existing PDF pages 4\u20138 fit the budget; positioned headers/footers and generated SVG were checked. Targeted validation and the deterministic PDF gate passed. No practice package is linked or required for this system-design question. No files changed; human review remains pending.",
+        "issues": []
+      }
+    },
+    {
+      "at": "2026-09-28T04:08:02+00:00",
+      "actor": "system",
+      "type": "human_review_requested",
+      "detail": {
+        "summary": "Independent review passed. The source-faithful tutorial provides a concrete scenario, justified minimal design, clear physical components, correct sizing and failure reasoning, and distinct Core, Deep dive, and Stretch paths. Paragraph openings form a coherent argument; three improvements and three follow-ups are focused. Existing PDF pages 4\u20138 fit the budget; positioned headers/footers and generated SVG were checked. Targeted validation and the deterministic PDF gate passed. No practice package is linked or required for this system-design question. No files changed; human review remains pending."
+      }
+    }
+  ]
+}

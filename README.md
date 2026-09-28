@@ -207,6 +207,16 @@ the question as JSON-compatible `workflow.yaml`, `deduplication.yaml`, and (when
 needed) `memory-candidates.yaml`. Human-approved reusable lessons live in root
 `editorial-memory.yaml`.
 
+### Foundational readability trials
+
+The [three live E2E trials](tests/e2e/system-design/README.md) exercise news feeds,
+notifications, and log collection/search from short prompts. Their
+[evaluation record](tests/e2e/system-design/RESULTS.md) separates readability
+findings from build and review outcomes. Run them explicitly in an isolated
+worktree; ordinary CI uses deterministic lifecycle tests and does not call a
+model. After a failed agent review, `contentctl continue` now resumes from the
+saved findings and requires a fresh independent review.
+
 ### Codex execution errors
 
 `contentctl` reports Codex subprocess failures with a stable category in square

@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant A as Caller process
+    participant S as Server process
+    participant D as Database
+    participant W as Worker process
+    participant P as Provider
+    A->>S: Create with stable key
+    S->>D: Commit inbox and delivery rows
+    D-->>S: Commit confirmed
+    S-->>A: Accepted with notification ID
+    W->>D: Read due pending row
+    D-->>W: Saved delivery intent
+    W->>P: Send with stable channel key
+    P-->>W: Acceptance or error
+    W->>D: Save outcome or retry time

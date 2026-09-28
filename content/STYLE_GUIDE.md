@@ -45,26 +45,43 @@ for a design the reader already understands:
 - Before architecture, establish one concrete running scenario in three to
   five sentences: named actors, illustrative numbers, and the real consequence
   of failure. Reuse it throughout the chapter.
-- Execute one tempting simple design and break it at an exact step. State the
-  governing invariant as the conclusion of that trace.
+- Walk through the simplest plausible design and show where a stated workload
+  or failure exposes its limit. Say when it remains sufficient. Derive the
+  next decision from that limit; do not manufacture a failure to justify a
+  more elaborate architecture.
 - Attach abstractions to physical things. On first use, say whether a component
   is a process, thread, file, queue, socket, or shared-memory region, and define
   uncommon terms before diagrams use them.
-- Keep requirements symbolic where the interviewer must choose policy, but use
-  clearly labeled illustrative values in exposition and explain what the
+- State the few requirements that drive the design in plain language. Introduce
+  symbols only when they clarify a calculation or a genuine policy choice, near
+  the decision that uses them. Label illustrative values and explain what the
   arithmetic teaches about the actual bottleneck.
 - Lead paragraphs with the decision or insight, then explain the mechanism and
   why it is sufficient. Alternate dense reasoning with a trace, example, or
   plain-language restatement.
 - Show meaningful design forks and adjudicate them from the contract. A verdict
   without the rejected alternative teaches recognition rather than reasoning.
-- Mark the interview path inline as **Core**, **Deep dive**, or **Stretch**.
-  Readers should know what constitutes a passing 45-minute answer before the
-  final rubric.
+- Mark the interview path as **Core**, **Deep dive**, or **Stretch** at section
+  boundaries or a meaningful change of depth. Avoid labeling every paragraph:
+  the labels are navigation, not a repeated sentence template. Readers should
+  understand the passing answer before the final rubric.
 - Keep only diagrams whose edges, ownership, ordering, or failure annotations
   teach something the surrounding prose cannot show as clearly. Place each
   diagram after the complete reasoning unit it depicts so a landscape page
-  does not strand an unfinished section on a sparse portrait page.
+  does not strand an unfinished section on a sparse portrait page. The PDF
+  builder uses the metadata caption; a second Markdown figure caption repeats
+  it and can create an unnecessary continuation page.
+
+For foundational questions, a reader should be able to explain the complete
+small baseline without first reading the advanced branches. Settle one ordinary
+user journey, a compact data model, the main request path, and the failure or
+scaling choice that makes the question useful. Keep distributed coordination,
+unusual recovery protocols, and elaborate policy matrices optional unless the
+prompt makes them central. A standard question need not inherit the risk-limit
+example's difficulty or notation. The page limit is a ceiling, not a target.
+Give depth through worked decisions rather than repeated caveats or exhaustive
+requirements. Keep editorial provenance and workflow terminology in source or
+review records; reader-facing prose should simply label assumptions.
 
 For a flagship complex question, the upper budget is available for genuine
 interview depth; do not compress away the decisions that make the question

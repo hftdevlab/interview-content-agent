@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "run_id": "bcb7a6a2-0a6d-4215-b334-33d438252e22",
+  "question_id": "sd-e2e-news-feed",
+  "question_type": "system_design",
+  "state": "needs_human_review",
+  "branch": "",
+  "agent_threads": {
+    "transcription": "",
+    "draft": "01a0e622-77db-75b0-92fc-4d5f616088f3",
+    "review": "01a0e62b-1fcc-76e0-9f24-58cefff08ce6"
+  },
+  "attempts": {
+    "draft": 5,
+    "review": 3
+  },
+  "pending_clarifications": [],
+  "created_at": "2026-09-28T03:50:13+00:00",
+  "updated_at": "2026-09-28T04:00:32+00:00",
+  "events": [
+    {
+      "at": "2026-09-28T03:50:13+00:00",
+      "actor": "human",
+      "type": "submission_archived",
+      "detail": {
+        "input": "news-feed.md",
+        "question_type": "system_design"
+      }
+    },
+    {
+      "at": "2026-09-28T03:50:13+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-09-28T03:52:33+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Drafted the tutorial, foundation links, diagram, metadata, and review notes. Isolated package validation passed. Source, expert notes, and workflow were preserved; status remains draft with every review flag false. No runnable experiment added. Generated outputs and independent review remain with contentctl; human approval is pending.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "python -m tools.validate --root /var/folders/vp/bgnwhh197218lglwrqt8wt_m0000gn/T/news-feed-validation-5k321y3q --id sd-e2e-news-feed"
+        ],
+        "memory_candidates": []
+      }
+    },
+    {
+      "at": "2026-09-28T03:53:38+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Shortened diagrams/context.mmd by consolidating upload setup already explained in prose. The core question is unchanged. Targeted validation and a question-only PDF build passed; visual inspection confirmed the diagram and caption fit. Workflow and review flags were untouched.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "Isolated package validation via tools.validate.validate_repository",
+          "Question-only preview via tools.build_pdfs.build_pdf",
+          "pdftoppm rendering and visual inspection of diagram page 7"
+        ],
+        "memory_candidates": []
+      }
+    },
+    {
+      "at": "2026-09-28T03:54:24+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": false,
+        "summary": "Source fidelity, tutorial flow, technical reasoning, interview calibration, and follow-ups pass. The chapter uses six pages within its ten-page budget. Package validation and the deterministic PDF gate pass. No runnable package is required for this system-design question. No files were changed; human review remains pending.",
+        "issues": [
+          {
+            "severity": "important",
+            "message": "Line 70 produces a duplicate, detached figure caption with literal Markdown asterisks on PDF page 8; the diagram already has its caption on page 7. Positioned PDF text confirms the printed '*Figure 1 ... downloads.*' at y\u224859\u201368, so this is an actual rendering defect. Remove the redundant source caption or render it correctly beside the diagram, then rebuild and recheck the PDF.",
+            "file": "content/system-design/sd-e2e-news-feed/question.md"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-09-28T03:54:24+00:00",
+      "actor": "agent",
+      "type": "agent_review_failed",
+      "detail": {
+        "passed": false,
+        "summary": "Source fidelity, tutorial flow, technical reasoning, interview calibration, and follow-ups pass. The chapter uses six pages within its ten-page budget. Package validation and the deterministic PDF gate pass. No runnable package is required for this system-design question. No files were changed; human review remains pending.",
+        "issues": [
+          {
+            "severity": "important",
+            "message": "Line 70 produces a duplicate, detached figure caption with literal Markdown asterisks on PDF page 8; the diagram already has its caption on page 7. Positioned PDF text confirms the printed '*Figure 1 ... downloads.*' at y\u224859\u201368, so this is an actual rendering defect. Remove the redundant source caption or render it correctly beside the diagram, then rebuild and recheck the PDF.",
+            "file": "content/system-design/sd-e2e-news-feed/question.md"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-09-28T03:55:28+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-09-28T03:57:01+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Revised question.md, metadata.yaml, review.yaml, and the diagram for a small, complete foundational answer with optional deep dives. Removed the duplicate caption. Targeted validation, diagram sizing, and lifecycle checks passed. Source, expert notes, and workflow remain unchanged; status is draft with all review flags false. PDF builds and independent review remain with contentctl.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "python -m tools.validate --root /var/folders/vp/bgnwhh197218lglwrqt8wt_m0000gn/T/news-feed-core-validation-bczd0qx0 --id sd-e2e-news-feed",
+          "Targeted diagram-and-caption fit check: 451.1 pt within 484.1 pt",
+          "Draft status and false review-flag assertions"
+        ],
+        "memory_candidates": []
+      }
+    },
+    {
+      "at": "2026-09-28T03:57:14+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Regenerated context.svg using the repository renderer. Freshness check passed; the question and lifecycle files are unchanged.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "Verified generated SVG exactly matches tools.render_diagrams.render_source(context.mmd)."
+        ],
+        "memory_candidates": []
+      }
+    },
+    {
+      "at": "2026-09-28T03:58:14+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": false,
+        "summary": "Source fidelity, technical reasoning, foundational scope, tutorial flow, and follow-ups pass. Package validation and the deterministic PDF gate pass; the duplicate caption is resolved. No runnable package is required for this system-design question. One important layout issue remains. No files were changed; human review remains pending.",
+        "issues": [
+          {
+            "severity": "important",
+            "message": "The diagram break strands only seven body-text lines on PDF page 6 before the landscape diagram on page 7. Positioned PDF text confirms all body content lies at 58.9\u2013152.1 points from the top of an 841.9-point page, leaving most of the portrait page empty. This violates the explicit rendered-layout requirement despite meeting the six-page chapter budget. Reflow the preceding core section or adjust diagram placement to eliminate this sparse continuation page, then rebuild and recheck.",
+            "file": "content/system-design/sd-e2e-news-feed/question.md"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-09-28T03:58:14+00:00",
+      "actor": "agent",
+      "type": "agent_review_failed",
+      "detail": {
+        "passed": false,
+        "summary": "Source fidelity, technical reasoning, foundational scope, tutorial flow, and follow-ups pass. Package validation and the deterministic PDF gate pass; the duplicate caption is resolved. No runnable package is required for this system-design question. One important layout issue remains. No files were changed; human review remains pending.",
+        "issues": [
+          {
+            "severity": "important",
+            "message": "The diagram break strands only seven body-text lines on PDF page 6 before the landscape diagram on page 7. Positioned PDF text confirms all body content lies at 58.9\u2013152.1 points from the top of an 841.9-point page, leaving most of the portrait page empty. This violates the explicit rendered-layout requirement despite meeting the six-page chapter budget. Reflow the preceding core section or adjust diagram placement to eliminate this sparse continuation page, then rebuild and recheck.",
+            "file": "content/system-design/sd-e2e-news-feed/question.md"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-09-28T03:59:02+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-09-28T03:59:40+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Moved the diagram after the complete read/write comparison so that discussion fills the sparse continuation page before the landscape break. Preserved the accepted reasoning, source, expert notes, workflow, and lifecycle flags. Targeted validation passed; the controller\u2019s PDF rebuild and fresh review will confirm pagination.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "python -m tools.validate --root /var/folders/vp/bgnwhh197218lglwrqt8wt_m0000gn/T/news-feed-reflow-validation-t140a2ro --id sd-e2e-news-feed"
+        ],
+        "memory_candidates": []
+      }
+    },
+    {
+      "at": "2026-09-28T04:00:32+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": true,
+        "summary": "Source fidelity, foundational scope, tutorial flow, technical reasoning, sizing, and follow-ups pass. The core stands alone with clear optional depth paths. Validation and the deterministic PDF gate pass; positioned text confirms the prior sparse continuation now contains a complete scaling discussion. The chapter occupies six pages within budget. No practice package is linked or required for this system-design question. No files changed; human approval remains pending.",
+        "issues": [
+          {
+            "severity": "suggestion",
+            "message": "The SVG accessibility title is incorrectly \u201cGap recovery sequence.\u201d Update the renderer to provide a news-feed-specific title and regenerate the SVG.",
+            "file": "generated/diagrams/sd-e2e-news-feed/context.svg"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-09-28T04:00:32+00:00",
+      "actor": "system",
+      "type": "human_review_requested",
+      "detail": {
+        "summary": "Source fidelity, foundational scope, tutorial flow, technical reasoning, sizing, and follow-ups pass. The core stands alone with clear optional depth paths. Validation and the deterministic PDF gate pass; positioned text confirms the prior sparse continuation now contains a complete scaling discussion. The chapter occupies six pages within budget. No practice package is linked or required for this system-design question. No files changed; human approval remains pending."
+      }
+    }
+  ]
+}

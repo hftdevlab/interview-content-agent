@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "id": "sd-e2e-news-feed",
+  "type": "system_design",
+  "title": "Design a News Feed",
+  "status": "needs_human_review",
+  "difficulty": 3,
+  "expected_duration_minutes": 45,
+  "categories": [
+    "distributed-systems"
+  ],
+  "tags": [
+    "backpressure",
+    "capacity-planning",
+    "ordering"
+  ],
+  "prerequisites": [],
+  "related_questions": [],
+  "source": {
+    "input_type": "text",
+    "confidentiality": "public",
+    "original_company_removed": false,
+    "original_files": [
+      "source/news-feed.md"
+    ]
+  },
+  "review": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "last_updated": "2026-09-28",
+  "content_file": "question.md",
+  "diagrams": [
+    {
+      "source_file": "diagrams/context.mmd",
+      "rendered_file": "context.svg",
+      "caption": "Ready media precedes publication; feed descriptions and media downloads use separate requests.",
+      "alt_text": "The application commits a post and retry key before acknowledging publication. It reads indexed database records for a feed request; the phone retrieves media separately from file storage."
+    }
+  ]
+}

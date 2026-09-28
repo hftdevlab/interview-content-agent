@@ -20,13 +20,16 @@ than resolving them silently.
 
 ## Workflow
 
-1. Settle the system boundary, core requirements, scale, and failure contract.
+1. Calibrate depth to the prompt and expert notes. A foundational question needs
+   a small, complete passing answer; the complex risk-limit example is not its
+   default difficulty. Settle the boundary and only the requirements that drive
+   the design. Label assumptions without exposing editorial workflow language.
 2. Open the answer with one concrete running scenario: named actors,
    illustrative values, and a visible consequence. Reuse it through the major
    decisions; do not introduce architecture vocabulary first.
-3. Execute the simplest plausible design and show the exact step where the
-   scenario violates correctness, boundedness, or latency. Derive the central
-   invariant from that failure rather than announcing it as a premise.
+3. Execute the simplest plausible design, say when it is sufficient, and show
+   the exact workload or failure that motivates the next decision. Do not force
+   a failure or add production machinery just to fill the tutorial structure.
 4. Define each uncommon term in plain language on first use and attach every
    abstract component to a process, thread, file, queue, connection, or memory
    structure before it appears in a diagram.
@@ -34,12 +37,14 @@ than resolving them silently.
    sketch it, then offer a few likely deep dives for agreement.
 6. Explain what is tested and develop the candidate's reasoning toward a
    minimal correct design.
-7. Use symbolic requirements but concrete exposition. Add illustrative
-   arithmetic and state what it reveals about the scarce resource. Present
-   defensible forks before adjudicating them from the contract.
-8. Mark material inline as **Core**, **Deep dive**, or **Stretch**. Lead each
-   paragraph with its thesis, then mechanism, then sufficiency; vary density
-   with traces and plain-language restatements.
+7. Use a compact plain-language contract. Introduce symbols only where useful
+   for a decision or calculation; do not front-load a parameter inventory. Add
+   illustrative arithmetic and explain the bottleneck. Present defensible forks
+   before choosing from the requirements.
+8. Mark **Core**, **Deep dive**, or **Stretch** at section boundaries or changes
+   of depth, not on every paragraph. Make the core readable on its own. Develop
+   an insight with connected prose and a worked example; avoid repeating a bold
+   thesis-and-label template throughout the chapter.
 9. Deepen the decisions that control correctness or performance. Keep adjacent
    subsystems concise.
 10. Express at most three great improvements and three realistic follow-ups.
@@ -47,7 +52,9 @@ than resolving them silently.
 11. Add Mermaid only when labeled edges, ownership, ordering, or failure states
    teach more than prose. Place it after the complete reasoning unit it depicts;
    do not strand half a section before a forced landscape page. Give it a
-   caption, alt text, and metadata entry.
+   caption, alt text, and metadata entry. The PDF builder prints the metadata
+   caption below the diagram; do not duplicate it in a separate Markdown
+   "Figure" paragraph.
 12. When `workflow.yaml` shows a `contentctl` run, do not edit it; keep status
    `draft` and every review flag false because the controller owns lifecycle
    transitions and independent review. Otherwise set status to

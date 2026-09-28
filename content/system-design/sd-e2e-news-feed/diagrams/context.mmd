@@ -1,0 +1,13 @@
+sequenceDiagram
+    participant C as Phone client
+    participant A as Application process
+    participant D as Database process
+    participant O as Media file storage
+
+    C->>A: Publish uploaded media with retry key
+    A->>D: Commit post and retry key together
+    A-->>C: Acknowledge committed post ID
+    C->>A: Feed request and cursor
+    A->>D: Read follows and indexed posts
+    A-->>C: Descriptions and media references
+    C->>O: Fetch media when needed

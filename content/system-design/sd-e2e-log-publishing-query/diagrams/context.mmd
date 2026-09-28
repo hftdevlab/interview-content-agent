@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant F as Host log file
+    participant C as Collector process
+    participant I as Ingestion process
+    participant D as Database process
+    participant Q as Query handler
+    participant M as Maya browser
+    C->>F: Read records after checkpoint
+    F-->>C: Records with stable event IDs
+    C->>I: Publish batch; retain source records
+    I->>D: Insert batch; ignore repeated IDs
+    D-->>I: Durable commit complete
+    I-->>C: Acknowledge batch
+    C->>C: Save position in local checkpoint file
+    M->>Q: Service and bounded time-range query
+    Q->>D: Read committed rows using index
+    D-->>Q: Matching rows
+    Q-->>M: Bounded results and collector health
