@@ -6,8 +6,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.build_pdfs import build_all_pdfs
-from tools.content import ROOT
+from tools.build_pdfs import _styles, build_all_pdfs, markdown_flowables
+from tools.content import ROOT, QuestionRecord
+from tools.render_diagrams import main as render_diagrams
 from tools.validate_pdfs import validate_pdf_outputs
 
 
@@ -64,7 +65,85 @@ class PdfPublishingTests(unittest.TestCase):
             )
             self.assertIn("code-multi-source-stream-merger", text)
 
+    def test_review_preview_renders_markdown_tables(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self._make_root(Path(temporary))
+            render_diagrams(["--root", str(root)])
+
+            build_all_pdfs(root, review_preview=True)
+
+            self.assertEqual(
+                [],
+                validate_pdf_outputs(root, review_preview=True),
+            )
+            from pypdf import PdfReader
+
+            system_design_pdf = (
+                root / "generated" / "pdf-preview" / "system-design-guide.pdf"
+            )
+            pages = PdfReader(system_design_pdf).pages
+            text = "\n".join(page.extract_text() or "" for page in pages)
+            self.assertIn("Failure\nExpected outcome", text)
+            self.assertNotIn("|---|", text)
+            for page in pages[1:]:
+                stream = page.get_contents().get_data()
+                self.assertGreater(
+                    stream.rfind(b"System Design Interview Guide"),
+                    len(stream) // 2,
+                )
+
+    def test_blockquote_markers_do_not_leak_into_rendered_text(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            package = Path(temporary)
+            record = QuestionRecord(
+                metadata_path=package / "metadata.yaml",
+                package_dir=package,
+                metadata={"id": "sd-quote", "type": "system_design", "diagrams": []},
+                markdown=(
+                    "# Quote fixture\n\n"
+                    "> Gate7 may use one complete committed version, and\n"
+                    "> must become stale when proof expires.\n"
+                ),
+            )
+
+            flowables = markdown_flowables(
+                record,
+                _styles("#0F6B78"),
+                diagram_width=700,
+                body_width=450,
+            )
+
+            self.assertEqual(len(flowables), 1)
+            self.assertEqual(
+                flowables[0].getPlainText(),
+                "Gate7 may use one complete committed version, and must become stale when proof expires.",
+            )
+
+    def test_short_markdown_table_is_kept_as_one_reader_unit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            package = Path(temporary)
+            record = QuestionRecord(
+                metadata_path=package / "metadata.yaml",
+                package_dir=package,
+                metadata={"id": "sd-table", "type": "system_design", "diagrams": []},
+                markdown=(
+                    "# Table fixture\n\n"
+                    "| Failure | Expected outcome |\n"
+                    "|---|---|\n"
+                    "| Slow reader | Disconnect it. |\n"
+                ),
+            )
+
+            flowables = markdown_flowables(
+                record,
+                _styles("#0F6B78"),
+                diagram_width=700,
+                body_width=450,
+            )
+
+            self.assertEqual(len(flowables), 1)
+            self.assertEqual(type(flowables[0]).__name__, "KeepTogether")
+
 
 if __name__ == "__main__":
     unittest.main()
-
