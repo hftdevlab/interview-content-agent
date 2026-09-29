@@ -7,9 +7,11 @@
     "interview_realism_reviewed": false
   },
   "review_notes": [
-    "Initial foundational tutorial drafted from the preserved one-line source and expert-authorized operational-log interpretation. Workload, retention, freshness, and loss policy are explicitly illustrative.",
-    "Core uses collectors and one database; retry and overload deep dives and three optional improvements remain separate. No runnable experiment is needed for the architectural claims.",
-    "Contentctl owns lifecycle transitions and independent review. Status remains draft and every review flag remains false; human review is still required.",
+    "Revised against feedback/20260929T033612Z-816acff6.md using the reloaded drafting skill, style guide, controlled taxonomy, and tests/e2e/system-design/REFERENCE_REVIEW.md. Original reference PDFs are not present; the repository reference review supplied their teaching observations.",
+    "Rebuilt as a tutorial: question and clarifications, prioritized functional/non-functional requirements, entities, compact interfaces/schema, component architecture with publication and query walkthroughs, and focused deep dives. Removed compulsory depth labels, failure table, and evaluator rubric.",
+    "Preserved the operational-log interpretation, illustrative workload, single-database baseline, delivery and overload policies, capacity reasoning, and three handbook links. Pattern tags correspond to developed reliability, time-series, and read-scaling decisions.",
+    "Practice reconciliation: metadata has no practice or runnable_experiment link; no matching practice package or CMake target exists. This revision changes architectural teaching only, so no question-specific practice test applies.",
+    "Contentctl owns lifecycle transitions and independent review. Status remains draft and all review flags remain false. PDF rendering and repository-wide gates are deferred to the controller; fresh independent and human reviews remain pending.",
     "Independent agent review passed; human review is required."
   ]
 }

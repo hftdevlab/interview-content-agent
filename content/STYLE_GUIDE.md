@@ -27,66 +27,69 @@ that improves the reader's experience.
 
 ### System design
 
-Start with only the requirements needed to define the system boundary. When the
-prompt describes a platform too large for one interview, say so prominently,
-sketch the context, and agree with the interviewer on a few deep dives. Do not
-present a minute-by-minute allocation: the interviewer controls where the
-conversation goes.
+Use an interview walkthrough, not an implementation specification. The reader
+should see how the requirements lead to one working design, then learn how to
+handle the design's most interesting limits. The current presentation replaces
+the historical good/great/rubric checklist in `PROJECT_PLAN.md`:
 
-Build a minimal correct design before scaling it. Deep dives should emerge from
-an access pattern, failure mode, latency budget, or consistency requirement.
-Use diagrams after the reader understands the decision they represent. A
-typical system-design chapter should render in at most ten pages; an unusually
-complex question may use up to fourteen.
+1. **Question and clarifications**: describe the product and resolve the few
+   ambiguities that change the answer. State the chosen interpretation and
+   assumptions. For an oversized platform, agree on a small interview scope.
+2. **Requirements**, with separate **Functional requirements** and
+   **Non-functional requirements**: prioritize what users can do and the
+   qualities that make this design challenging. A handful of meaningful
+   requirements is more useful than an exhaustive production contract.
+3. **Core entities**: introduce the domain nouns and their relationships before
+   their detailed representation. Distinguish a logical event from a delivery
+   attempt, for example, when that distinction matters to later reasoning.
+4. **API and data schema**, where useful: sketch the few requests, wire events,
+   queue records, or fields that support the main flows. Not every question
+   needs HTTP endpoints or a database schema. Omit irrelevant interface work.
+5. **High-level architecture**: include at least one component/data-flow
+   diagram and explain the design by walking through the functional
+   requirements. Follow a request from entry to response and explain what is
+   stored along the way. Finish the main flow before diving into every edge case.
+6. **Deep dives**: select the challenges that follow from the non-functional
+   requirements. Frame them as useful engineering questions and evolve the
+   same design. A local bad/good/great comparison is optional; two complete
+   competing solutions are normally unnecessary.
+7. **Follow-ups and pitfalls**, optionally: include only the few realistic
+   extensions or mistakes not already taught. At most three of each.
 
-Write the answer as a tutorial for deriving the design, not as a specification
-for a design the reader already understands:
+The high-level architecture should make the system understandable before the
+deep dives make it robust or scalable. It may defer a clearly named limitation;
+it must not claim a guarantee that the unfinished design does not provide.
+Explain unfamiliar components by what they do in this flow. Do not repeatedly
+define every box as a process or turn every paragraph into a contract clause.
 
-- Before architecture, establish one concrete running scenario in three to
-  five sentences: named actors, illustrative numbers, and the real consequence
-  of failure. Reuse it throughout the chapter.
-- Walk through the simplest plausible design and show where a stated workload
-  or failure exposes its limit. Say when it remains sufficient. Derive the
-  next decision from that limit; do not manufacture a failure to justify a
-  more elaborate architecture.
-- Attach abstractions to physical things. On first use, say whether a component
-  is a process, thread, file, queue, socket, or shared-memory region, and define
-  uncommon terms before diagrams use them.
-- State the few requirements that drive the design in plain language. Introduce
-  symbols only when they clarify a calculation or a genuine policy choice, near
-  the decision that uses them. Label illustrative values and explain what the
-  arithmetic teaches about the actual bottleneck.
-- Lead paragraphs with the decision or insight, then explain the mechanism and
-  why it is sufficient. Alternate dense reasoning with a trace, example, or
-  plain-language restatement.
-- Show meaningful design forks and adjudicate them from the contract. A verdict
-  without the rejected alternative teaches recognition rather than reasoning.
-- Mark the interview path as **Core**, **Deep dive**, or **Stretch** at section
-  boundaries or a meaningful change of depth. Avoid labeling every paragraph:
-  the labels are navigation, not a repeated sentence template. Readers should
-  understand the passing answer before the final rubric.
-- Keep only diagrams whose edges, ownership, ordering, or failure annotations
-  teach something the surrounding prose cannot show as clearly. Place each
-  diagram after the complete reasoning unit it depicts so a landscape page
-  does not strand an unfinished section on a sparse portrait page. The PDF
-  builder uses the metadata caption; a second Markdown figure caption repeats
-  it and can create an unnecessary continuation page.
+Use natural transitions and connected prose. A concrete example or a short
+request trace often explains more than another requirements table. A named
+character, failure story, numerical estimate, formal invariant, or
+Core/Deep dive/Stretch label is a tool, not a mandatory writing template.
+Calculate when the result determines a design decision, and introduce symbols
+at that point rather than in an opening inventory. Keep technical precision at
+the relevant decision boundary without repeating the same caveats everywhere.
 
-For foundational questions, a reader should be able to explain the complete
-small baseline without first reading the advanced branches. Settle one ordinary
-user journey, a compact data model, the main request path, and the failure or
-scaling choice that makes the question useful. Keep distributed coordination,
-unusual recovery protocols, and elaborate policy matrices optional unless the
-prompt makes them central. A standard question need not inherit the risk-limit
-example's difficulty or notation. The page limit is a ceiling, not a target.
-Give depth through worked decisions rather than repeated caveats or exhaustive
-requirements. Keep editorial provenance and workflow terminology in source or
-review records; reader-facing prose should simply label assumptions.
+Select reusable challenges from [the design-pattern guide](SYSTEM_DESIGN_PATTERNS.md).
+Store stable IDs in `metadata.yaml.design_patterns`, display matching labels in
+a short `Design patterns:` line near the question, and connect those patterns
+to the relevant deep dives. Tags should help the reader recognize a transferable
+decision, not merely advertise technologies or decorate the page. Trading-domain
+applications belong where they illuminate a real difference, not as forced
+changes to a general-purpose prompt.
 
-For a flagship complex question, the upper budget is available for genuine
-interview depth; do not compress away the decisions that make the question
-valuable. Show the complete context, make the likely deep dives explicit, and
-develop those paths while keeping adjacent components concise.
+At least one diagram must orient the architecture; use an additional sequence
+diagram only when it adds important ordering detail. Put diagrams at complete
+reasoning boundaries, not between a heading and its explanation. The metadata
+already supplies the printed caption; do not duplicate it in Markdown.
+
+A foundational answer should stand alone before optional advanced branches.
+An unusually complex flagship question can use more space for its defining
+technical decisions. Standard questions have a ten-page ceiling and complex
+ones fourteen, not mandatory page targets. Keep improvements optional and at
+most three. Do not append a compulsory failure matrix or evaluator rubric.
+Preserve useful handbook links instead of re-teaching prerequisites. Do not
+prescribe a minute-by-minute schedule or expose editorial workflow in the prose.
 
 ### Coding and API design
 

@@ -35,8 +35,12 @@
     {
       "source_file": "diagrams/context.mmd",
       "rendered_file": "context.svg",
-      "caption": "Commit separates request acceptance from external sending. A worker restart can repeat a provider call without losing the saved intent.",
-      "alt_text": "The server commits inbox and delivery rows in one database transaction. A background worker reads pending rows, calls external providers, and saves outcomes; a timeout can cause a repeated call."
+      "caption": "The API commits inbox and delivery work together; the worker handles external sends independently of inbox access.",
+      "alt_text": "Calling and user applications access the notification API and its database. A worker reads pending deliveries, calls email and push providers, and saves outcomes or retry times."
     }
+  ],
+  "design_patterns": [
+    "data-transactions",
+    "multi-step-workflows"
   ]
 }

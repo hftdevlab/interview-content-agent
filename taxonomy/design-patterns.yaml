@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "patterns": [
+    {
+      "id": "scale-reads",
+      "label": "Scale reads",
+      "challenge": "Serve repeated or high-volume reads without overloading the source of truth.",
+      "trading_application": "Cache reference data or materialize risk and position views for many consumers.",
+      "caveat": "Define acceptable staleness and invalidation before adding caches or replicas."
+    },
+    {
+      "id": "scale-writes",
+      "label": "Scale writes",
+      "challenge": "Distribute ingestion and storage work while preserving the required ordering and durability.",
+      "trading_application": "Partition market-data capture or execution-event ingestion by a suitable ownership key.",
+      "caveat": "Partitioning does not solve a hot key; batching changes latency and acknowledgement semantics."
+    },
+    {
+      "id": "real-time-updates",
+      "label": "Real-time updates",
+      "challenge": "Deliver changing state promptly and let disconnected consumers catch up safely.",
+      "trading_application": "Stream quotes, positions, or risk-state changes to trading services and operator screens.",
+      "caveat": "Separate freshness from completeness and specify slow-consumer and reconnect behavior."
+    },
+    {
+      "id": "multi-step-workflows",
+      "label": "Multi-step workflows",
+      "challenge": "Coordinate a sequence of asynchronous steps across retries, crashes, and partial completion.",
+      "trading_application": "Track order processing, post-trade enrichment, or an operational notification through durable states.",
+      "caveat": "A retry can repeat an external effect; compensation is not always possible."
+    },
+    {
+      "id": "data-transactions",
+      "label": "Data transactions",
+      "challenge": "Keep related state changes consistent at a clearly defined commit boundary.",
+      "trading_application": "Atomically reserve a risk budget or record an execution and its pending downstream publication.",
+      "caveat": "A local database transaction does not make remote delivery or side effects exactly once."
+    },
+    {
+      "id": "low-latency",
+      "label": "Low-latency",
+      "challenge": "Reduce and bound critical-path delay without losing required correctness.",
+      "trading_application": "Keep market-data ingestion and pre-trade checks close to their owning cores and memory.",
+      "caveat": "Measure tail latency and jitter; a throughput optimization can make individual requests slower."
+    },
+    {
+      "id": "high-reliability",
+      "label": "High reliability",
+      "challenge": "Make partial failures observable and recover without silently accepting unsafe or lost state.",
+      "trading_application": "Recover feed gaps, fence stale risk owners, or replay committed execution events.",
+      "caveat": "State the fault model and recovery boundary; no architecture is literally error-proof."
+    },
+    {
+      "id": "network-techniques",
+      "label": "Network techniques",
+      "challenge": "Choose transport and delivery mechanisms that fit fan-out, ordering, latency, and loss behavior.",
+      "trading_application": "Apply multicast, redundant feed lines, kernel bypass, or application-level recovery where justified.",
+      "caveat": "Transport selection does not remove application-level sequencing, backpressure, or recovery requirements."
+    },
+    {
+      "id": "fan-out-write",
+      "label": "Fan-out write",
+      "challenge": "Precompute recipient-specific state when an event is written to make later reads cheaper.",
+      "trading_application": "Materialize alert inboxes or distribute reference-data changes to subscribed services.",
+      "caveat": "Popular producers amplify writes; account for membership changes and delayed or duplicate fan-out."
+    },
+    {
+      "id": "time-series",
+      "label": "Time-series systems",
+      "challenge": "Store, retain, and query timestamped observations with bounded ingestion and query costs.",
+      "trading_application": "Capture tick history, application logs, or latency metrics for time-bounded investigation.",
+      "caveat": "Distinguish event time from receipt time and explain late data, cardinality, and retention."
+    }
+  ]
+}

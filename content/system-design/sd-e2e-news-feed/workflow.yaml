@@ -7,16 +7,16 @@
   "branch": "",
   "agent_threads": {
     "transcription": "",
-    "draft": "01a0e622-77db-75b0-92fc-4d5f616088f3",
-    "review": "01a0e62b-1fcc-76e0-9f24-58cefff08ce6"
+    "draft": "01a0eb38-be55-7f01-8657-84b073a72fb2",
+    "review": "01a0eb3a-b6fd-7581-8f4b-aca2b7e9d210"
   },
   "attempts": {
-    "draft": 5,
-    "review": 3
+    "draft": 6,
+    "review": 4
   },
   "pending_clarifications": [],
   "created_at": "2026-09-28T03:50:13+00:00",
-  "updated_at": "2026-09-28T04:00:32+00:00",
+  "updated_at": "2026-09-29T03:36:00+00:00",
   "events": [
     {
       "at": "2026-09-28T03:50:13+00:00",
@@ -205,6 +205,97 @@
       "type": "human_review_requested",
       "detail": {
         "summary": "Source fidelity, foundational scope, tutorial flow, technical reasoning, sizing, and follow-ups pass. The core stands alone with clear optional depth paths. Validation and the deterministic PDF gate pass; positioned text confirms the prior sparse continuation now contains a complete scaling discussion. The chapter occupies six pages within budget. No practice package is linked or required for this system-design question. No files changed; human approval remains pending."
+      }
+    },
+    {
+      "at": "2026-09-29T03:32:39+00:00",
+      "actor": "Human Editor",
+      "type": "human_feedback_received",
+      "detail": {
+        "file": "feedback/20260929T033239Z-21628000.md"
+      }
+    },
+    {
+      "at": "2026-09-29T03:32:39+00:00",
+      "actor": "system",
+      "type": "draft_context_rotated",
+      "detail": {
+        "previous_thread": "01a0e622-77db-75b0-92fc-4d5f616088f3"
+      }
+    },
+    {
+      "at": "2026-09-29T03:32:39+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-09-29T03:34:48+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Revised question.md, metadata.yaml, review.yaml, and diagrams/context.mmd into a connected tutorial with focused deep dives and design-pattern tags. Targeted validation passed. No linked practice package or applicable practice tests exist. Workflow, source, and feedback were preserved; status remains draft with all review flags false. Generated outputs and PDFs were not rebuilt. Independent and human review remain pending.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "python -m tools.validate --root /var/folders/vp/bgnwhh197218lglwrqt8wt_m0000gn/T/news-feed-revision-ooltqagw --id sd-e2e-news-feed",
+          "Lifecycle, practice-link, and preserved-file hash assertions",
+          "git diff --check -- content/system-design/sd-e2e-news-feed"
+        ],
+        "memory_candidates": [
+          {
+            "principle": "Develop one architecture through its user flows before exploring scaling and failure details.",
+            "rationale": "The feedback favors connected teaching and realistic interview reasoning over specification-style inventories.",
+            "question_types": [
+              "system_design"
+            ]
+          },
+          {
+            "principle": "Tag reusable design challenges and explain each pattern where it motivates a concrete decision.",
+            "rationale": "Pattern labels should help readers transfer reasoning across questions.",
+            "question_types": [
+              "system_design"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-09-29T03:36:00+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": true,
+        "summary": "Source fidelity, foundational scope, tutorial progression, technical reasoning, paragraph-opening coherence, pattern tags, handbook links, and three follow-ups pass. The chapter occupies five pages within its ten-page budget. Repository validation and the deterministic PDF gate pass; existing PDF text and SVG structure were inspected. No practice package is linked or required for this system-design question. No files changed; human review remains pending.",
+        "issues": [
+          {
+            "severity": "suggestion",
+            "message": "The generated SVG accessibility title says \u201cMarket data architecture.\u201d Supply a news-feed-specific title through the renderer and regenerate.",
+            "file": "generated/diagrams/sd-e2e-news-feed/context.svg"
+          },
+          {
+            "severity": "suggestion",
+            "message": "The direct phone-to-object-storage edge passes behind the application box in the generated SVG, obscuring the separate media path. Route it around the application and label the edges with their operations; the surrounding walkthrough currently supplies this meaning.",
+            "file": "generated/diagrams/sd-e2e-news-feed/context.svg"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-09-29T03:36:00+00:00",
+      "actor": "agent",
+      "type": "memory_candidates_proposed",
+      "detail": [
+        "memory-08e615383d81",
+        "memory-052657dcdcfb"
+      ]
+    },
+    {
+      "at": "2026-09-29T03:36:00+00:00",
+      "actor": "system",
+      "type": "human_review_requested",
+      "detail": {
+        "summary": "Source fidelity, foundational scope, tutorial progression, technical reasoning, paragraph-opening coherence, pattern tags, handbook links, and three follow-ups pass. The chapter occupies five pages within its ten-page budget. Repository validation and the deterministic PDF gate pass; existing PDF text and SVG structure were inspected. No practice package is linked or required for this system-design question. No files changed; human review remains pending."
       }
     }
   ]

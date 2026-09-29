@@ -7,10 +7,12 @@
     "interview_realism_reviewed": false
   },
   "review_notes": [
-    "Foundational draft uses a compact social following feed baseline; assumptions are labeled and advanced fan-out and media processing remain optional. Independent review and human approval remain required.",
-    "Foundation links cover retry semantics and overload. No runnable experiment is attached because material claims need database/service integration tests.",
-    "Removed the duplicate source caption identified in the prior controller review; the diagram caption is provided by metadata. Controller owns PDF rendering and repository-wide gates.",
-    "Workflow is preserved; metadata status remains draft and all review flags remain false.",
+    "Applied feedback/20260929T033239Z-21628000.md: rebuilt the chapter around clarifications, requirements, entities, interfaces, one architecture walkthrough, and focused deep dives; removed the evaluator rubric and mandatory depth labels.",
+    "Preserved social-following assumptions, indexed selection, key pagination, retry semantics, media separation, and handbook references. Pattern tags match the developed read-scaling, fan-out, and transaction decisions.",
+    "Reference teaching guidance was reloaded from tests/e2e/system-design/REFERENCE_REVIEW.md; the original supplied tutorial PDFs are not stored in the repository.",
+    "Practice reconciliation: metadata has neither a practice link nor a runnable experiment, and no practice package references this ID. The stated guarantees require database/service integration checks; no question-specific C++ test target applies.",
+    "Controller owns PDF rendering, generated outputs, repository-wide gates, and independent review. This revision has not been visually inspected; fresh independent review and human approval remain pending.",
+    "Workflow and original source/feedback are preserved; metadata status remains draft and every review flag remains false.",
     "Independent agent review passed; human review is required."
   ]
 }

@@ -1,5 +1,5 @@
 {
   "passed": true,
-  "summary": "Independent review passed. The source-faithful tutorial provides a concrete scenario, justified minimal design, clear physical components, correct sizing and failure reasoning, and distinct Core, Deep dive, and Stretch paths. Paragraph openings form a coherent argument; three improvements and three follow-ups are focused. Existing PDF pages 4\u20138 fit the budget; positioned headers/footers and generated SVG were checked. Targeted validation and the deterministic PDF gate passed. No practice package is linked or required for this system-design question. No files changed; human review remains pending.",
+  "summary": "Independent review passed. The source-faithful, appropriately scoped tutorial explains publication and query flows before focused deep dives. Technical reasoning, paragraph openings, pattern tags, handbook links, and follow-ups are sound. Source validation and the deterministic PDF gate pass. Positioned PDF text confirms the previous pagination issue is resolved: the chapter occupies pages 4\u20138, including a landscape diagram. No runnable package is linked or required for this system-design question. No files changed; human review remains pending.",
   "issues": []
 }

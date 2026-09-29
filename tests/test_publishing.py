@@ -65,7 +65,7 @@ class PdfPublishingTests(unittest.TestCase):
             )
             self.assertIn("code-multi-source-stream-merger", text)
 
-    def test_review_preview_renders_markdown_tables(self) -> None:
+    def test_review_preview_preserves_running_headers(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = self._make_root(Path(temporary))
             render_diagrams(["--root", str(root)])
@@ -83,7 +83,6 @@ class PdfPublishingTests(unittest.TestCase):
             )
             pages = PdfReader(system_design_pdf).pages
             text = "\n".join(page.extract_text() or "" for page in pages)
-            self.assertIn("Failure\nExpected outcome", text)
             self.assertNotIn("|---|", text)
             for page in pages[1:]:
                 stream = page.get_contents().get_data()
@@ -143,6 +142,12 @@ class PdfPublishingTests(unittest.TestCase):
 
             self.assertEqual(len(flowables), 1)
             self.assertEqual(type(flowables[0]).__name__, "KeepTogether")
+            table = flowables[0]._content[0]
+            self.assertEqual(type(table).__name__, "Table")
+            self.assertEqual(
+                [[cell.getPlainText() for cell in row] for row in table._cellvalues],
+                [["Failure", "Expected outcome"], ["Slow reader", "Disconnect it."]],
+            )
 
 
 if __name__ == "__main__":

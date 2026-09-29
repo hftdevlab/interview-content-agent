@@ -58,8 +58,11 @@ For each chapter, record concrete evidence for these checks:
 
 - Can a reader restate the product and trace one user action through the small
   baseline without learning every later extension first?
-- Does each new component solve a demonstrated problem, and is an initially
-  sufficient simple design allowed to remain a valid choice at small scale?
+- Does the explanation move from prioritized functional/non-functional
+  requirements through entities and useful interfaces into a complete
+  architecture, before selected deep dives develop the harder choices?
+- Does each component have an explained purpose in the request flow, and is an
+  initially sufficient simple design allowed to remain valid at small scale?
 - Are unfamiliar terms explained at first use, with useful prerequisite links
   instead of long foundational detours?
 - Is the core interview path coherent on its own, with advanced decisions
@@ -67,6 +70,8 @@ For each chapter, record concrete evidence for these checks:
 - Are the question's distinctive decisions actually taught: mixed media and
   feed assembly; delivery channels and retry ambiguity; ingestion, search
   visibility, and retention?
+- Do the design-pattern tags describe challenges actually developed in the
+  chapter, with useful links to foundations rather than another generic lesson?
 - Do worked numbers lead to a decision, and do failure examples agree with the
   stated guarantees? Inspect diagrams and every new chapter's rendered pages.
 
@@ -74,3 +79,20 @@ For each chapter, record concrete evidence for these checks:
 first-draft shortcomings, any generalized rule changes, revision counts, and
 remaining human judgments in `RESULTS.md`. Do not label agent judgments as human
 approval or claim that three samples establish statistical reliability.
+
+## Apply the expert-style feedback
+
+The subsequent [reference review](REFERENCE_REVIEW.md) explains why the first
+calibration still read too much like a specification. The editor's new request
+is preserved in [tutorial-feedback.md](tutorial-feedback.md). Replay it against
+each existing trial, one at a time, with the current skills and tooling:
+
+```bash
+"$PYTHON" -m tools.workflow feedback --id sd-e2e-notifications \
+  --file tests/e2e/system-design/tutorial-feedback.md --continue
+```
+
+Use the other two stable IDs for news feeds and logs. This adds a new feedback
+record and obtains a fresh review; it does not approve the chapter. An
+interrupted run resumes with `contentctl continue`, not another feedback
+submission. Any proposed editorial memories remain pending human approval.

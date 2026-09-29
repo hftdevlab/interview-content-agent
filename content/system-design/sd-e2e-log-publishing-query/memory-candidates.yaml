@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "question_id": "sd-e2e-log-publishing-query",
+  "candidates": [
+    {
+      "id": "memory-0e8eae966973",
+      "status": "pending",
+      "principle": "Develop one working architecture through user-facing flows before exploring its hardest technical limits.",
+      "rationale": "Human feedback favored a connected interview tutorial over specification sections and compulsory competing solutions.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-log-publishing-query",
+        "feedback_file": "feedback/20260929T033612Z-816acff6.md"
+      },
+      "proposed_at": "2026-09-29T03:41:03+00:00"
+    },
+    {
+      "id": "memory-f57776d4b92a",
+      "status": "pending",
+      "principle": "Tag reusable design challenges and explain their connection to concrete decisions in the tutorial.",
+      "rationale": "Human feedback requested patterns that help readers transfer reasoning across questions.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-log-publishing-query",
+        "feedback_file": "feedback/20260929T033612Z-816acff6.md"
+      },
+      "proposed_at": "2026-09-29T03:41:03+00:00"
+    }
+  ]
+}

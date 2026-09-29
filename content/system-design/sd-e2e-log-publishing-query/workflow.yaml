@@ -7,16 +7,16 @@
   "branch": "",
   "agent_threads": {
     "transcription": "",
-    "draft": "01a0e630-4abd-7912-8b62-e289b252d542",
-    "review": "01a0e631-edbc-70c1-b591-fb738a282895"
+    "draft": "01a0eb3b-ff3c-78d2-a7b9-db415b16ee08",
+    "review": "01a0eb3f-836b-7460-918f-91b688158cb4"
   },
   "attempts": {
-    "draft": 1,
-    "review": 1
+    "draft": 3,
+    "review": 3
   },
   "pending_clarifications": [],
   "created_at": "2026-09-28T04:05:19+00:00",
-  "updated_at": "2026-09-28T04:08:02+00:00",
+  "updated_at": "2026-09-29T03:41:03+00:00",
   "events": [
     {
       "at": "2026-09-28T04:05:19+00:00",
@@ -64,6 +64,116 @@
       "type": "human_review_requested",
       "detail": {
         "summary": "Independent review passed. The source-faithful tutorial provides a concrete scenario, justified minimal design, clear physical components, correct sizing and failure reasoning, and distinct Core, Deep dive, and Stretch paths. Paragraph openings form a coherent argument; three improvements and three follow-ups are focused. Existing PDF pages 4\u20138 fit the budget; positioned headers/footers and generated SVG were checked. Targeted validation and the deterministic PDF gate passed. No practice package is linked or required for this system-design question. No files changed; human review remains pending."
+      }
+    },
+    {
+      "at": "2026-09-29T03:36:12+00:00",
+      "actor": "Human Editor",
+      "type": "human_feedback_received",
+      "detail": {
+        "file": "feedback/20260929T033612Z-816acff6.md"
+      }
+    },
+    {
+      "at": "2026-09-29T03:36:12+00:00",
+      "actor": "system",
+      "type": "draft_context_rotated",
+      "detail": {
+        "previous_thread": "01a0e630-4abd-7912-8b62-e289b252d542"
+      }
+    },
+    {
+      "at": "2026-09-29T03:36:12+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-09-29T03:38:34+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Revised question.md, metadata.yaml, review.yaml, and the architecture diagram into a tutorial following the newest feedback. Preserved accepted technical material and handbook links. Targeted validation passed. No linked practice package or applicable tests exist. Workflow untouched; status remains draft and all review flags false. Generated outputs and PDFs were deferred to the controller. Independent and human review remain pending.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "tools.validate.main(['--root', <temporary single-package fixture>, '--id', 'sd-e2e-log-publishing-query'])",
+          "git diff --check -- content/system-design/sd-e2e-log-publishing-query"
+        ],
+        "memory_candidates": [
+          {
+            "principle": "Develop one working architecture through user-facing flows before exploring its hardest technical limits.",
+            "rationale": "Human feedback favored a connected interview tutorial over specification sections and compulsory competing solutions.",
+            "question_types": [
+              "system_design"
+            ]
+          },
+          {
+            "principle": "Tag reusable design challenges and explain their connection to concrete decisions in the tutorial.",
+            "rationale": "Human feedback requested patterns that help readers transfer reasoning across questions.",
+            "question_types": [
+              "system_design"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-09-29T03:39:35+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": false,
+        "summary": "The source-faithful tutorial passes technical, interview-flow, pattern-tag, handbook-link, and follow-up review. Source validation and the deterministic PDF gate pass; the chapter uses six pages within its ten-page budget. No runnable package is linked or required. One important pagination issue remains. No files changed; human review remains pending.",
+        "issues": [
+          {
+            "severity": "important",
+            "message": "PDF page 9 contains only the final two lines of the recovery follow-up, leaving almost the entire portrait page empty and splitting the final answer across pages. Confirmed using extracted and positioned PDF text. Adjust source concision or pagination so the follow-up fits on page 8, then rebuild and recheck the preview.",
+            "file": "generated/pdf-preview/system-design-guide.pdf"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-09-29T03:40:02+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Shortened the closing paragraphs and follow-ups in question.md while preserving recovery checks and technical guarantees. Targeted validation passed. Source, expert notes, workflow, and lifecycle flags remain untouched. PDF rebuild and pagination confirmation remain with the controller.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "tools.validate.main(['--root', <temporary single-package fixture>, '--id', 'sd-e2e-log-publishing-query'])",
+          "git diff --check -- content/system-design/sd-e2e-log-publishing-query/question.md"
+        ],
+        "memory_candidates": []
+      }
+    },
+    {
+      "at": "2026-09-29T03:41:03+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": true,
+        "summary": "Independent review passed. The source-faithful, appropriately scoped tutorial explains publication and query flows before focused deep dives. Technical reasoning, paragraph openings, pattern tags, handbook links, and follow-ups are sound. Source validation and the deterministic PDF gate pass. Positioned PDF text confirms the previous pagination issue is resolved: the chapter occupies pages 4\u20138, including a landscape diagram. No runnable package is linked or required for this system-design question. No files changed; human review remains pending.",
+        "issues": []
+      }
+    },
+    {
+      "at": "2026-09-29T03:41:03+00:00",
+      "actor": "agent",
+      "type": "memory_candidates_proposed",
+      "detail": [
+        "memory-0e8eae966973",
+        "memory-f57776d4b92a"
+      ]
+    },
+    {
+      "at": "2026-09-29T03:41:03+00:00",
+      "actor": "system",
+      "type": "human_review_requested",
+      "detail": {
+        "summary": "Independent review passed. The source-faithful, appropriately scoped tutorial explains publication and query flows before focused deep dives. Technical reasoning, paragraph openings, pattern tags, handbook links, and follow-ups are sound. Source validation and the deterministic PDF gate pass. Positioned PDF text confirms the previous pagination issue is resolved: the chapter occupies pages 4\u20138, including a landscape diagram. No runnable package is linked or required for this system-design question. No files changed; human review remains pending."
       }
     }
   ]

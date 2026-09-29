@@ -36,8 +36,13 @@
     {
       "source_file": "diagrams/context.mmd",
       "rendered_file": "context.svg",
-      "caption": "Commit precedes acknowledgement; the collector checkpoints only after central storage takes responsibility.",
-      "alt_text": "Collector reads a host file, ingestion commits records before acknowledgement, then the collector checkpoints; Maya queries the committed rows."
+      "caption": "Collectors publish batches to one database; the query handler searches committed logs and includes collector health (dashed path).",
+      "alt_text": "Host files feed collectors and ingestion into one database; the engineer queries that database through a query handler, which also receives collector health."
     }
+  ],
+  "design_patterns": [
+    "high-reliability",
+    "time-series",
+    "scale-reads"
   ]
 }

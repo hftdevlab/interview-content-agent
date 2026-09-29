@@ -1,10 +1,15 @@
 {
   "passed": true,
-  "summary": "Source fidelity, foundational scope, tutorial flow, technical reasoning, sizing, and follow-ups pass. The core stands alone with clear optional depth paths. Validation and the deterministic PDF gate pass; positioned text confirms the prior sparse continuation now contains a complete scaling discussion. The chapter occupies six pages within budget. No practice package is linked or required for this system-design question. No files changed; human approval remains pending.",
+  "summary": "Source fidelity, foundational scope, tutorial progression, technical reasoning, paragraph-opening coherence, pattern tags, handbook links, and three follow-ups pass. The chapter occupies five pages within its ten-page budget. Repository validation and the deterministic PDF gate pass; existing PDF text and SVG structure were inspected. No practice package is linked or required for this system-design question. No files changed; human review remains pending.",
   "issues": [
     {
       "severity": "suggestion",
-      "message": "The SVG accessibility title is incorrectly \u201cGap recovery sequence.\u201d Update the renderer to provide a news-feed-specific title and regenerate the SVG.",
+      "message": "The generated SVG accessibility title says \u201cMarket data architecture.\u201d Supply a news-feed-specific title through the renderer and regenerate.",
+      "file": "generated/diagrams/sd-e2e-news-feed/context.svg"
+    },
+    {
+      "severity": "suggestion",
+      "message": "The direct phone-to-object-storage edge passes behind the application box in the generated SVG, obscuring the separate media path. Route it around the application and label the edges with their operations; the surrounding walkthrough currently supplies this meaning.",
       "file": "generated/diagrams/sd-e2e-news-feed/context.svg"
     }
   ]

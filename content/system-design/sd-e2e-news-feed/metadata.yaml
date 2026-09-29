@@ -36,8 +36,13 @@
     {
       "source_file": "diagrams/context.mmd",
       "rendered_file": "context.svg",
-      "caption": "Ready media precedes publication; feed descriptions and media downloads use separate requests.",
-      "alt_text": "The application commits a post and retry key before acknowledging publication. It reads indexed database records for a feed request; the phone retrieves media separately from file storage."
+      "caption": "The application selects post descriptions; media uploads and downloads use object storage separately.",
+      "alt_text": "The phone calls the application for publication and feed selection. The application uses the database and verifies media readiness in object storage. The phone transfers media directly to and from object storage."
     }
+  ],
+  "design_patterns": [
+    "scale-reads",
+    "fan-out-write",
+    "data-transactions"
   ]
 }

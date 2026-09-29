@@ -1,5 +1,11 @@
 {
   "passed": true,
-  "summary": "Passes source fidelity, technical correctness, interview calibration, first-sentence flow, foundational scope, sizing, and follow-up checks. Core, Deep dive, and Stretch paths are clear. Existing PDF pages 4\u20138 and SVG inspection confirm the previous pagination and caption issue is resolved; five pages meet the budget. Targeted validation and deterministic PDF validation pass. No practice package is linked or required for this system-design question. No files changed; human review remains pending.",
-  "issues": []
+  "summary": "Passes source fidelity, interview realism, reasoning flow, technical correctness, pattern-tag alignment, and follow-up checks. The first-sentence sweep forms a coherent argument; ordinary flows precede hardening. Handbook links remain useful. Existing PDF pages 9\u201313 meet the page budget; positioned text and SVG inspection reveal no important layout issue. Repository validation and deterministic PDF validation pass. No practice package is linked or required. No files changed; human review remains pending.",
+  "issues": [
+    {
+      "severity": "suggestion",
+      "message": "Add a worker-to-database edge labeled \u201csave outcome / retry time\u201d to make the durable recovery loop visible. The worker label and walkthrough explain this correctly, but the diagram currently shows only the outbound delivery path.",
+      "file": "content/system-design/sd-e2e-notifications/diagrams/context.mmd"
+    }
+  ]
 }

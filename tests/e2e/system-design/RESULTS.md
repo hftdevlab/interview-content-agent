@@ -1,5 +1,10 @@
 # Foundational system-design readability evaluation
 
+This record preserves the first calibration and its limitations. Subsequent
+human feedback rejected its specification-like presentation despite the agent
+passes below. The [expert-style revision](REFERENCE_REVIEW.md) supersedes that
+presentation guidance; its results are recorded separately after fresh runs.
+
 ## Setup and scope
 
 The editor requested three simpler questions after accepting the advanced
@@ -65,7 +70,7 @@ instead of passing the saved findings. It now resumes from those findings and
 requires another independent review. Regression tests cover stale SVG refresh,
 invalid-source rejection, and review-failure recovery.
 
-## Final results
+## First-calibration results
 
 Live runs completed on 2026-09-28. All three workflows reached
 `needs_human_review`, with only `agent_reviewed` true, no unresolved duplicate
@@ -123,3 +128,61 @@ new content is approved or included in the approved-only release PDFs.
 Three distinct topics test transfer beyond one worked example, but do not
 establish statistical reliability across models or repeated fresh generations.
 Human readability feedback remains the final product-quality judgment.
+
+## Expert-style tutorial revision
+
+The editor subsequently supplied the Hello Interview notification, metrics,
+and delivery-framework PDFs and requested a different teaching structure.
+The [reference review](REFERENCE_REVIEW.md) records what was visible in those
+exports and what we adopted. The feedback is preserved verbatim and replayed
+through the real feedback workflow for each existing question, not substituted
+with manual manuscript edits outside the workflow.
+
+The shared skills, style guide, workflow prompts, and intake scaffold now use
+question/clarifications, functional/non-functional requirements, core entities,
+useful interfaces, an architecture walkthrough, and selected deep dives.
+Comparison sections, evaluator rubrics, and closing lists are no longer
+compulsory. The validator accepts the new outline and existing legacy chapters,
+while still checking requirements and the architecture diagram. Deduplication
+recognizes the new question heading and excludes the pattern navigation line
+from prompt similarity.
+
+The ten-pattern registry includes trading applications and explicit caveats.
+Selected pattern IDs are validated, their readable labels appear in tutorials,
+and catalogs group questions under stable pattern anchors. This supports
+discovery without treating shared pattern tags as proof of duplication.
+
+| Question | Words | Pages | Additional draft/review calls | Patterns developed |
+|---|---:|---:|---:|---|
+| News feed | 2,144 | 5 | 1 / 1 | Scale reads; Fan-out write; Data transactions |
+| Notifications | 2,037 | 5 | 1 / 1 | Data transactions; Multi-step workflows |
+| Log publishing/query | 2,100 | 5 | 2 / 2 | High reliability; Time-series systems; Scale reads |
+
+The notification chapter now explains its entities and interfaces before
+tracing inbox creation and external delivery. The news-feed chapter connects
+publishing and reading before conditional read scaling and fan-out. The log
+chapter completes collection and search before analyzing acknowledgement,
+retention/search cost, and backlog. Each uses one evolving design and retains
+its useful handbook references. There are no mandatory good/great solutions or
+evaluator rubrics. Logs has two closing follow-ups; the other chapters have
+three. The scope and accepted technical guarantees are preserved.
+
+All three passed their fresh independent workflow reviews. The log chapter's
+first review found a two-line final-page spill; the automatic focused revision
+shortened the ending and its second review passed. A separate read-only reader
+check of each completed chapter found no important prose or technical issues.
+Final preview chapter ranges are logs 4-8, notifications 9-13, and news feed
+14-18. Existing advanced chapters follow and were not rewritten in this batch.
+
+All three remain `needs_human_review`. Raw prompts are unchanged, previous
+expert notes remain intact with the new feedback appended, and no approval or
+publication command was run. Each workflow proposed two reusable editorial
+memories; all six remain pending. The versioned generation-rule changes are
+already active under this explicit editorial request, independently of the
+human-only memory-approval lifecycle.
+
+The full verification command remains `make ci`, including `make all`, source
+validation, 67 Python tests, four C++ practice checks, Markdown lint, and both
+release and review PDF gates. Skill validation and visual inspection of the
+rebuilt chapters complete the review. These checks support another human
+readability evaluation; they do not declare the content human-approved.

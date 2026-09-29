@@ -19,29 +19,38 @@ just against the schema.
 ## Review order
 
 1. Verify prompt fidelity, sanitization, and all stated assumptions.
-2. Check the reasoning chain: contract, tested skills, human thought process,
-   primary solution, meaningful improvements, then pitfalls and follow-ups.
-3. Verify technical claims, complexity, failure behavior, and good-versus-great
-   distinctions. Prefer primary specifications for unstable or exact claims.
+2. Check the reasoning chain and reader experience for the question type.
+   System design should move from question/clarifications to prioritized
+   functional/non-functional requirements, entities, useful interfaces,
+   architecture, and selected deep dives, not a filled-out answer specification.
+3. Verify technical claims, complexity, and failure behavior. Comparisons are
+   optional, not a demand for two complete solutions. Prefer primary
+   specifications for unstable or exact claims.
 4. Check interview calibration and remove material that does not affect a
    decision, invariant, or realistic follow-up.
 5. For system design, reject a technically correct specification that does not
-   teach derivation. Require a reusable concrete scenario, a traced limitation
-   that motivates the next design choice, physical definitions before
-   architecture, illustrative sizing with a conclusion, visible
-   core/deep-dive/stretch tiers, and meaningful diagram edges or failure states.
-   A simple design may be sufficient at small scale; do not fail it for omitting
-   optional production machinery. For foundational prompts, verify the core
-   stands alone and that difficulty matches the actual passing answer.
+   teach. Can the reader follow one request or event through a complete
+   high-level architecture before dealing with its hardest details? Require at
+   least one architecture diagram and verify that its edges agree with the
+   walkthrough. Entities, API fields, and storage choices should have a purpose
+   in that flow. Deep dives should answer the question's distinctive challenges
+   and connect to its non-functional requirements. A simple design may be
+   sufficient; do not demand optional production machinery or a contrived
+   failure. Do not require numerical sizing when it would not change a choice.
+   Validate the selected `design_patterns` against the registry and check that
+   their displayed labels and deep-dive explanations match. A familiar pattern
+   is not automatically safe on a trading hot path; check domain limits.
 6. Read only the first sentence of each explanatory paragraph. They should form
    a coherent argument; buried theses and uniform maximum density are important
    findings, not cosmetic suggestions.
-   Repeated depth labels on every paragraph, an up-front symbol inventory, or
-   editorial process language can also obscure an otherwise correct answer.
+   Repeated depth labels, up-front symbol inventories, mandatory bad/good/great
+   comparisons, and editorial process language can obscure the explanation.
    Require changes when those patterns materially interrupt the teaching flow;
    do not replace them with a rigid word-count or readability-score threshold.
-7. Enforce the page budget and the limit of three improvements and three
-   follow-ups. Inspect the rendered preview rather than trusting only its page
+7. Enforce the page budget and the limit of three optional improvements and
+   follow-ups each; for the new system-design outline also cap optional pitfalls
+   at three. Do not fail a tutorial for omitting those sections, an evaluation
+   rubric, or a failure matrix. Inspect the rendered preview rather than trusting only its page
    count: literal Markdown markers, cramped leading, tangled diagrams, or
    mostly empty portrait pages created by diagram breaks are important issues.
    If an inspection surface appears to crop running page furniture, corroborate

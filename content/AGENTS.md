@@ -8,8 +8,13 @@
 - Read `STYLE_GUIDE.md` before drafting or substantially revising a question.
 - Treat the question templates as coverage guidance, not a reason to force
   every answer into the same checklist.
-- Start from the candidate's reasoning: clarify the contract, identify the hard
-  invariant, derive a good solution, then add improvements and follow-ups.
+- Start from the candidate's reasoning. For system design, follow the current
+  STYLE_GUIDE progression: question/clarifications, functional/non-functional
+  requirements, entities, useful interfaces, architecture, then focused deep
+  dives. Develop one design; comparisons, improvements, and follow-ups are
+  optional. Do not force an invariant-led specification or evaluator rubric.
+- Tag the reusable system-design challenges using `design_patterns` from the
+  controlled taxonomy, and explain their application where they affect a choice.
 - Match answer depth to the expected interview duration.
 - Keep a coding chapter within six rendered pages. Keep a typical system-design
   chapter within ten pages and an unusually complex one within fourteen.

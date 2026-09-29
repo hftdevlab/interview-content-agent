@@ -7,16 +7,16 @@
   "branch": "",
   "agent_threads": {
     "transcription": "",
-    "draft": "01a0e62c-7b61-7ad0-925f-1fb16af1be57",
-    "review": "01a0e62f-6a52-7df1-9138-8b7fb0aebc8f"
+    "draft": "01a0eb35-180f-7a10-9048-0555275aa702",
+    "review": "01a0eb37-9aa4-7cf3-bfdb-f3ea65286650"
   },
   "attempts": {
-    "draft": 2,
-    "review": 2
+    "draft": 3,
+    "review": 3
   },
   "pending_clarifications": [],
   "created_at": "2026-09-28T04:01:09+00:00",
-  "updated_at": "2026-09-28T04:05:01+00:00",
+  "updated_at": "2026-09-29T03:32:23+00:00",
   "events": [
     {
       "at": "2026-09-28T04:01:09+00:00",
@@ -93,6 +93,90 @@
       "type": "human_review_requested",
       "detail": {
         "summary": "Passes source fidelity, technical correctness, interview calibration, first-sentence flow, foundational scope, sizing, and follow-up checks. Core, Deep dive, and Stretch paths are clear. Existing PDF pages 4\u20138 and SVG inspection confirm the previous pagination and caption issue is resolved; five pages meet the budget. Targeted validation and deterministic PDF validation pass. No practice package is linked or required for this system-design question. No files changed; human review remains pending."
+      }
+    },
+    {
+      "at": "2026-09-29T03:28:40+00:00",
+      "actor": "Human Editor",
+      "type": "human_feedback_received",
+      "detail": {
+        "file": "feedback/20260929T032840Z-52cb2edd.md"
+      }
+    },
+    {
+      "at": "2026-09-29T03:28:40+00:00",
+      "actor": "system",
+      "type": "draft_context_rotated",
+      "detail": {
+        "previous_thread": "01a0e62c-7b61-7ad0-925f-1fb16af1be57"
+      }
+    },
+    {
+      "at": "2026-09-29T03:28:40+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-09-29T03:31:24+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Revised question.md, metadata.yaml, review.yaml, and diagrams/context.mmd into a progressive tutorial with focused deep dives and design-pattern tags. Preserved scope and handbook links. Rebuilt only the question\u2019s SVG; targeted validation passed. No linked practice package or applicable tests exist. No PDF or repository-wide gates ran. workflow.yaml remained untouched; status remains draft and all review flags false. Independent and human review remain pending.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "python -m tools.validate --id sd-e2e-notifications"
+        ],
+        "memory_candidates": [
+          {
+            "principle": "Build one system-design tutorial from user capabilities through entities, interfaces, and an architecture walkthrough before exploring failure and scaling details.",
+            "rationale": "The human feedback identified specification-style sections as an obstacle to teaching and realistic interview reasoning.",
+            "question_types": [
+              "system_design"
+            ]
+          },
+          {
+            "principle": "Tag only reusable design challenges actually developed in the tutorial, and retain prerequisite links at their point of application.",
+            "rationale": "The human feedback requested recognizable design patterns while preserving useful handbook references.",
+            "question_types": [
+              "system_design"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-09-29T03:32:23+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": true,
+        "summary": "Passes source fidelity, interview realism, reasoning flow, technical correctness, pattern-tag alignment, and follow-up checks. The first-sentence sweep forms a coherent argument; ordinary flows precede hardening. Handbook links remain useful. Existing PDF pages 9\u201313 meet the page budget; positioned text and SVG inspection reveal no important layout issue. Repository validation and deterministic PDF validation pass. No practice package is linked or required. No files changed; human review remains pending.",
+        "issues": [
+          {
+            "severity": "suggestion",
+            "message": "Add a worker-to-database edge labeled \u201csave outcome / retry time\u201d to make the durable recovery loop visible. The worker label and walkthrough explain this correctly, but the diagram currently shows only the outbound delivery path.",
+            "file": "content/system-design/sd-e2e-notifications/diagrams/context.mmd"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-09-29T03:32:23+00:00",
+      "actor": "agent",
+      "type": "memory_candidates_proposed",
+      "detail": [
+        "memory-00bdc1bcb574",
+        "memory-41fa6124a378"
+      ]
+    },
+    {
+      "at": "2026-09-29T03:32:23+00:00",
+      "actor": "system",
+      "type": "human_review_requested",
+      "detail": {
+        "summary": "Passes source fidelity, interview realism, reasoning flow, technical correctness, pattern-tag alignment, and follow-up checks. The first-sentence sweep forms a coherent argument; ordinary flows precede hardening. Handbook links remain useful. Existing PDF pages 9\u201313 meet the page budget; positioned text and SVG inspection reveal no important layout issue. Repository validation and deterministic PDF validation pass. No practice package is linked or required. No files changed; human review remains pending."
       }
     }
   ]

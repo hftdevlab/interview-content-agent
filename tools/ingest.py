@@ -78,49 +78,35 @@ def _markdown(question_type: str, title: str, prompt: str, question_id: str) -> 
     if question_type == "system_design":
         return f"""# {title}
 
-## Interview prompt
+## Question and clarifications
 
 {prompt}
 
-## What the interviewer is testing
-
-- Content drafting should identify the core system boundary and engineering invariants.
-
-## Clarifying questions
-
 - Which requirements, scale assumptions, and failure contracts should control the design?
 
-## Requirements and assumptions
+## Requirements
+
+### Functional requirements
 
 The source has been normalized; requirements remain subject to expert review.
 
-## Good solution
+### Non-functional requirements
+
+Identify the latency, scale, and reliability needs that change the design.
+
+## Core entities
+
+Identify the few domain objects needed to explain the design.
+
+## High-level architecture
 
 ![Normalized system context awaiting detailed drafting.](../../../generated/diagrams/{question_id}/context.svg)
 
-The package is ready for an invariant-led design draft.
+Trace the simplest complete design before adding justified complexity.
 
-## Great solution improvements
+## Deep dives
 
-- Add only improvements justified by the agreed interview requirements.
-
-## Failure scenarios
-
-- Identify failures after the good solution establishes ownership and state.
-
-## Common pitfalls
-
-- Do not invent scale, latency, or reliability requirements absent from the source.
-
-## Follow-up questions
-
-### Which component should the interview examine in depth?
-
-Choose after clarifying the system boundary and the interviewer's priorities.
-
-## Evaluation rubric
-
-Evaluation criteria will be calibrated during content drafting and human review.
+Explain the decisions most relevant to the agreed requirements and interviewer's priorities.
 """
     if question_type == "coding":
         return f"""# {title}

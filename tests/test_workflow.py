@@ -16,6 +16,8 @@ from tools.render_diagrams import render_source
 from tools.validate import validate_repository
 from tools.workflow import (
     WorkflowError,
+    _draft_prompt,
+    _feedback_revision_prompt,
     _run_deterministic_gates,
     _review_path_allowed,
     add_feedback,
@@ -352,8 +354,8 @@ class WorkflowTests(unittest.TestCase):
             status = question_status(root=root, question_id=package.name)
             self.assertEqual(status["status"], "needs_human_review")
             self.assertTrue(status["review"]["agent_reviewed"])
-            self.assertIn("interview tutorial", runner.calls[0][1])
-            self.assertIn("concrete running scenario", runner.calls[0][1])
+            self.assertIn("system-design tutorial", runner.calls[0][1])
+            self.assertIn("metadata.design_patterns", runner.calls[0][1])
             self.assertIn("reject a technically correct answer", runner.calls[1][1])
 
             add_feedback(
@@ -377,6 +379,8 @@ class WorkflowTests(unittest.TestCase):
             )
             self.assertIn("focused contentctl revision", revision_runner.calls[0][1])
             self.assertIn("freely restructure or rewrite", revision_runner.calls[0][1])
+            self.assertIn("$draft-system-design", revision_runner.calls[0][1])
+            self.assertIn("content/STYLE_GUIDE.md", revision_runner.calls[0][1])
             self.assertEqual(revision_runner.calls[0][0], "run:workspace-write")
             workflow = json.loads((package / "workflow.yaml").read_text())
             self.assertTrue(
@@ -414,6 +418,24 @@ class WorkflowTests(unittest.TestCase):
             self.assertEqual(status["pending_memory_candidates"], [])
             self.assertEqual(status["active_editorial_memory_count"], 1)
             self.assertEqual(validate_repository(root), [])
+
+    def test_drafting_guidance_is_routed_by_question_type(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self._root(temporary)
+            for question_type, skill in (
+                ("system_design", "$draft-system-design"),
+                ("coding", "$draft-coding-question"),
+                ("fundamentals", "$draft-fundamentals-question"),
+            ):
+                with self.subTest(question_type=question_type):
+                    metadata = {"id": "test-guidance", "type": question_type}
+                    prompt = _draft_prompt(root, root / "unused-package", metadata)
+                    revision = _feedback_revision_prompt(root, root / "unused-package", metadata)
+                    self.assertIn(skill, prompt)
+                    self.assertIn(skill, revision)
+                    self.assertEqual("metadata.design_patterns" in prompt, question_type == "system_design")
+                    self.assertEqual("$build-practice-question" in prompt, question_type == "coding")
+                    self.assertEqual("runnable experiment" in prompt, question_type == "fundamentals")
 
     def test_feedback_is_accepted_after_agent_review_failure(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

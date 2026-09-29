@@ -1,126 +1,118 @@
 # Design a Notification System
 
-## Interview prompt
+Design patterns: Data transactions; Multi-step workflows.
 
-Design a notification system.
+## Question and clarifications
 
-**Core — running scenario and scope.** Maya comments on a document owned by Leo. Leo should find one notification in the application; his preferences also enable email and mobile push. As an illustrative workload, the application creates 10 such notifications per second, and an email provider sometimes takes two seconds to respond. Waiting for that response would make Maya's comment feel slow, while losing the notification could leave Leo unaware that his input is needed.
+Design a notification system that lets an application tell a user about something that needs their attention. For example, Maya comments on a document owned by Leo. Leo should find the notification in the application and, if his preferences allow it, receive email and mobile push alerts.
 
-Interpretation: support in-app, email, and mobile push notifications. For this example, each request names one recipient, messages are informational, and delivery within seconds is desirable rather than a hard deadline. These are illustrative assumptions, not fixed scale or reliability requirements. A full platform with bulk campaigns, scheduling, and multiple regions is too large for one interview; sketch the boundary, then agree whether to explore retries or bursts after establishing the small design.
+The prompt leaves the channels and delivery expectations open. We explicitly interpret it as **in-app, email, and mobile push**. Ask who chooses recipients, whether occasional duplicate alerts are acceptable, and whether notifications must arrive immediately. Peak recipient volume matters more than the number of triggering events: one comment sent to a million watchers is a different problem from one sent to Leo.
 
-## What the interviewer is testing
+For this walkthrough, assume each request names one recipient, the calling application chooses that recipient, and messages are informational. Delivery within seconds is desirable, but it is not a hard deadline. The caller retries unacknowledged requests. The notification system takes responsibility once it accepts a request; reliably generating that first request from a saved comment is initially the caller's responsibility. These are illustrative assumptions, not requirements supplied by the original prompt.
 
-- Turning a broad prompt into a concrete user journey and a modest system boundary.
-- Separating durable acceptance, provider acceptance, and a human actually seeing a message.
-- Explaining how pending work survives a process crash without claiming duplicate-free external delivery.
-- Locating the bottleneck with simple arithmetic before adding infrastructure.
+Bulk campaigns, scheduling, and multiple regions would make this too large for one interview. Establish the single-recipient flow first, then focus on recovering failed sends and handling bursts.
 
-## Clarifying questions
+## Requirements
 
-Ask which channels matter, who chooses recipients, whether occasional duplicates are acceptable, and whether the objective is immediate delivery or eventual visibility. Ask for peak recipient volume rather than just the number of triggering events: one comment sent to a million followers is a different problem.
+### Functional requirements
 
-For the running example, the calling application supplies the recipient and retries requests that have not been acknowledged. The notification system owns storage, preferences, and channel delivery after acceptance. Deriving recipients and reliably connecting a committed comment to its first notification request remain at the application boundary; an optional extension below closes that gap.
+- Applications can create a notification for a recipient.
+- Users can browse their in-app inbox and mark notifications read.
+- Users can configure email and push preferences; enabled channels receive delivery attempts.
 
-## Requirements and assumptions
+### Non-functional requirements
 
-**Core — the contract that drives the design.** An accepted request must leave a durable notification and a recorded disposition for each requested channel. A disposition means pending work, successful handoff, suppression by preferences, or an explicit failure; accepted work must not silently disappear. This assumes the database's committed data survives application-process restarts; recovery from destruction of the database is outside the small answer.
+- Acceptance should wait for durable storage, without waiting for an external provider. Assume committed database data survives application-process restarts.
+- Retrying a create request should produce one inbox item. External delivery may repeat after an uncertain outcome; bounded retries are acceptable for these informational alerts.
+- Slow or unavailable providers should not stall inbox access or consume unlimited worker capacity. Pending work and exhausted retries must remain visible to operators.
 
-Use the same request identity when retrying. Leo sees one in-app item for that identity, but an external provider may receive a repeat after an ambiguous timeout. Email and push are best effort with bounded retries, not a promise that a person has read them. Cross-channel arrival order is unspecified. For simplicity, preferences are captured when the request is accepted; an unsubscribe policy requiring a later check would change the send path.
+Cross-channel arrival order is unspecified. For the small baseline, preferences and destinations are captured at acceptance, with one active push device per user. A stricter unsubscribe policy is a follow-up rather than a hidden guarantee.
 
-## Good solution
+## Core entities
 
-### Core — first try the direct path
+A **notification** is the logical message addressed to one user. It remains in that user's inbox whether or not email succeeds. A **delivery** tracks the work for one external channel, so a notification can have an email delivery and a push delivery with different outcomes. Retrying email creates another attempt on the same delivery, not another notification.
 
-Start with an application server process handling Maya's request and a relational database storing Leo's inbox. The process inserts an inbox row, then calls the email and push providers over network connections. Leo's app fetches his stored rows when he opens the notification screen and marks an item read through the same server. This is a reasonable direct design for a prototype where waiting and occasional missed external alerts are acceptable.
+**User settings** hold channel preferences and destinations. Keeping settings separate lets Leo change future alerts without rewriting his inbox. This distinction between the message, channel work, and user settings gives us the vocabulary to design the interfaces.
 
-It does not meet our accepted-work contract. If the server crashes after inserting the inbox row but before sending email, nothing records that email is still due. Sending before inserting only moves the gap: Leo might receive email for a notification that was never saved. Even without a crash, two seconds waiting for email needlessly ties Maya's response time to another system.
+## API and data schema
 
-Record the intent to send alongside the inbox item, then send later. A background worker is a loop in a separate process that reads due database rows and calls providers. The rows themselves form the durable work queue: a queue here is simply a table of unfinished delivery attempts, not an additional message-broker service. One server, one database, and one worker process are enough to explain the baseline.
+The caller needs a stable identity for its request so that a lost response does not create a second message. An illustrative interface is:
 
-### Core — keep the stored state small
-
-Three kinds of rows support the ordinary journey:
-
-| Stored rows | Fields that matter and why |
+| Operation | Relevant input and result |
 |---|---|
-| Notification | Stable ID, caller request key, recipient, text or content reference, creation time, and read time. A unique constraint on caller identity plus request key prevents duplicate acceptance. |
-| Delivery | Notification ID, channel, destination snapshot, state, attempt count, and next-attempt time. One row per notification and external channel prevents creating a second delivery job on a request retry. |
-| User settings | Email address, push destination token, and enabled channels. A push token is the address supplied by the mobile platform for a device; assume one active device for this example. |
+| `POST /notifications` | Caller-scoped request key, recipient ID, text or content reference, requested external channels. Returns a stable notification ID after commit. |
+| `GET /me/notifications?cursor=...&limit=...` | Returns a bounded page of inbox items and a next-page cursor. |
+| `PUT /me/notifications/{id}/read` | Sets read state; repeating the request leaves it read. |
+| `PUT /me/notification-settings` | Updates enabled channels and verified destinations. |
 
-The request key identifies one logical notification for one recipient. A retry with the same key but different content is rejected, rather than silently changing an existing notification. Keep these identities for at least the supported retry window; deleting the identity while callers can still retry allows duplicates.
+Authenticate producer requests and authorize which recipients they may target. The `/me` operations derive the user from authentication, and a read-state update must check ownership. A request key identifies one logical notification for one recipient; reusing it with different content or requested channels is rejected.
 
-On a create request, the server authenticates the calling application and checks that it may notify Leo. In one database transaction, it inserts the notification and delivery rows, recording disabled channels as suppressed. It acknowledges with the stable notification ID only after commit. If the response is lost, retrying the same key returns the existing ID. A database uniqueness constraint arbitrates simultaneous requests; a separate check followed by an insert would race.
+A relational database can hold all three entities:
 
-For the inbox, an index beginning with recipient and then creation time and ID supports a bounded page of Leo's newest notifications. A cursor containing the last time and ID retrieves the next page without loading the whole inbox. Reads and read-state updates are authorized as Leo, and setting a read time again does not create another item. Loading on screen-open is enough for this contract. If live updates become necessary, the handbook's [WebSocket and polling chapter](../../../release1/handbook-markdown/chapters/d7-websocket-and-http/chapter.md) explains the connection choices; live transport would supplement the saved inbox.
-
-### Core — finish or record each external attempt
-
-The worker selects due pending rows through an index on state and next-attempt time, then sends their stored content with a finite timeout. Provider acceptance marks a row accepted, not delivered or read. Invalid addresses or tokens fail permanently. Temporary errors schedule retries with increasing delay and random variation to avoid synchronized retries. After an illustrative five attempts, retain a failed row for investigation.
-
-Leave work pending until its result is saved so a restarted worker can recover it. A crash after provider acceptance but before saving success can cause a duplicate send. Where supported, reuse a notification-ID-and-channel key within the provider's duplicate-suppression window. Otherwise accept duplicate risk: local uniqueness cannot suppress an external side effect. The handbook's [idempotency and retry chapter](../../../release1/handbook-markdown/chapters/e1-idempotency-and-duplicates/chapter.md) explains this timeout ambiguity.
-
-Leo now has a durable inbox, Maya does not wait for email, and each external channel has inspectable work or an outcome. This design suffices while the database and bounded worker capacity handle measured peaks with acceptable queue age; no broker, global ordering, or database partitioning is needed.
-
-![Commit separates acceptance from sending; worker restarts can repeat a provider call without losing saved intent.](../../../generated/diagrams/sd-e2e-notifications/context.svg)
-
-### Deep dive — when the worker falls behind
-
-Return to Maya and Leo's workload. At an illustrative 10 notifications per second with both external channels enabled, the worker receives 20 delivery jobs per second. If calls average 0.2 seconds, a serial worker completes only about 5 jobs per second. Its pending work grows by about 15 rows per second even though the create API looks healthy. The bottleneck is time waiting for provider responses, not the inbox lookup.
-
-A bounded set of worker threads or asynchronous network requests can overlap those waits. At 20 jobs per second and 0.2 seconds per call, about four requests are in flight on average merely to keep pace; provision measured headroom for variation and retries. Extra concurrency does not overcome a provider quota. If email permits only 5 sends per second while 10 new emails arrive per second, the email backlog still grows by at least 5 per second.
-
-Once multiple senders can select rows, claim each row in a short atomic database operation. Store an owner token and an expiry time, called a lease, so another sender may reclaim work after a crash. Send outside the transaction, and accept outcome updates only from the current owner token. A lease prevents routine double selection, but a paused sender can still resume after expiry and call the provider; provider-side duplicate suppression or the stated duplicate tolerance remains necessary.
-
-Give email and push separate concurrency budgets so a slow email provider does not occupy every sender. Track oldest pending age per channel, provider errors, and permanent failures. Limit admission before committing new work when storage or acceptable queue age is exhausted; return a retryable rejection so the caller retains responsibility. A durable queue absorbs a burst, but cannot absorb a permanent rate mismatch. Choose limits from the delivery objective and actual provider capacity, not from an arbitrary queue length.
-
-## Great solution improvements
-
-**Stretch — choose only if the interviewer changes the scope.**
-
-1. **Close the comment-to-notification gap.** If losing the first request is unacceptable, the application writes a pending notification request in the same transaction as Maya's comment. A relay process retries those saved rows until the notification server acknowledges the stable request key. This table is commonly called an outbox; it extends the guarantee to the producing application.
-2. **Handle large recipient lists incrementally.** If Maya's comment must alert many watchers, save a job row with a recipient-list reference and a progress cursor. A worker creates bounded batches of recipient notifications with stable per-recipient keys. Restarting a batch is safe, and one large event cannot monopolize the create request.
-3. **Add immediate in-app updates only when required.** A server process holding persistent connections can signal Leo's connected app after commit. Reconnecting clients still fetch saved inbox rows, so a dropped live signal does not become a lost notification.
-
-## Failure scenarios
-
-**Core — check the boundaries.** These traces test the design without requiring a runnable experiment.
-
-| Failure | Expected behavior |
+| Record | Fields needed for the flow |
 |---|---|
-| Server dies before transaction commit | No acceptance is promised; caller retries the same key. |
-| Commit succeeds but acknowledgment is lost | Retry returns the saved ID without new jobs or another inbox item. |
-| Worker dies before sending | Pending work survives and is tried after restart. |
-| Provider accepts but its response is lost | Outcome is uncertain; retry may duplicate unless the provider suppresses the stable key. |
-| Push destination is invalid | Record failure for push; email and the inbox remain independent. |
-| Provider stays unavailable | Attempts are delayed and bounded; failed rows remain inspectable, and backlog limits constrain new acceptance. |
+| Notification | ID, caller ID, request key, recipient ID, content, creation time, read time. Unique `(caller_id, request_key)`. |
+| Delivery | Notification ID, channel, destination snapshot, state, attempt count, next-attempt time. Unique `(notification_id, channel)`. |
+| User settings | User ID, enabled channels, email address, push token. |
 
-## Common pitfalls
+A push token is the destination supplied by the mobile platform. Delivery state starts as `pending` or `suppressed` by preferences and later becomes `accepted` by the provider or `failed`. Store enough of the original request to check whether a repeated key has the same meaning. Keep its identity for at least the supported caller retry window; removing it earlier would permit duplicate acceptance.
 
-- Saying “delivered” when only the database or provider has acknowledged. Specify whose acknowledgment is being measured.
-- Saving the inbox and enqueueing in a separate system without explaining the crash between those writes. The baseline uses one transaction in one database.
-- Retrying with a new identity, marking success before sending, or assuming a lease makes a provider call happen exactly once.
-- Adding senders without checking provider limits, or accepting unlimited work while promising delivery within seconds.
+## High-level architecture
 
-## Follow-up questions
+Start with an API server, a database, and a background delivery worker. The worker reads unfinished delivery rows and calls external providers. Those rows form a durable work queue, so the baseline needs no separate message broker. This lets the API respond after saving work while email and push proceed independently.
 
-**Deep dive — realistic changes to the contract.**
+![The API stores inbox items and delivery work; the user reads the inbox while a worker sends pending email and push alerts.](../../../generated/diagrams/sd-e2e-notifications/context.svg)
+
+Follow Maya's comment through the design. The calling application submits Leo's notification with a stable request key. The API checks authorization and reads Leo's settings. In one database transaction, it saves the notification and a delivery row for each requested external channel. Enabled channels become pending; disabled channels are recorded as suppressed. After commit, it returns the notification ID. Maya's request no longer depends on how long an email provider takes to answer.
+
+Leo can now open his inbox even if no external alert has arrived. The API queries notifications by recipient, newest first. An index on recipient, creation time, and ID supports this access; the last time and ID in a page form a cursor for fetching the next page. Marking an item read updates that item's read time. Updating settings changes the snapshot used by later create requests.
+
+Meanwhile, the worker selects due pending rows using an index on state and next-attempt time. It loads the saved content and destination, sends with a finite timeout, and records the result. If email is accepted and push has an invalid destination, only push fails. Provider acceptance means the provider took responsibility for the request; it does not establish that Leo saw or read it. Operators can trace the notification ID through suppression, pending attempts, and final outcomes without copying private message text into logs.
+
+Loading the inbox on screen-open meets the chosen requirement. If immediate in-app updates become necessary, add a signal after commit to connected clients; reconnecting clients still fetch stored items. The handbook's [WebSocket and polling chapter](../../../release1/handbook-markdown/chapters/d7-websocket-and-http/chapter.md) supplies the transport background for that extension.
+
+This completes the ordinary user journey. The remaining questions are how the saved work survives interrupted processing and whether the worker can keep up.
+
+## Deep dives
+
+### What if acceptance succeeds but the caller never hears back?
+
+Suppose the database commits Leo's notification, then the API process dies before replying. The caller cannot tell whether acceptance happened, so it retries the same key. The unique constraint lets the API find the existing notification and return its ID without adding inbox or delivery rows. Simultaneous requests need the database constraint to arbitrate; checking for a key and then inserting without a constraint would race.
+
+The **Data transactions** pattern connects the inbox item to its delivery work. Saving the inbox and then calling a provider directly leaves a crash window in which the item exists but no record says email is still due. Saving both the inbox and pending rows in one transaction removes that local gap: either both commit or neither does. If the transaction fails, there is no acceptance acknowledgment and the caller retains responsibility.
+
+This boundary starts at the notification API. If the interviewer also requires a saved comment never to miss its first notification request, extend the same idea to the producing application. Save the comment and a pending request in one local transaction, then have a relay retry that request until the notification API acknowledges it. This pending-request table is an outbox. It closes the producer's gap without requiring the comment database and notification database to commit together.
+
+### How do retries recover work without promising duplicate-free email?
+
+The **Multi-step workflows** pattern appears because email and push finish at different times and can each fail. Their durable delivery rows let the worker resume unfinished steps after restart. A temporary provider error schedules another attempt with increasing delay and random variation, while invalid addresses or tokens fail permanently. After an illustrative five attempts, keep a failed row for investigation instead of silently dropping it.
+
+Consider a worker that sends Leo's email and crashes before saving the provider's success response. Its row is still pending, so recovery sends again. Marking it successful before the call would avoid that repeat but could instead lose the email if the worker died before sending. A local transaction cannot decide what happened at a remote provider.
+
+Where supported, send the same notification-ID-and-channel key on every attempt within the provider's duplicate-suppression window. Otherwise, the chosen contract accepts duplicate risk after an ambiguous timeout. The handbook's [idempotency and retry chapter](../../../release1/handbook-markdown/chapters/e1-idempotency-and-duplicates/chapter.md) explains why a timeout cannot establish whether an external effect happened.
+
+Even the attempt count deserves a boundary: durably reserve an attempt before starting its call so repeated crashes do not bypass the retry budget. A crash can then consume an attempt without sending. For these best-effort alerts, reaching the budget produces an inspectable failure with a possibly uncertain external outcome. It never justifies labeling the message read or delivered.
+
+### What changes when the worker falls behind?
+
+Use an illustrative load of 10 notifications per second with both external channels enabled: that produces 20 delivery jobs per second before retries. If provider calls average 0.2 seconds, one serial worker finishes only about 5 jobs per second. Pending work grows by about 15 rows per second even though the create API looks healthy.
+
+A bounded set of concurrent sends overlaps network waits. At that average latency, roughly four in-flight requests merely keep pace with new work; measured variation and retries require headroom. Concurrency does not overcome a provider quota. If email allows 5 sends per second while 10 new emails arrive per second, its backlog still grows by at least 5 per second. Give email and push separate concurrency and rate budgets so slow email does not occupy every sender.
+
+Multiple senders now need to agree who owns a row. Claim work in a short atomic database operation, recording an owner token and expiry time, called a lease. Make the network call outside the transaction, and accept the result update only from the current owner token. An expired lease allows recovery after a crash. It prevents routine double selection, but a paused sender could resume after expiry and still call the provider; the duplicate policy from the previous section remains necessary.
+
+Track oldest pending age by channel alongside provider errors and exhausted retries. When storage or acceptable queue age is exhausted, reject new work before commit with a retryable response so the caller retains responsibility. Already accepted work remains queued or reaches a recorded outcome. A durable queue absorbs a burst; it cannot solve a permanent rate mismatch. These measurements determine when this small database-and-worker design needs more capacity, rather than adding infrastructure on speculation.
+
+## Follow-ups and pitfalls
 
 ### What if Leo opts out while an email is waiting?
 
-Recheck current settings before the attempt and mark newly disabled work suppressed. Agree what happens to a call already in flight: a settings update cannot recall an email already accepted by the provider. Strict cancellation would need a more precise boundary than the baseline acceptance-time preference snapshot.
+Recheck current settings before each attempt and suppress newly disabled work. Agree on the treatment of calls already in flight: a settings update cannot recall an email already accepted by a provider. This deliberately changes the baseline acceptance-time preference policy.
 
-### What if Maya's comment must precede her later correction?
+### What if one comment notifies thousands of watchers?
 
-First ask whether ordered inbox display suffices; creation time plus an ID tie-breaker provides a stable display order. Strict dispatch order needs a per-recipient sequence and prevents later work from overtaking unresolved earlier work. Even ordered dispatch cannot promise the order in which external providers display messages.
+Store a job with a recipient-list reference and progress cursor, then create bounded batches of recipient notifications. Define the membership snapshot and use stable per-recipient request keys so restarting a batch is safe. This adds recipient expansion without making one large event monopolize the create request.
 
-### How would you investigate “Leo never received it”?
+### What if a comment must arrive before its correction?
 
-Trace the stable ID from acceptance through preference suppression, attempts, and provider responses. Distinguish a missing inbox row from a pending email, an invalid token, and provider acceptance without evidence of display. Log identifiers and outcomes without unnecessarily copying private message content.
-
-## Evaluation rubric
-
-**Core — a passing answer** explains the single-recipient journey, a paginated authorized inbox, transactional creation of pending delivery work, and a worker that records outcomes and retries temporary failures. It states when that design is sufficient and recognizes that a timeout can hide a successful external send.
-
-**A strong answer** derives concurrency from provider latency, notices provider quotas and retry load, preserves stable identities across restarts, and uses queue age to make delivery delay visible. It keeps the foundational answer understandable before discussing multiple workers.
-
-**A weak answer** lists infrastructure without tracing Maya's request, promises exactly-once email from a local queue, or has no explanation for a crash between storing a notification and sending it. Advanced extensions do not compensate for a missing acceptance boundary.
+First ask whether ordered inbox display suffices; creation time and an ID tie-breaker give a stable display order. Strict dispatch order instead needs a per-recipient sequence and must stop later work from overtaking unresolved earlier work. Even ordered dispatch cannot promise the order in which external providers display messages.

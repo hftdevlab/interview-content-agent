@@ -217,6 +217,14 @@ worktree; ordinary CI uses deterministic lifecycle tests and does not call a
 model. After a failed agent review, `contentctl continue` now resumes from the
 saved findings and requires a fresh independent review.
 
+System-design tutorials now follow requirements, entities, useful interfaces,
+architecture, and focused deep dives, rather than mandatory good/great/rubric
+sections. [Design patterns](content/SYSTEM_DESIGN_PATTERNS.md) are expandable
+challenge categories with trading-domain applications; selected metadata IDs
+are validated and indexed in the catalogs. Existing legacy chapters remain
+valid. The [expert-style revision record](tests/e2e/system-design/REFERENCE_REVIEW.md)
+explains the teaching changes and feedback replay procedure.
+
 ### Codex execution errors
 
 `contentctl` reports Codex subprocess failures with a stable category in square

@@ -42,6 +42,7 @@
         {"minItems": 2}
       ]
     },
+    "design_patterns": {"$ref": "common.schema.json#/$defs/slug_list"},
     "prerequisites": {"$ref": "common.schema.json#/$defs/question_id_list"},
     "related_questions": {"$ref": "common.schema.json#/$defs/question_id_list"},
     "source": {"$ref": "common.schema.json#/$defs/source"},
@@ -77,4 +78,3 @@
     }
   }
 }
-

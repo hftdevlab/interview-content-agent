@@ -2,11 +2,24 @@ from __future__ import annotations
 
 import unittest
 
-from tools.deduplicate import duplicate_candidates, normalize_text, report_dict
+from tools.deduplicate import _prompt_excerpt, duplicate_candidates, normalize_text, report_dict
 from tools.content import ROOT
 
 
 class DeduplicationTests(unittest.TestCase):
+    def test_prompt_extraction_supports_legacy_and_tutorial_headings(self) -> None:
+        for heading in ("Interview prompt", "Question", "Question and clarifications"):
+            with self.subTest(heading=heading):
+                markdown = (
+                    f"# A title\n\n## {heading}\n\n"
+                    "Deliver notifications to subscribed users.\n\n"
+                    "Design patterns: Data transactions; Multi-step workflows.\n\n"
+                    "## Requirements\n\nThis is not part of the prompt.\n"
+                )
+                self.assertEqual(
+                    "Deliver notifications to subscribed users.", _prompt_excerpt(markdown)
+                )
+
     def test_normalization_is_case_and_punctuation_insensitive(self) -> None:
         self.assertEqual(
             normalize_text("Multi-Source Stream Merger!"),

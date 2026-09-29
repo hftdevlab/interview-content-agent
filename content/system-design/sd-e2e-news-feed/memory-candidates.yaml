@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "question_id": "sd-e2e-news-feed",
+  "candidates": [
+    {
+      "id": "memory-052657dcdcfb",
+      "status": "pending",
+      "principle": "Tag reusable design challenges and explain each pattern where it motivates a concrete decision.",
+      "rationale": "Pattern labels should help readers transfer reasoning across questions.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-news-feed",
+        "feedback_file": "feedback/20260929T033239Z-21628000.md"
+      },
+      "proposed_at": "2026-09-29T03:36:00+00:00"
+    },
+    {
+      "id": "memory-08e615383d81",
+      "status": "pending",
+      "principle": "Develop one architecture through its user flows before exploring scaling and failure details.",
+      "rationale": "The feedback favors connected teaching and realistic interview reasoning over specification-style inventories.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-news-feed",
+        "feedback_file": "feedback/20260929T033239Z-21628000.md"
+      },
+      "proposed_at": "2026-09-29T03:36:00+00:00"
+    }
+  ]
+}

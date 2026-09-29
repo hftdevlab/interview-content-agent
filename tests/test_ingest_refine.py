@@ -46,6 +46,19 @@ class IngestAndRefineTests(unittest.TestCase):
             self.assertEqual(metadata["source"]["input_type"], "text")
             copied = package / metadata["source"]["original_files"][0]
             self.assertEqual(copied.read_bytes(), source.read_bytes())
+            question = (package / "question.md").read_text(encoding="utf-8")
+            for heading in (
+                "## Question and clarifications",
+                "## Requirements",
+                "### Functional requirements",
+                "### Non-functional requirements",
+                "## Core entities",
+                "## High-level architecture",
+                "## Deep dives",
+            ):
+                self.assertIn(heading, question)
+            for optional in ("## Good solution", "## Evaluation rubric", "## Follow-up questions"):
+                self.assertNotIn(optional, question)
             self.assertEqual(validate_repository(root), [])
 
     def test_image_ingestion_flags_missing_transcription(self) -> None:
