@@ -13,6 +13,11 @@
   requirements, entities, useful interfaces, architecture, then focused deep
   dives. Develop one design; comparisons, improvements, and follow-ups are
   optional. Do not force an invariant-led specification or evaluator rubric.
+- Use a first-person candidate voice for system-design walkthroughs. Derive
+  central choices rather than stacking conclusions: motivate entities, explain
+  data flow before the architecture diagram, and connect workload to interface
+  and storage choices. Keep scope focused without hiding defining challenges
+  behind artificially small assumptions. See STYLE_GUIDE for teaching criteria.
 - Tag the reusable system-design challenges using `design_patterns` from the
   controlled taxonomy, and explain their application where they affect a choice.
 - Match answer depth to the expected interview duration.

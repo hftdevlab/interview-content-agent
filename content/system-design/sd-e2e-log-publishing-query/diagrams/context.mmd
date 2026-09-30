@@ -1,7 +1,7 @@
 flowchart LR
-    F["Host log files"] --> C["Collectors: batch and retry"]
-    C["Collectors: batch and retry"] --> I["Ingestion: validate and commit"]
-    I["Ingestion: validate and commit"] --> D["Database: logs and indexes"]
-    U["Engineer browser"] --> Q["Query handler: bounded search"]
-    Q["Query handler: bounded search"] --> D["Database: logs and indexes"]
-    C["Collectors: batch and retry"] -.-> Q["Query handler: bounded search"]
+    F["Applications: local files"] --> C["Collectors: batch and retry"]
+    C["Collectors: batch and retry"] --> I["Ingestion: route by host"]
+    I["Ingestion: route by host"] --> D["Shards: commit and index"]
+    U["Engineer: filtered search"] --> Q["Query: merge shard results"]
+    Q["Query: merge shard results"] --> D["Shards: commit and index"]
+    C["Collectors: batch and retry"] -.-> Q["Query: merge shard results"]

@@ -17,6 +17,48 @@
       "proposed_at": "2026-09-29T03:41:03+00:00"
     },
     {
+      "id": "memory-43d1fc91c8ec",
+      "status": "pending",
+      "principle": "Motivate entities from user operations and explain data flow before summarizing components in a diagram.",
+      "rationale": "Readers need to understand why concepts and boundaries exist before seeing their final structure.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-log-publishing-query",
+        "feedback_file": "feedback/20260930T024506Z-5f20e422.md"
+      },
+      "proposed_at": "2026-09-30T02:51:13+00:00"
+    },
+    {
+      "id": "memory-94e9f602dfd9",
+      "status": "pending",
+      "principle": "Teach central design choices through causal reasoning and meaningful alternatives, not first-person conclusions alone.",
+      "rationale": "The newest feedback distinguishes a tutorial from a stack of prescriptions.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-log-publishing-query",
+        "feedback_file": "feedback/20260930T024506Z-5f20e422.md"
+      },
+      "proposed_at": "2026-09-30T02:51:13+00:00"
+    },
+    {
+      "id": "memory-c33d242e97e1",
+      "status": "pending",
+      "principle": "Derive ingestion and serialization choices from explicit workload assumptions while preserving the defining scale challenge.",
+      "rationale": "Accessible exposition should explain throughput trade-offs rather than avoid them with a tiny workload.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-log-publishing-query",
+        "feedback_file": "feedback/20260930T024506Z-5f20e422.md"
+      },
+      "proposed_at": "2026-09-30T02:51:13+00:00"
+    },
+    {
       "id": "memory-f57776d4b92a",
       "status": "pending",
       "principle": "Tag reusable design challenges and explain their connection to concrete decisions in the tutorial.",

@@ -1,114 +1,139 @@
 # Design a Log Publishing and Query System
 
-Design patterns: High reliability; Time-series systems; Scale reads.
+Design patterns: Scale writes; High reliability; Time-series systems; Scale reads.
 
 ## Question and clarifications
 
 Design a log publishing and query system. **Interpretation:** applications publish logs so engineers can search them centrally during operational investigations.
 
-For example, checkout runs on ten hosts. When payment requests begin timing out, an on-call engineer should be able to search recent errors across those hosts without signing into each machine. The system must also help the engineer distinguish “no errors found” from “logs have not arrived.”
+When checkout starts timing out, I want the on-call engineer to find recent errors across its hosts without signing into each machine. An empty result needs context: did checkout produce no errors, or have its logs stopped arriving? That gives us two connected jobs: collect the events and explain how current the searchable history is.
 
-Before drawing components, clarify three choices: must every log survive host loss, what kinds of message search are needed, and how soon must a new record appear? For this walkthrough, assume one internal engineering team, structured application logs, and occasional substring searches. A few seconds of collection delay is acceptable. During a prolonged outage, counted drops are preferable to blocking checkout indefinitely. This is operational debugging rather than a lossless audit trail.
+I'd first clarify whether these are operational logs or an audit trail, whether search means exact fields or arbitrary message text, and how quickly new records must appear. Here I'll assume structured application logs from hosts we operate, service/time/severity filters, and occasional substring searches. Counted drops during a prolonged outage are preferable to blocking the application indefinitely. Metrics, traces, alerting, and multi-region recovery would make this a larger interview; I'll focus on collection, searchable storage, and their capacity and recovery boundaries.
 
-All workload numbers below are illustrative: 1,000 records per second across the hosts, averaging 500 bytes each, seven days of retention, and searches usually covering fifteen minutes. A complete observability platform with metrics, traces, alerting, and multi-region recovery exceeds one interview. Focus on collection and search, then explore retry safety and the limits of a single database.
+For an **illustrative workload**, assume 2,000 hosts averaging 100 records/s each, 500 bytes per record before transport compression, seven days of retention, and fleet-wide bursts of five times normal traffic for a minute. Engineers usually search fifteen-minute intervals. These are sizing assumptions, not facts supplied by the prompt. They keep high-throughput ingestion central to the design while leaving the product scope small.
 
 ## Requirements
 
 ### Functional requirements
 
-- Applications publish structured logs from multiple hosts into a shared history.
-- Engineers search by service and time interval, with severity and optional message-substring filters, and page through bounded results.
-- Engineers can see collection delays, disconnected hosts, and reported drops alongside search results.
+- Collect application logs from the managed fleet into a shared searchable history.
+- Search by service and time, optionally severity and message substring, with bounded pages of results.
+- Show collection delays, disconnected hosts, and reported losses alongside results.
 
 ### Non-functional requirements
 
-- Keep normal collection delay within a few seconds and bound query work so incident searches do not starve ingestion.
-- Preserve centrally acknowledged records across process restarts while the database disk remains intact. Permanent disk loss requires an optional stronger design.
-- Bound local buffering and central retention; make overload losses visible while keeping the application available.
+- Make records searchable within about five seconds during normal operation; expose increased delay during bursts and recovery.
+- Sustain the illustrative average workload while engineers query and old data expires.
+- Preserve centrally acknowledged records across process restarts while the owning storage disk remains intact. Host or central disk loss needs a stronger durability policy if the interviewer requires it.
+- Bound local disk use and query work, keeping application availability ahead of lossless logging during prolonged overload.
 
-These priorities suggest separating application logging from central delivery. They do not yet justify a distributed search cluster: first build a working publication and query path, then measure its limits.
+### What does this workload imply?
+
+Before choosing storage, I'll turn the host estimate into the work we must do:
+
+```text
+2,000 hosts × 100 records/s = 200,000 records/s
+200,000 × 500 bytes       = 100 MB/s
+100 MB/s × 86,400 s       = 8.64 TB/day
+7 days                   = 60.48 TB of raw records
+5× burst                 = 1,000,000 records/s, 500 MB/s
+```
+
+All units are decimal. Compression could lower disk and network bytes, while indexes, recovery logs, and free space for maintenance raise provisioned storage. These estimates are not a server benchmark. They tell me that a per-event remote request creates substantial avoidable overhead, and that keeping a week of history deserves an explicit storage and query plan. A large disk alone does not answer whether inserts and incident searches can coexist.
 
 ## Core entities
 
-A **log record** is one immutable application event, identified independently of how often it is sent. It belongs to a service and a host and carries a timestamp, severity, and message. A **batch** groups records for transport; retrying the batch must not create new logical events.
+The engineer starts with “show checkout errors,” then narrows to a host to see whether one machine is failing. I therefore need identifying attributes such as `service` and `host` on each **log record**, the immutable event containing a timestamp, severity, and message. Those attributes describe where the event came from; its **event ID** distinguishes this occurrence from another identical timeout. If delivery is retried, it is still the same occurrence. I'll generate the ID from a globally unique application-start identifier and a counter, and write it into the original event.
 
-A **collector checkpoint** records how far a host's files have been successfully delivered. It is local recovery state, not a property of the log itself. Separately, **collector health** reports pending-record age, drops, and the last heartbeat for each expected host. That distinction lets a query return matching records while also explaining which hosts may be missing from the result.
+A second distinction comes from the engineer's empty search. A host may be healthy and quiet, or unreachable with unsent files. Its log records cannot tell us which. I need **collector health** separately: the last heartbeat, oldest pending record age, and cumulative drop counts for each expected host. A missing heartbeat means unknown status, not zero backlog.
+
+I won't introduce metrics or series here: those would model a different product. Nor does every useful attribute deserve an index. Service and time select the common investigation; the storage discussion will decide which other filters justify write work.
 
 ## API and data schema
 
-Two interfaces are enough to discuss the main flow:
+### From a local event to a searchable record
+
+We control the applications and their hosts, so I can keep central delivery out of each application's request path. Sending synchronously from checkout is simple but makes a logging outage delay checkout. An in-memory asynchronous sender avoids that wait but loses pending events on restart. I'll instead have applications write structured records to rotating local files and run a collector on each host. This adds disk I/O and a rotation contract, but gives the collector something to retry while the application continues. Redaction happens before the local write so credentials never enter those files.
+
+The collector reads complete records, groups them, and sends them to ingestion. This group is a **batch**: a transport unit, not a new logical event. At 100 records/s per host, a one-second flush carries roughly 100 records and turns 200,000 per-event requests/s into about 2,000 batch requests/s. I'll also flush at 256 KB so busy hosts do not build arbitrarily large requests; an oversized individual record is explicitly rejected and counted. A timer matters because quiet hosts might otherwise wait indefinitely to fill a batch. One second spends part of our five-second freshness budget in exchange for fewer requests and larger storage writes.
+
+Ingestion validates and routes batches to searchable storage. Only after that storage commits can the collector forget the corresponding source bytes. To remember this after a restart, it saves a **collector checkpoint**: the file identity and offset up to which records have been acknowledged or deliberately discarded. An engineer follows the opposite path through a query handler, which reads committed records and attaches collector health. Publishing is continuous; searches are sporadic and can scan much more data than they return. That difference motivates separate ingestion and query work limits even when they share storage.
+
+### The two main contracts
+
+I need publication to tell the collector when ownership has moved, and search to specify a bounded investigation. The notation below shows the fields, not the wire encoding:
 
 ```text
 POST /log-batches
-  {records: [{event_id, event_time, service, host, severity, message}]}
-  -> success only after the valid batch commits durably
+  {host, records: [{event_id, event_time, service, severity, message}]}
+  -> success after every valid record in this batch commits durably
 
 GET /logs?service=checkout&from=...&to=...&severity=ERROR
           &contains=timeout&limit=100&cursor=...
   -> {records, next_cursor, collector_health}
 ```
 
-Use a half-open time interval `[from, to)` and enforce server-side limits on the interval, batch bytes, record size, and result count. Authenticate producers and authorize readers for the services they access. Applications redact credentials before writing local files; filtering only at ingestion would leave secrets on the host.
+A batch comes from one authenticated host; ingestion attaches that host to each stored record. I bind producer identity to its permitted host/services and authorize readers for their services. The interval is half-open, `[from, to)`, so adjacent searches need not overlap at the boundary. Server-side batch-byte, record-size, time-span, and result-count limits keep the contract bounded.
 
-The `logs` table stores the fields in the publication request plus `received_at`, assigned on first central insertion. Make `event_id` unique. One way to generate it is a globally unique application-start identifier plus a per-process counter, written into the original record so retries reuse it. An existing event is immutable; retrying it does not update its receipt time.
+For representation, readable JSON lines are useful on the host: an operator can inspect a retained file without a schema-specific decoder. Carrying that same JSON over the network would simplify the collector, but repeats field names and requires parsing text and converting numeric fields at ingestion. Protobuf uses numbered fields and binary numeric representations; it can reduce that overhead, although the message text still occupies bytes. Its payload requires decoding tools to inspect. The [Protobuf encoding guide](https://protobuf.dev/programming-guides/encoding/) explains those wire properties.
 
-Start with a search index on `(service, event_time, event_id)`. It matches the common request: locate one service's time interval, then filter its records by severity and message. Add a severity-oriented index only if that filtering proves expensive. Each additional index costs storage and write work. The schema now gives us enough information to follow an actual record through the design.
+I'll choose Protobuf batches for the controlled collector-to-ingestion path, where aggregate traffic makes bytes and parsing worth attention, and JSON for the low-volume browser response. The price is a collector conversion step, generated schema tooling, and coordinated compatibility rules. With Protobuf, I'll add fields compatibly and reserve removed field numbers; changing field meanings still needs application-level migration. JSON also needs agreed field meanings and tolerant readers. The [schema evolution guidance](https://protobuf.dev/programming-guides/proto3/#updating) explains the binary compatibility rules. I'd compare compressed bytes and CPU on representative messages before claiming a saving: long free-text messages may dominate either encoding. If conversion and schema maintenance outweigh measured savings, batched JSON remains a reasonable choice. A codec does not increase database insert capacity.
+
+The stored row adds `received_at`, assigned on first insertion, to the event fields. I need both times: the engineer asks when checkout observed the timeout, while retention needs a clock the storage system controls. A retry leaves the row and its receipt time unchanged. I'll index `(service, event_time, event_id)` to locate a service's interval, then apply severity and substring filters. A severity index is a possible measured improvement, but every extra index makes our continuous writes more expensive.
 
 ## High-level architecture
 
-Each application writes structured records to rotating local files. A collector on the same host sends complete records in small batches to a central service. That service handles ingestion and queries against one relational database. Local files provide temporary buffering, while the database provides shared searchable history. The diagram shows the publication path and the separate query path; responses return along the corresponding request paths.
+### Where should the batches go?
 
-![Host files feed collectors and ingestion into one database; the engineer queries that database through a query handler, which also receives collector health.](../../../generated/diagrams/sd-e2e-log-publishing-query/context.svg)
+One relational database could serve a smaller workload: immutable rows, unique event IDs for retries, and a search index. With 60 TB raw retention and concurrent writes and searches, I won't assume one machine suffices. I'll distribute this model across **storage shards**, each owning some hosts and their indexes. Committed rows remain directly searchable without an asynchronous search copy.
 
-### Publish a record
+I'll hash host identity rather than service: a popular service then spreads across shards while each host batch stays together. The cost is multi-shard service queries. A directory maps fixed host buckets to owners, including for retries. Adding machines must move bucket data and ownership together; simply rehashing could send a retry to a second shard. Online migration details are outside this walkthrough.
 
-At 10:02:03, checkout writes event `checkout-start7:418`, an error saying that a payment request timed out. The collector reads it from the host file and sends a batch. Ingestion validates the records, inserts them in a transaction, and acknowledges only after durable commit. Here, durable commit means the database has persisted the recovery information needed to retain the transaction across a process restart under our storage assumptions.
+Ingestion workers validate and route batches independently. Each shard transaction commits rows and event-ID uniqueness checks, persisting recovery information before acknowledgement returns through ingestion to the collector. Local files retain unacknowledged data, avoiding another durable tier for now. This makes outage buffering depend on host disks; the burst calculation below tests that choice.
 
-After acknowledgement, the collector saves the source file identity and byte offset in its checkpoint. It can then release the acknowledged portion of its retained files. Before acknowledgement, delivery still depends on the host's copy. We will examine the crash windows shortly; for now, this establishes where responsibility moves from local buffering to central storage.
+### Following the investigation
 
-### Search the shared history
+Checkout writes timeout `checkout-start7:418` at 10:02:03. Its collector batches it; the shard commits, then the collector checkpoints. For checkout errors from 09:48 to 10:03, the query handler asks each shard for ordered candidates using its service/time index. It merges by `(event_time, event_id)` and returns the first 100, including our timeout, with health for checkout's expected hosts.
 
-The engineer searches checkout errors from 09:48 to 10:03, requesting at most 100 results. The query handler uses the service/time index, applies the remaining filters, and returns records ordered by `(event_time, event_id)`, including the timeout at 10:02:03. A continuation token binds the original filters to the last returned pair, so the next request can seek beyond that pair instead of skipping an increasing number of rows.
+I'll bind the next-page token to the filters and last returned pair. Shards seek beyond that pair, avoiding growing offset scans. This live view isn't a frozen snapshot: refresh the interval to find late arrivals preceding the cursor. Shard failures or timeouts produce explicit incomplete/error responses, never a successful empty result.
 
-The query reads the same database that ingestion writes. Committed rows are therefore eligible for a new query without waiting for a separate indexing service. Collection and batching account for the principal freshness delay in this design. Collectors send periodic health reports, which the service tracks against the expected host inventory. The query response includes that status so the browser can show a stale or disconnected host even when there are no matching records. A query timeout is an error, not an empty successful result.
+Collectors send heartbeats even without logs. The handler compares them with the host inventory: fresh health describes collection status, not proof that every event was captured. Shards also expire rows by receipt time. We now have collection, searchable history, and freshness visibility; the diagram summarizes these paths.
 
-A background task deletes records older than seven days by receipt time in bounded batches. Query concurrency and execution-time limits reserve capacity for ingestion. We now have collection, shared search, and freshness visibility in one design. The remaining questions are whether retries preserve its delivery boundary and how much storage and search work one server can support.
+![Applications write local files; collectors send batches through ingestion to host-owned storage shards. The query handler merges shard results for the engineer and receives collector health separately.](../../../generated/diagrams/sd-e2e-log-publishing-query/context.svg)
 
 ## Deep dives
 
+### How much burst capacity and buffering do we need?
+
+Batching reduces request and transaction overhead, but storage must still process every event and maintain its indexes. To choose a shard count, I'd measure sustainable throughput with representative records, concurrent searches, and retention cleanup running. Divide the required capacity by that measured rate and leave headroom for uneven host traffic. Separately check each shard's retained bytes and disk bandwidth; the largest constraint wins. Hashing helps distribute hosts but does not fix a single exceptionally noisy host, so admission limits must also apply per host.
+
+Suppose, purely for sizing, the provisioned shards together sustain 600,000 records/s under that mixed load. Normal input is 200,000/s, while a one-minute incident produces 1,000,000/s. The pending work grows at 400,000 records/s, or 200 MB/s, adding **12 GB** over the minute. Once traffic returns to normal, 400,000 records/s of spare capacity drains that backlog in about **30 seconds**. That gives the engineer a concrete expectation: the five-second normal freshness target will be missed during this burst, and the UI must show the lag.
+
+Across evenly loaded hosts, the burst backlog is about 6 MB per host. A ten-minute central outage is different: even at normal traffic, each host accumulates about 30 MB. I'll size each local budget from its own peak rate and the outage duration we intend to cover, including file and safety overhead, rather than dividing a fleet-wide budget blindly. Rotation must retain pending files within that budget. Slowing sends protects ingestion but does not slow checkout's log generation; when the budget fills, the logging path drops new records and counts losses. Retry delays with jitter prevent all collectors reconnecting together. The handbook's [batching and overload discussion](../../../release1/handbook-markdown/chapters/d4-parsing-batching-backpressure/chapter.md) develops the underlying queueing reasoning.
+
+This is the **Scale writes** pattern: batches amortize fixed work, partitions distribute sustained work, and buffers absorb a temporary rate mismatch. None substitutes for the others. If host buffers cannot cover the required interruptions, I'd add a reachable durable broker before storage. Its acknowledgement would transfer ownership earlier, and workers would advance broker positions only after storage commit. That adds retention and consumer-lag management; it still cannot fix a sustained downstream capacity deficit.
+
 ### What happens when the acknowledgement disappears?
 
-Suppose the database commits the timeout record, but the collector never receives the response. Advancing the checkpoint would risk loss if the commit had actually failed; resending with a new ID would risk duplicate search results if it succeeded. Instead, retain the source and resend the same immutable records. Ingestion treats an insert with an already stored event ID as a no-op and acknowledges the transaction again. The database's unique constraint enforces this even if duplicate attempts overlap.
+Suppose the shard commits our timeout but the response is lost. The collector cannot distinguish this from a failed commit. If I checkpoint now, I might lose the event; if I resend with a fresh ID, I might show it twice. I'll retain the source and resend the same immutable event ID. Stable host routing brings it back to the owning shard, whose unique constraint makes an existing ID a no-op. The retry can then be acknowledged without changing the event or `received_at`.
 
-The same mechanism handles a collector crash after acknowledgement but before its checkpoint is saved: restart rereads a few records, and insertion deduplicates them. Persist the checkpoint atomically so a crash leaves a valid old or new position, and track file identity across rotation so a reused filename cannot skip pending data. The logging and rotation policy must retain unacknowledged files within the configured budget.
+This also handles a collector crash after acknowledgement but before checkpoint persistence. Restart may resend a few records, which is safe. I'll persist checkpoints atomically and track file identity through rotation, so a reused filename cannot skip an older pending file. This is the **High reliability** pattern at a precise boundary: central acknowledgement transfers responsibility for a durable copy. The handbook's [stable identities and retry handling](../../../release1/handbook-markdown/chapters/e1-idempotency-and-duplicates/chapter.md) covers the mechanism. Protection against duplicates lasts while the row is retained; retries older than that need a defined expiry or a longer-lived identity registry.
 
-This is the **High reliability** pattern applied to a specific boundary: an acknowledgement means central storage owns a durable copy. The handbook's [stable identities and retry handling](../../../release1/handbook-markdown/chapters/e1-idempotency-and-duplicates/chapter.md) explains the underlying mechanism. The guarantee still starts after local recording, and loss of the host can destroy logs that have not reached central storage. Deduplication here lasts while the row is retained; if retries may outlive seven-day retention, retain deduplication identities longer or define a bounded retry age before promising the same protection.
+Malformed input cannot improve with another identical retry. I'll validate a complete batch before writing, identify rejected records, and let the collector count and discard those records while retrying valid ones. The checkpoint advances only across acknowledged or explicitly discarded records. This prevents one malformed line blocking all later logs.
 
-Malformed records need a different response from temporary failure. Validate the whole batch before committing and reject invalid batches with the offending record identified. The collector counts and skips explicitly rejected records, retries valid ones, and checkpoints only past records that have either been acknowledged or deliberately discarded under this policy. Retrying an unchanged invalid batch forever would block all later logs from that host.
+The remaining durability limit is intentional: a host failure can destroy events not yet transferred, and a permanent shard-disk loss can destroy acknowledged history. If the requirement changes, I'd require acknowledgement after another machine's durable copy, accepting extra latency and reduced write availability during some failures. Backups solve a separate recovery need, including accidental deletion replicated to both copies. Operational logging's acceptable loss policy must be agreed before choosing this boundary.
 
-If permanent database disk loss enters the requirements, add replication with an explicit acknowledgement policy. Waiting for another machine's durable copy changes write latency and availability when that machine cannot be reached. Backups address a different problem, including accidental deletion that replication would also copy.
+### How do we keep search and retention affordable?
 
-### Can one database retain and search this workload?
+A fifteen-minute interval contains 180 million fleet-wide records, about 90 GB raw. Even a service producing 1% of traffic contributes roughly 900 MB. Asking for only 100 results does not bound substring-search work: finding no match can require reading every candidate message. I'll cap search intervals, per-query scanned work, and concurrent searches so an incident does not let readers consume all write capacity. The handler must report budget exhaustion rather than return a false “no errors” answer.
 
-At 1,000 records/s and 500 bytes/record, raw payload arrives at 0.5 MB/s: 43.2 GB/day or 302.4 GB over seven days, in decimal units. Indexes, database recovery files, and maintenance headroom add to that total. This is a storage floor, not evidence that a particular server meets the throughput requirement.
+This is the **Scale reads** trade-off in our design. Sharding distributes ingestion, but broad service queries fan out, and substring scans remain expensive. I'll keep the indexed row store while bounded investigations meet the target. If message scans dominate, I'd add a search index fed durably from committed records. A term index accelerates token searches, not arbitrary substring semantics; I'd settle whether token matching suffices before paying for substring-oriented indexing. The new path needs replayable changes and idempotent indexing by event ID, and the UI must expose indexing lag. Faster reads cost write amplification, storage, and another freshness boundary.
 
-The **Time-series systems** pattern connects the time range, retention rule, and meaning of a timestamp. Retaining by receipt time prevents a bad host clock from immediately expiring a newly received record. Support the cleanup job with a receipt-time index so each bounded deletion does not scan the entire history. Event time remains useful for incident search, but a late record can sort before an existing pagination cursor. This browsing view is not a frozen snapshot: refresh the interval to include late arrivals. Receipt-time browsing is a useful diagnostic fallback when host clocks are suspect. The handbook's [timestamp domains](../../../release1/handbook-markdown/chapters/d5-clocks-and-timestamps/chapter.md) explains why ordering host timestamps does not establish causality.
+Retention is the **Time-series systems** decision. Expiring by event time would let a bad host clock delete a newly delivered log immediately, so I'll expire by receipt time and keep event time for investigation. The handbook's [timestamp domains](../../../release1/handbook-markdown/chapters/d5-clocks-and-timestamps/chapter.md) explains why host timestamps also cannot establish causal order. Receipt-time browsing is a useful fallback when clocks are suspect.
 
-Now consider search cost. Fifteen minutes contains 900,000 records across all services, roughly 450 MB of raw payload. A service filter may narrow that considerably, but substring matching still examines the selected messages. A 100-row response limit alone does not bound this work: finding no matches can require scanning the whole candidate set. This is why time-span limits, execution budgets, and query concurrency controls belong in the baseline.
-
-The **Scale reads** decision is to keep this indexed database while ingestion, retention cleanup, and representative concurrent searches fit with headroom. A larger disk solves retention capacity, but not necessarily substring-search CPU. If message scans dominate, evolve this design with a separate search index maintained from committed records. An index mapping terms to record IDs can accelerate token searches; it does not automatically implement arbitrary substring matching. Agree on those semantics before choosing the index. The indexer needs a durable checkpoint and retry-safe updates by event ID, and the UI must now expose indexing lag because database commit no longer implies search visibility.
-
-### How long can collection fall behind?
-
-During an incident, more logs arrive just as more engineers search them. Suppose input rises to 5,000 records/s while the database sustains 3,000 records/s under that query load. Pending files grow by 2,000 records/s, about 1 MB/s of raw payload. A 60-second burst adds about 60 MB. When input returns to 1,000 records/s, the 2,000 records/s of spare capacity takes roughly 60 seconds to drain it, assuming capacity stays unchanged.
-
-Use this calculation to size each host's buffer against its own traffic share; an aggregate budget cannot protect the busiest host. Bound outgoing batches by bytes and a short flush timer, so large messages do not exhaust memory and quiet hosts do not wait indefinitely. During central outages, retry with increasing delays and random variation to avoid synchronized reconnects. The handbook's [batching and overload discussion](../../../release1/handbook-markdown/chapters/d4-parsing-batching-backpressure/chapter.md) provides the queueing foundation. Slowing collector sends protects ingestion, but checkout can keep producing logs, so the backlog moves into local files.
-
-When the local disk budget fills, the logging path drops new records and counts losses. Collector health reports these losses and pending-record age; a missing heartbeat means status is unknown. Finite buffers buy recovery time. Lossless auditing would require revisiting blocking, admission, storage capacity, and failure domains.
-
-If host files cannot cover database interruptions, a reachable central broker can durably accept batches and take ownership before workers write the database. Workers advance their positions only after database commit. Bound broker retention, provision catch-up capacity, and expose worker lag: buffering cannot fix a sustained database throughput deficit.
+At steady state we expire about as many rows as we insert. I'll index receipt time and use bounded cleanup batches, including their write and maintenance cost in the capacity measurement above. If row deletion becomes the bottleneck, receipt-time partitions let us retire whole time ranges. That improvement also changes uniqueness enforcement: if a database only enforces unique IDs within a time partition, a retry must not enter a different partition as a new row. I'd retain a cross-partition deduplication registry for the agreed retry horizon before making that change. A cheaper expiry path is useful only if it preserves the delivery semantics we've already promised.
 
 ## Follow-ups
 
-- **A month of history?** Estimate storage, then weigh compressed archives for rare scans against indexing costs for frequent searches.
-- **Verify recovery?** Crash ingestion before commit and between commit and acknowledgement; restart the collector before and after checkpoint persistence. Verify one row per retried event within the deduplication horizon, no acknowledgement before commit, and visible buffer-overflow losses.
+- **A month of history?** Recalculate retained bytes, then weigh compressed archives for rare scans against the cost of keeping all history indexed.
+- **Verify recovery?** Crash ingestion around commit and acknowledgement, and restart collectors around checkpoint persistence. Check one visible row per retried event within the deduplication horizon, visible overflow losses, and lag recovery while queries and expiry run.

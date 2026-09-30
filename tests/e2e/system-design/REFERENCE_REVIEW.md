@@ -62,3 +62,45 @@ walkthrough, whether deep dives develop rather than list decisions, whether
 pattern labels represent the teaching, and whether the answer remains concise
 and technically honest. Automated structure checks cannot establish those
 qualities. Human approval remains pending after an agent pass.
+
+## Follow-up: reasoning, not just section order
+
+The next human review accepted the structure but rejected the prose as a stack
+of conclusions. Re-reading the visible metrics tutorial makes the gap concrete:
+
+- Its entities discussion starts with the need to examine different cuts of a
+  measurement, connects identifying attributes to distinct histories, and only
+  then formalizes the vocabulary. We need the equivalent motivation for each
+  question's own entities, not to copy metrics/labels/series into a log system.
+- Its data-flow discussion precedes its component architecture and interfaces.
+  Continuous writes, investigative reads, and notification work have different
+  demands; those differences give the later component boundaries a reason.
+- Its interface section distinguishes readable JSON notation from a potential
+  binary production encoding. The transferable lesson is to justify the
+  representation with workload and operational needs, not to require Protobuf.
+- It derives ingestion rate from source count and emission frequency. The
+  workload drives batching and downstream capacity discussion rather than
+  appearing as disconnected sizing arithmetic at the end.
+
+Our previous first-person-free drafts often named components before those
+reasons. The earlier "keep the passing answer small" trial instruction also
+biased logging toward a workload that avoided write scaling. Latest feedback
+takes precedence: keep the explanation accessible while retaining the defining
+ingestion challenge. New workload numbers remain explicit illustrative choices,
+not retroactively attributed to the raw prompt or copied from the reference.
+
+The shared guidance now asks for a first-person candidate walkthrough and
+decision-level reasoning. Review must examine central choices, not only verify
+headings, factual conclusions, or narrative continuity. The editor's exact new
+request is archived in `reasoning-feedback.md`; replay it through the same
+feedback workflow and preserve the earlier notes and results as history.
+
+For the revised ingestion discussion, primary references checked separately
+from the style PDF include the [Protobuf overview](https://protobuf.dev/overview/)
+and [wire encoding](https://protobuf.dev/programming-guides/encoding/), the
+[OpenTelemetry log data model](https://opentelemetry.io/docs/specs/otel/logs/data-model/),
+and [Elastic's indexing guidance](https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/indexing-speed).
+These help verify representation, event/observation timestamps, and bulk-write
+trade-offs. They are not a mandate to adopt those products, nor evidence for a
+particular server's throughput. Keep their use selective and link the source
+at the point where a chapter needs it.

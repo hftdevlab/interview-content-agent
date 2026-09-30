@@ -39,16 +39,21 @@ the historical good/great/rubric checklist in `PROJECT_PLAN.md`:
    **Non-functional requirements**: prioritize what users can do and the
    qualities that make this design challenging. A handful of meaningful
    requirements is more useful than an exhaustive production contract.
-3. **Core entities**: introduce the domain nouns and their relationships before
-   their detailed representation. Distinguish a logical event from a delivery
-   attempt, for example, when that distinction matters to later reasoning.
+3. **Core entities**: start with the operation or distinction that needs a
+   concept, explain its relationships in ordinary language, then name and
+   accurately define it. Distinguish a logical event from a delivery attempt
+   because one event can have several delivery outcomes, not because the
+   template needs another noun. Detailed storage fields come later.
 4. **API and data schema**, where useful: sketch the few requests, wire events,
    queue records, or fields that support the main flows. Not every question
-   needs HTTP endpoints or a database schema. Omit irrelevant interface work.
-5. **High-level architecture**: include at least one component/data-flow
-   diagram and explain the design by walking through the functional
-   requirements. Follow a request from entry to response and explain what is
-   stored along the way. Finish the main flow before diving into every edge case.
+   needs HTTP endpoints or a database schema. Derive important operations and
+   fields before giving the contract. Where wire format affects the workload,
+   explain the serialization trade-off instead of silently choosing a format.
+5. **High-level architecture**: first explain the data flow and derive its
+   components, then summarize the design with at least one component/data-flow
+   diagram. Follow a request from entry to response and explain what is stored
+   along the way. A conceptual flow can precede the API section when that helps
+   the reader understand who calls it. Finish the flow before every edge case.
 6. **Deep dives**: select the challenges that follow from the non-functional
    requirements. Frame them as useful engineering questions and evolve the
    same design. A local bad/good/great comparison is optional; two complete
@@ -62,13 +67,66 @@ it must not claim a guarantee that the unfinished design does not provide.
 Explain unfamiliar components by what they do in this flow. Do not repeatedly
 define every box as a process or turn every paragraph into a contract clause.
 
-Use natural transitions and connected prose. A concrete example or a short
+Use first-person narration for all system-design walkthroughs: a candidate's
+"I" or an inclusive "we" explaining how we reach the design. This is not a
+pronoun quota; factual definitions, requirements, tables, and code can remain
+direct. Do not invent the narrator's professional experience. A concrete example or a short
 request trace often explains more than another requirements table. A named
 character, failure story, numerical estimate, formal invariant, or
 Core/Deep dive/Stretch label is a tool, not a mandatory writing template.
 Calculate when the result determines a design decision, and introduce symbols
 at that point rather than in an opening inventory. Keep technical precision at
 the relevant decision boundary without repeating the same caveats everywhere.
+
+#### Show the reasoning, not just the result
+
+A useful paragraph lets the reader understand why a choice follows from the
+problem. For central choices, expose the need, the relevant alternative, the
+reason for selecting an approach, and its cost or reversal condition. Vary the
+presentation naturally; do not stamp those four labels on every paragraph.
+An accurate sequence of prescriptions is still not a tutorial, even if each
+starts with "I would". Rhetorical questions need explanatory answers, not just
+component names. Requirements should describe desired behavior, not smuggle in
+the architecture that the next sections are supposed to derive.
+
+For example, "Use a worker, retries, and a durable queue" states three results.
+"If I wait for the email provider before replying, a slow provider also delays
+the user's inbox. I can return sooner by sending in the background, but then
+I need to remember unfinished sends across a restart. I'll store that pending
+work with the inbox item; a worker can retry it later" teaches the causal
+connection. The subsequent discussion can weigh database work rows against a
+separate broker. This is an illustrative reasoning passage, not prose to copy
+into every question.
+
+Before the diagram, the reader should already understand where data originates,
+why it is retained or transformed, and who consumes it. Different rates,
+latencies, and failure boundaries then explain the separation into components.
+The diagram consolidates that understanding; it should not introduce a finished
+architecture that the reader must reverse-engineer from later sections.
+
+Interfaces need the same treatment. JSON may be convenient for a readable
+interview example or an easy-to-debug public API; a typed binary format such as
+Protobuf can be worth evaluating for high-rate controlled producer/consumer
+paths. Explain the relevant byte, parsing, interoperability, and schema costs.
+Do not imply that binary always wins, invent a speedup, confuse serialization
+with transport, or insert this comparison where representation is immaterial.
+Use an authoritative reference such as the [Protobuf encoding guide](https://protobuf.dev/programming-guides/encoding/)
+for codec details, while teaching the workload decision in the chapter itself.
+
+For ingestion questions, throughput is often the problem, not an optional
+extension. Make source counts, event rates/sizes, bursts, freshness, and retention
+explicit enough to reason about records/second, bytes/second, and request work.
+Then show how batching, buffering, partitioning, and storage address different
+limits. A queue buys time; it does not fix a sustained capacity deficit. Keep
+illustrative assumptions labeled and distinguish workload arithmetic from an
+unmeasured hardware benchmark. Do not choose an artificially small workload
+merely to avoid teaching the defining scaling challenge.
+
+Conclude important derivations with their reusable decision principle in
+ordinary prose. A pattern tag or prerequisite link is navigation, not a
+substitute for explaining when a technique helps and what would change our
+choice. Mechanism-level foundations can stay linked; problem-specific entity
+definitions and the reasoning needed to choose a mechanism belong here.
 
 Select reusable challenges from [the design-pattern guide](SYSTEM_DESIGN_PATTERNS.md).
 Store stable IDs in `metadata.yaml.design_patterns`, display matching labels in
@@ -84,9 +142,11 @@ reasoning boundaries, not between a heading and its explanation. The metadata
 already supplies the printed caption; do not duplicate it in Markdown.
 
 A foundational answer should stand alone before optional advanced branches.
+Foundational means accessible reasoning and focused scope, not a toy workload.
 An unusually complex flagship question can use more space for its defining
 technical decisions. Standard questions have a ten-page ceiling and complex
-ones fourteen, not mandatory page targets. Keep improvements optional and at
+ones fourteen, not mandatory page targets. Previous five-page examples are not
+a length target; spend space on derivations and cut repetition first. Keep improvements optional and at
 most three. Do not append a compulsory failure matrix or evaluator rubric.
 Preserve useful handbook links instead of re-teaching prerequisites. Do not
 prescribe a minute-by-minute schedule or expose editorial workflow in the prose.

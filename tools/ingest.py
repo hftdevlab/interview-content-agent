@@ -96,17 +96,17 @@ Identify the latency, scale, and reliability needs that change the design.
 
 ## Core entities
 
-Identify the few domain objects needed to explain the design.
+Explain which user operation or state distinction needs each important entity, then define it and its relationships.
 
 ## High-level architecture
 
-![Normalized system context awaiting detailed drafting.](../../../generated/diagrams/{question_id}/context.svg)
+Walk through the conceptual data flow first, explaining why each component is needed. Use the diagram to summarize that flow, not to introduce unexplained boxes.
 
-Trace the simplest complete design before adding justified complexity.
+![Normalized system context awaiting detailed drafting.](../../../generated/diagrams/{question_id}/context.svg)
 
 ## Deep dives
 
-Explain the decisions most relevant to the agreed requirements and interviewer's priorities.
+Reason through the choices and trade-offs that answer the defining workload and challenge. Do not assume an artificially tiny workload to avoid those decisions.
 """
     if question_type == "coding":
         return f"""# {title}

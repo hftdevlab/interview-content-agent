@@ -4,6 +4,10 @@ This record preserves the first calibration and its limitations. Subsequent
 human feedback rejected its specification-like presentation despite the agent
 passes below. The [expert-style revision](REFERENCE_REVIEW.md) supersedes that
 presentation guidance; its results are recorded separately after fresh runs.
+The next review accepted the outline but found that the prose still stacked
+conclusions without enough reasoning. Earlier agent passes and short page
+counts below are historical results, not evidence that the editor accepted
+their teaching quality. The reasoning-focused revision is recorded last.
 
 ## Setup and scope
 
@@ -186,3 +190,64 @@ validation, 67 Python tests, four C++ practice checks, Markdown lint, and both
 release and review PDF gates. Skill validation and visual inspection of the
 rebuilt chapters complete the review. These checks support another human
 readability evaluation; they do not declare the content human-approved.
+
+## Reasoning-focused first-person revision
+
+The editor next accepted the outline but rejected the conclusion-stacking
+prose. `reasoning-feedback.md` preserves that request verbatim. The metrics
+reference was re-read, including its entity relationships, pre-architecture
+data flow, representation discussion, and workload derivation. We borrowed
+these teaching techniques, not its product requirements or prose.
+
+Two independent audits found the same gap: the drafts often named final
+entities and components before explaining their need. The tooling still urged
+a small baseline, and the scaffold put a diagram before its explanation. That
+encouraged an artificially modest logging workload and pushed the important
+ingestion choices into optional extensions.
+
+The shared drafting/review skills, style guide, content instructions, workflow
+prompts, and intake scaffold now require first-person decision reasoning and
+motivated concepts. Data flow comes before the architecture diagram. Relevant
+serialization and storage choices follow from the workload. First-person
+prefixes, headings, or a short page count do not establish teaching quality.
+Review examines central decisions: why they are needed, the relevant
+alternative, the trade-off, and what would change the choice. Fresh trial briefs
+preserve the defining challenge; historical expert notes remain append-only.
+
+All three revisions again used the real feedback workflow and fresh independent
+reviews. No manuscript was manually substituted after generation.
+
+| Question | Words | Pages | Additional draft/review calls | Concrete reasoning gained |
+|---|---:|---:|---:|---|
+| Log publishing/query | 2,829 | 6 | 2 / 2 | Collection follows from application isolation and restart needs; batching reduces request work; host partitioning trades write distribution for query fan-out; burst arithmetic predicts recovery delay; JSON/Protobuf is a workload and operational choice. |
+| Notifications | 2,887 | 6 | 1 / 1 | Independent channel outcomes motivate delivery records; asynchronous sending creates durable pending responsibility; concurrency, quotas, and burst recovery are distinct capacity problems. |
+| News feed | 3,123 | 6 | 1 / 1 | Media lifecycle and byte volume motivate separate upload/delivery; cursors and top-K selection follow from concrete problems; measured read savings must justify fan-out's writes, lag, and repair work. |
+
+Logging now uses a clearly labeled illustrative fleet workload rather than the
+earlier ten-host assumption. It remains operational log search, not the metrics
+monitoring product in the reference. The log review first found a nearly empty
+portrait page before the diagram; one focused automatic revision resolved it
+without removing the ingestion and representation reasoning. Notifications and
+news feeds passed their first reviews in this round.
+
+A separate read-only reader check found no important issues in the three
+rewrites and identified the concrete causal explanations summarized above.
+It noted minor optional prose polish, not new technical or teaching blockers.
+This is evidence for the next human review, not a claim that the editor's
+quality bar has been met. The earlier review passes demonstrably did not
+establish that.
+
+Final preview ranges are logs 4-9, notifications 10-15, and news feed 16-21.
+Existing advanced chapters were not rewritten in this batch. All three revised
+questions remain `needs_human_review`; eight new memory proposals remain
+pending alongside the earlier six. No approval or publication command was run.
+The explicit editorial request is implemented in versioned shared guidance,
+independently of memory approval.
+
+Verification uses `make ci`, including `make all`, 68 Python tests, four C++
+practice checks, source validation, Markdown lint, and release/review PDF gates.
+Both changed skills also pass their validator. The new deterministic tests
+protect delivery of system-design guidance to drafting, revision, and review,
+plus scaffold ordering; they do not score prose by pronoun counts or phrases.
+Visual inspection of every rewritten page is complete; no clipping, overlapping
+text, unreadable diagrams, or nearly empty pre-diagram portrait pages remain.

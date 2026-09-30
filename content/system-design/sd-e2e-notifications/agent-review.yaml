@@ -1,10 +1,10 @@
 {
   "passed": true,
-  "summary": "Passes source fidelity, interview realism, reasoning flow, technical correctness, pattern-tag alignment, and follow-up checks. The first-sentence sweep forms a coherent argument; ordinary flows precede hardening. Handbook links remain useful. Existing PDF pages 9\u201313 meet the page budget; positioned text and SVG inspection reveal no important layout issue. Repository validation and deterministic PDF validation pass. No practice package is linked or required. No files changed; human review remains pending.",
+  "summary": "No blocking or important issues found. Source fidelity, first-person reasoning, interview scope, technical correctness, workload calculations, pattern tags, handbook links, and three follow-ups pass. Central choices explain alternatives and trade-offs; the main flow precedes hardening. Existing PDF pages 10\u201315 meet the page budget; positioned text and SVG inspection reveal no important layout issue. Repository validation and deterministic PDF validation pass. No practice package is linked or required. No files changed; human review remains pending.",
   "issues": [
     {
       "severity": "suggestion",
-      "message": "Add a worker-to-database edge labeled \u201csave outcome / retry time\u201d to make the durable recovery loop visible. The worker label and walkthrough explain this correctly, but the diagram currently shows only the outbound delivery path.",
+      "message": "Add a worker-to-database edge labeled \u201csave outcome / retry time\u201d to show the durable recovery loop. The walkthrough and worker label explain it correctly, but the diagram omits this return path.",
       "file": "content/system-design/sd-e2e-notifications/diagrams/context.mmd"
     }
   ]

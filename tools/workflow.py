@@ -381,6 +381,31 @@ def submit_question(
     return package
 
 
+def _system_design_reasoning_guidance(question_type: str) -> str:
+    """Keep the teaching contract consistent across drafting, revision, and review."""
+
+    if question_type != "system_design":
+        return ""
+    return (
+        " The tutorial should use a natural first-person candidate voice for substantive "
+        "decisions: explain the need, a plausible alternative, the reason for the choice, "
+        "and its trade-off. Merely adding 'I would' to a stack of conclusions is not reasoning; "
+        "do not force the same formula into every paragraph. Motivate important entities "
+        "from a user operation or state distinction before defining them. Explain the "
+        "conceptual data flow before the architecture diagram, introducing components "
+        "through their role in that flow; the diagram should summarize the design already "
+        "explained. Where wire representation affects a decision, compare relevant "
+        "serialization choices through payload size, parsing cost, compatibility, and "
+        "operational readability, then justify the choice from the workload. Do not force "
+        "serialization comparisons where they add no insight. For ingestion problems, "
+        "derive collection, batching, buffering, and storage choices from source ownership, "
+        "event size/rate, burstiness, freshness, and durability. Preserve the defining workload "
+        "and challenge: keep explanations accessible and scope focused, but do not assume "
+        "an artificially tiny workload to avoid the main problem. Simplify exposition, not "
+        "the reasoning needed to answer the question."
+    )
+
+
 def _draft_prompt(
     root: Path, package: Path, metadata: Mapping[str, object]
 ) -> str:
@@ -406,13 +431,14 @@ def _draft_prompt(
         "good/great solutions. Comparisons may help locally inside a deep dive. Tag the "
         "developed challenges using metadata.design_patterns from the controlled registry, "
         "display matching pattern labels, and explain their application in the tutorial. "
-        "Preserve relevant handbook links. Keep foundational scope small and advanced "
-        "branches optional; retain genuine technical depth for advanced questions."
+        "Preserve relevant handbook links. Keep unrelated advanced branches optional "
+        "without removing the question's defining technical decisions."
         if metadata["type"] == "system_design"
         else " Generate the tested skills, natural reasoning, primary solution, concise "
         "improvements, pitfalls, realistic follow-ups, and evaluation criteria according "
         "to the repository rules."
     )
+    reasoning_guidance = _system_design_reasoning_guidance(str(metadata["type"]))
     editorial_guidance = memory_prompt(root, str(metadata["type"]))
     return (
         f"Use {skill} to draft the normalized question {question_id}. Also use "
@@ -421,7 +447,7 @@ def _draft_prompt(
         "idea while enriching incomplete wording to realistic interview standard. Do not "
         "invent a missing constraint that changes the problem; return needs_clarification "
         "when that decision requires the human."
-        f"{tutorial_guidance}{practice} This run is controlled by "
+        f"{tutorial_guidance}{reasoning_guidance}{practice} This run is controlled by "
         "contentctl: never edit workflow.yaml; keep metadata status draft and every review flag "
         "false. The controller owns lifecycle transitions, full PDF builds, and repository-wide "
         "gates. Run only targeted package validation and question-specific practice tests. "
@@ -437,6 +463,7 @@ def _feedback_revision_prompt(
     root: Path, package: Path, metadata: Mapping[str, object]
 ) -> str:
     editorial_guidance = memory_prompt(root, str(metadata["type"]))
+    reasoning_guidance = _system_design_reasoning_guidance(str(metadata["type"]))
     return (
         f"Use {SKILL_BY_METADATA_TYPE[str(metadata['type'])]} to revise {metadata['id']}. "
         "Reload the current skill, content/STYLE_GUIDE.md, and relevant taxonomy; do not "
@@ -445,7 +472,8 @@ def _feedback_revision_prompt(
         "expert-notes.md and its matching file under feedback/. Preserve accepted material "
         "unless the feedback requires it to change, but freely restructure or rewrite the draft "
         "when the feedback identifies a reader-experience, reasoning-flow, or tutorial-quality "
-        "problem. Reconcile the linked practice package. "
+        "problem. Reconcile the linked practice package."
+        f"{reasoning_guidance} "
         "This is a focused contentctl revision: do not edit workflow.yaml; keep metadata status "
         "draft and every review flag false. Do not rebuild or visually inspect PDFs and do not "
         "run repository-wide gates; the controller will do those once. Run targeted package "
@@ -465,6 +493,7 @@ def _review_prompt(
     root: Path, package: Path, metadata: Mapping[str, object]
 ) -> str:
     editorial_guidance = memory_prompt(root, str(metadata["type"]))
+    reasoning_guidance = _system_design_reasoning_guidance(str(metadata["type"]))
     tutorial_review = (
         " For system design, reject a technically correct answer that reads like a specification "
         "instead of an interview tutorial. Check question/clarifications, distinct functional "
@@ -474,8 +503,13 @@ def _review_prompt(
         "the actual teaching and that handbook links remain useful. Comparisons, APIs/schema "
         "when irrelevant, follow-ups, pitfalls, and evaluator rubrics are optional. Do not "
         "require two solutions, Core/Stretch labels, a manufactured failure, or calculations "
-        "that do not inform a choice. For foundational prompts, the small design must stand "
-        "alone without flagship complexity. Sweep the first "
+        "that do not inform a choice. Keep unrelated flagship complexity optional, but check "
+        "that workload assumptions do not erase the question's defining challenge. For two "
+        "or three central decisions, verify that the reader can explain why this choice, "
+        "its relevant alternative, and what would change the choice. Report an important "
+        "issue when these decisions are only asserted, even if the terminology and "
+        "conclusions are correct. First-person wording alone is not evidence of reasoning. "
+        "Sweep the first "
         "sentence of each paragraph to verify that the argument remains understandable and flag "
         "uniformly dense exposition or diagrams whose edges do not explain flow, ownership, or "
         "failure behavior. If a visual inspection surface appears to crop running headers or "
@@ -495,7 +529,7 @@ def _review_prompt(
         "and linked practice code. Judge source fidelity, interview realism, reasoning flow, "
         "technical correctness, page-budget discipline, follow-up quality, and runnable-code "
         "consistency. A coding question cannot pass without a question-specific runnable package."
-        f"{tutorial_review} "
+        f"{tutorial_review}{reasoning_guidance} "
         f"Also verify applicable approved guidance below:\n{editorial_guidance}\n"
         "Return blocking or important issues precisely; suggestions alone do not fail the review."
     )

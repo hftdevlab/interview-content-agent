@@ -18,6 +18,7 @@ from tools.workflow import (
     WorkflowError,
     _draft_prompt,
     _feedback_revision_prompt,
+    _review_prompt,
     _run_deterministic_gates,
     _review_path_allowed,
     add_feedback,
@@ -436,6 +437,34 @@ class WorkflowTests(unittest.TestCase):
                     self.assertEqual("metadata.design_patterns" in prompt, question_type == "system_design")
                     self.assertEqual("$build-practice-question" in prompt, question_type == "coding")
                     self.assertEqual("runnable experiment" in prompt, question_type == "fundamentals")
+
+    def test_system_design_reasoning_guidance_reaches_draft_revision_and_review(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self._root(temporary)
+            for question_type in ("system_design", "coding", "fundamentals"):
+                metadata = {"id": "test-reasoning", "type": question_type}
+                for builder in (_draft_prompt, _feedback_revision_prompt, _review_prompt):
+                    with self.subTest(question_type=question_type, stage=builder.__name__):
+                        prompt = builder(root, root / "unused-package", metadata)
+                        for requirement in (
+                            "first-person candidate voice",
+                            "Motivate important entities",
+                            "conceptual data flow before the architecture diagram",
+                            "serialization choices",
+                            "For ingestion problems",
+                            "Preserve the defining workload and challenge",
+                        ):
+                            self.assertEqual(
+                                requirement in prompt, question_type == "system_design"
+                            )
+                        if question_type == "system_design":
+                            self.assertNotIn("Keep foundational scope small", prompt)
+                            self.assertIn("artificially tiny workload", prompt)
+                if question_type == "system_design":
+                    review = _review_prompt(root, root / "unused-package", metadata)
+                    self.assertIn("two or three central decisions", review)
+                    self.assertIn("Report an important issue", review)
+                    self.assertIn("First-person wording alone is not evidence", review)
 
     def test_feedback_is_accepted_after_agent_review_failure(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

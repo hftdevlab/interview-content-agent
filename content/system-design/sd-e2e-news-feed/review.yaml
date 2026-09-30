@@ -7,12 +7,12 @@
     "interview_realism_reviewed": false
   },
   "review_notes": [
-    "Applied feedback/20260929T033239Z-21628000.md: rebuilt the chapter around clarifications, requirements, entities, interfaces, one architecture walkthrough, and focused deep dives; removed the evaluator rubric and mandatory depth labels.",
-    "Preserved social-following assumptions, indexed selection, key pagination, retry semantics, media separation, and handbook references. Pattern tags match the developed read-scaling, fan-out, and transaction decisions.",
-    "Reference teaching guidance was reloaded from tests/e2e/system-design/REFERENCE_REVIEW.md; the original supplied tutorial PDFs are not stored in the repository.",
-    "Practice reconciliation: metadata has neither a practice link nor a runnable experiment, and no practice package references this ID. The stated guarantees require database/service integration checks; no question-specific C++ test target applies.",
-    "Controller owns PDF rendering, generated outputs, repository-wide gates, and independent review. This revision has not been visually inspected; fresh independent review and human approval remain pending.",
-    "Workflow and original source/feedback are preserved; metadata status remains draft and every review flag remains false.",
+    "Applied newest feedback/20260930T025455Z-55d470a3.md after reloading the drafting skill, style guide, controlled taxonomy, and reference teaching summary. Preserved the accepted structure and rewrote decision explanations in a first-person candidate voice.",
+    "Motivated users, follows, posts, media assets, retry records, and feed entries from operations and state distinctions. Moved the complete publication/read flow before the architecture diagram. Preserved ordering, cursor semantics, indexed top-K derivation, fan-out arithmetic, membership fallback, retry guarantees, and handbook links.",
+    "Added contextual JSON/binary representation reasoning, explicit illustrative workload and freshness targets, and causal explanations for media separation, indexed retrieval, hybrid fan-out, atomic retry records, and durable pending work.",
+    "Practice reconciliation: metadata has no practice link or runnable experiment, and no practice package references this ID. No question-specific C++ tests apply; database/service integration scenarios remain in the chapter.",
+    "Targeted validation passed: python -m tools.validate --id sd-e2e-news-feed. Local handbook links and draft/false-review lifecycle assertions passed; git diff --check passed for the package.",
+    "No generated artifacts or PDFs were rebuilt or visually inspected. Controller-owned workflow, source, expert notes, feedback, and memory files were preserved. A fresh independent review and human approval remain pending.",
     "Independent agent review passed; human review is required."
   ]
 }

@@ -7,16 +7,16 @@
   "branch": "",
   "agent_threads": {
     "transcription": "",
-    "draft": "01a0eb35-180f-7a10-9048-0555275aa702",
-    "review": "01a0eb37-9aa4-7cf3-bfdb-f3ea65286650"
+    "draft": "01a0f039-4e4a-7e12-9b92-6e5112b3a1da",
+    "review": "01a0f03b-516e-7180-b689-68d0d0636232"
   },
   "attempts": {
-    "draft": 3,
-    "review": 3
+    "draft": 4,
+    "review": 4
   },
   "pending_clarifications": [],
   "created_at": "2026-09-28T04:01:09+00:00",
-  "updated_at": "2026-09-29T03:32:23+00:00",
+  "updated_at": "2026-09-30T02:54:38+00:00",
   "events": [
     {
       "at": "2026-09-28T04:01:09+00:00",
@@ -177,6 +177,99 @@
       "type": "human_review_requested",
       "detail": {
         "summary": "Passes source fidelity, interview realism, reasoning flow, technical correctness, pattern-tag alignment, and follow-up checks. The first-sentence sweep forms a coherent argument; ordinary flows precede hardening. Handbook links remain useful. Existing PDF pages 9\u201313 meet the page budget; positioned text and SVG inspection reveal no important layout issue. Repository validation and deterministic PDF validation pass. No practice package is linked or required. No files changed; human review remains pending."
+      }
+    },
+    {
+      "at": "2026-09-30T02:51:22+00:00",
+      "actor": "Human Editor",
+      "type": "human_feedback_received",
+      "detail": {
+        "file": "feedback/20260930T025122Z-1d0b5f6a.md"
+      }
+    },
+    {
+      "at": "2026-09-30T02:51:22+00:00",
+      "actor": "system",
+      "type": "draft_context_rotated",
+      "detail": {
+        "previous_thread": "01a0eb35-180f-7a10-9048-0555275aa702"
+      }
+    },
+    {
+      "at": "2026-09-30T02:51:22+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-09-30T02:53:33+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Revised question.md and review.yaml with motivated entities, first-person reasoning, data flow before the diagram, serialization trade-offs, and workload calculations. Targeted validation passed. No linked practice package or applicable tests exist. No generated outputs or PDFs rebuilt. workflow.yaml unchanged; status remains draft and all review flags false. Independent and human review remain pending.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "python -m tools.validate --id sd-e2e-notifications",
+          "git diff --check -- content/system-design/sd-e2e-notifications/question.md content/system-design/sd-e2e-notifications/review.yaml"
+        ],
+        "memory_candidates": [
+          {
+            "principle": "Develop substantive design choices through needs, alternatives, reasons, and trade-offs in a natural candidate voice.",
+            "rationale": "Human feedback rejected conclusions presented without reusable reasoning.",
+            "question_types": [
+              "system_design"
+            ]
+          },
+          {
+            "principle": "Motivate entities from user operations and explain data flow before presenting the architecture diagram.",
+            "rationale": "Human feedback emphasized discovering concepts and component roles before formal definitions.",
+            "question_types": [
+              "system_design"
+            ]
+          },
+          {
+            "principle": "Use the defining workload to justify representation and capacity choices without simplifying away the central challenge.",
+            "rationale": "Human feedback connected serialization and ingestion decisions to meaningful throughput requirements.",
+            "question_types": [
+              "system_design"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-09-30T02:54:38+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": true,
+        "summary": "No blocking or important issues found. Source fidelity, first-person reasoning, interview scope, technical correctness, workload calculations, pattern tags, handbook links, and three follow-ups pass. Central choices explain alternatives and trade-offs; the main flow precedes hardening. Existing PDF pages 10\u201315 meet the page budget; positioned text and SVG inspection reveal no important layout issue. Repository validation and deterministic PDF validation pass. No practice package is linked or required. No files changed; human review remains pending.",
+        "issues": [
+          {
+            "severity": "suggestion",
+            "message": "Add a worker-to-database edge labeled \u201csave outcome / retry time\u201d to show the durable recovery loop. The walkthrough and worker label explain it correctly, but the diagram omits this return path.",
+            "file": "content/system-design/sd-e2e-notifications/diagrams/context.mmd"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-09-30T02:54:38+00:00",
+      "actor": "agent",
+      "type": "memory_candidates_proposed",
+      "detail": [
+        "memory-1d48e0f0bc21",
+        "memory-094d1383dafc",
+        "memory-d95caee7da09"
+      ]
+    },
+    {
+      "at": "2026-09-30T02:54:38+00:00",
+      "actor": "system",
+      "type": "human_review_requested",
+      "detail": {
+        "summary": "No blocking or important issues found. Source fidelity, first-person reasoning, interview scope, technical correctness, workload calculations, pattern tags, handbook links, and three follow-ups pass. Central choices explain alternatives and trade-offs; the main flow precedes hardening. Existing PDF pages 10\u201315 meet the page budget; positioned text and SVG inspection reveal no important layout issue. Repository validation and deterministic PDF validation pass. No practice package is linked or required. No files changed; human review remains pending."
       }
     }
   ]
