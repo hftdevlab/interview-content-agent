@@ -29,6 +29,8 @@ def build_guide(
     question_type: str,
     records: list[QuestionRecord],
     output_path: Path,
+    *,
+    root: Path = ROOT,
 ) -> Path:
     spec = GUIDE_SPECS[question_type]
 
@@ -45,6 +47,7 @@ def build_guide(
             records,
             link_prefix="",
             heading_level=2,
+            root=root,
         ).rstrip(),
         "",
     ]
@@ -81,6 +84,7 @@ def build_guides(root: Path = ROOT) -> list[Path]:
             question_type,
             grouped[question_type],
             root / "generated" / "markdown" / spec["markdown"],
+            root=root,
         )
         outputs.append(output)
     return outputs

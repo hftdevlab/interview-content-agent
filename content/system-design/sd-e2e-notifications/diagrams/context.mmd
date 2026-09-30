@@ -1,0 +1,7 @@
+flowchart LR
+    Caller["Caller: create request"] --> API["Notification API"]
+    User["User: inbox and settings"] --> API["Notification API"]
+    API["Notification API"] --> DB["Database: inbox, settings, delivery work"]
+    DB["Database: inbox, settings, delivery work"] --> Worker["Worker: send due work and save outcomes"]
+    Worker["Worker: send due work and save outcomes"] --> Email["Email provider"]
+    Worker["Worker: send due work and save outcomes"] --> Push["Push provider"]

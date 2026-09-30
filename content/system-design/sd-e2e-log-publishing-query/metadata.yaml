@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "id": "sd-e2e-log-publishing-query",
+  "type": "system_design",
+  "title": "Design a Log Publishing and Query System",
+  "status": "needs_human_review",
+  "difficulty": 2,
+  "expected_duration_minutes": 45,
+  "categories": [
+    "data-pipeline",
+    "distributed-systems"
+  ],
+  "tags": [
+    "backpressure",
+    "capacity-planning"
+  ],
+  "prerequisites": [],
+  "related_questions": [],
+  "source": {
+    "input_type": "text",
+    "confidentiality": "public",
+    "original_company_removed": false,
+    "original_files": [
+      "source/log-publishing-query.md"
+    ]
+  },
+  "review": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "last_updated": "2026-09-29",
+  "content_file": "question.md",
+  "diagrams": [
+    {
+      "source_file": "diagrams/context.mmd",
+      "rendered_file": "context.svg",
+      "caption": "Collectors batch local records into host-owned storage shards; queries merge shard results and attach collector health (dashed path). Responses return along request paths.",
+      "alt_text": "Applications write local files; collectors send batches through ingestion to host-owned storage shards. The query handler merges shard results for the engineer and receives collector health separately."
+    }
+  ],
+  "design_patterns": [
+    "scale-writes",
+    "high-reliability",
+    "time-series",
+    "scale-reads"
+  ]
+}

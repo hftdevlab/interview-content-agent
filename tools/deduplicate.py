@@ -75,7 +75,11 @@ def _prompt_excerpt(markdown: str) -> str:
         (
             index + 1
             for index, line in enumerate(lines)
-            if line in {"## Interview prompt", "## Question"}
+            if line in {
+                "## Interview prompt",
+                "## Question",
+                "## Question and clarifications",
+            }
         ),
         0,
     )
@@ -83,6 +87,8 @@ def _prompt_excerpt(markdown: str) -> str:
     for line in lines[start:]:
         if line.startswith("## "):
             break
+        if line.strip().casefold().startswith("design patterns:"):
+            continue  # Navigation tags are not part of the question's intent.
         if not line.startswith(("#", "![")):
             body.append(line)
     return "\n".join(body).strip()

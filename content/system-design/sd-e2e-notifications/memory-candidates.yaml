@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "question_id": "sd-e2e-notifications",
+  "candidates": [
+    {
+      "id": "memory-00bdc1bcb574",
+      "status": "pending",
+      "principle": "Build one system-design tutorial from user capabilities through entities, interfaces, and an architecture walkthrough before exploring failure and scaling details.",
+      "rationale": "The human feedback identified specification-style sections as an obstacle to teaching and realistic interview reasoning.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-notifications",
+        "feedback_file": "feedback/20260929T032840Z-52cb2edd.md"
+      },
+      "proposed_at": "2026-09-29T03:32:23+00:00"
+    },
+    {
+      "id": "memory-094d1383dafc",
+      "status": "pending",
+      "principle": "Motivate entities from user operations and explain data flow before presenting the architecture diagram.",
+      "rationale": "Human feedback emphasized discovering concepts and component roles before formal definitions.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-notifications",
+        "feedback_file": "feedback/20260930T025122Z-1d0b5f6a.md"
+      },
+      "proposed_at": "2026-09-30T02:54:38+00:00"
+    },
+    {
+      "id": "memory-1d48e0f0bc21",
+      "status": "pending",
+      "principle": "Develop substantive design choices through needs, alternatives, reasons, and trade-offs in a natural candidate voice.",
+      "rationale": "Human feedback rejected conclusions presented without reusable reasoning.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-notifications",
+        "feedback_file": "feedback/20260930T025122Z-1d0b5f6a.md"
+      },
+      "proposed_at": "2026-09-30T02:54:38+00:00"
+    },
+    {
+      "id": "memory-41fa6124a378",
+      "status": "pending",
+      "principle": "Tag only reusable design challenges actually developed in the tutorial, and retain prerequisite links at their point of application.",
+      "rationale": "The human feedback requested recognizable design patterns while preserving useful handbook references.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-notifications",
+        "feedback_file": "feedback/20260929T032840Z-52cb2edd.md"
+      },
+      "proposed_at": "2026-09-29T03:32:23+00:00"
+    },
+    {
+      "id": "memory-d95caee7da09",
+      "status": "pending",
+      "principle": "Use the defining workload to justify representation and capacity choices without simplifying away the central challenge.",
+      "rationale": "Human feedback connected serialization and ingestion decisions to meaningful throughput requirements.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-notifications",
+        "feedback_file": "feedback/20260930T025122Z-1d0b5f6a.md"
+      },
+      "proposed_at": "2026-09-30T02:54:38+00:00"
+    }
+  ]
+}

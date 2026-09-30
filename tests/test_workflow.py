@@ -12,9 +12,13 @@ from unittest.mock import patch
 from tools.agent_runtime import AgentResult
 from tools.editorial_memory import approve_memory_candidate
 from tools.ingest import ingest_question
+from tools.render_diagrams import render_source
 from tools.validate import validate_repository
 from tools.workflow import (
     WorkflowError,
+    _draft_prompt,
+    _feedback_revision_prompt,
+    _review_prompt,
     _run_deterministic_gates,
     _review_path_allowed,
     add_feedback,
@@ -105,6 +109,18 @@ class LifecycleMutatingRunner(FakeRunner):
             images=images,
             output_schema=output_schema,
         )
+
+
+class DiagramRevisingRunner(FakeRunner):
+    def __init__(self, outputs, source: Path, replacement: str) -> None:
+        super().__init__(outputs)
+        self.source = source
+        self.replacement = replacement
+
+    def run(self, prompt: str, *, root: Path, sandbox: str, **kwargs) -> AgentResult:
+        if sandbox == "workspace-write":
+            self.source.write_text(self.replacement, encoding="utf-8")
+        return super().run(prompt, root=root, sandbox=sandbox, **kwargs)
 
 
 READY = {
@@ -222,16 +238,115 @@ class WorkflowTests(unittest.TestCase):
             )
             self.assertEqual(validate_repository(root), [])
 
+    def test_foundational_trials_preserve_source_and_review_gate_on_rerun(self) -> None:
+        cases = (
+            ("news-feed", "Design a News Feed"),
+            ("notifications", "Design a Notification System"),
+            ("log-publishing-query", "Design a Log Publishing and Query System"),
+        )
+        for name, title in cases:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary:
+                root = self._root(temporary)
+                source = ROOT / "tests/e2e/system-design" / f"{name}.md"
+                note = "Foundational readability trial; label illustrative assumptions."
+                package = submit_question(
+                    root=root,
+                    question_kind="design",
+                    input_path=source,
+                    runner=FakeRunner([READY, PASSED]),
+                    question_id=f"sd-e2e-{name}",
+                    title=title,
+                    expert_note=note,
+                    create_branch=False,
+                )
+                preserved_notes = (package / "expert-notes.md").read_bytes()
+                # Re-evaluating after a global prompt/skill change must run a new
+                # independent review; an earlier pass cannot authorize handoff.
+                failed_review = {
+                    "passed": False,
+                    "summary": "The core explanation needs revision.",
+                    "issues": [{"severity": "important", "message": "Core is not self-contained."}],
+                }
+                runner = FakeRunner([READY, failed_review])
+                continue_question(
+                    root=root,
+                    question_id=package.name,
+                    runner=runner,
+                    max_revision_rounds=0,
+                )
+                status = question_status(root=root, question_id=package.name)
+                self.assertEqual(status["workflow_state"], "agent_review_failed")
+                self.assertFalse(any(status["review"].values()))
+                self.assertEqual(runner.calls[0][0], "resume")
+                self.assertEqual(runner.calls[1][0], "run:read-only")
+                self.assertEqual((package / "source" / source.name).read_bytes(), source.read_bytes())
+                self.assertEqual((package / "expert-notes.md").read_bytes(), preserved_notes)
+                self.assertEqual(validate_repository(root), [])
+                retry = FakeRunner([READY, PASSED])
+                continue_question(root=root, question_id=package.name, runner=retry)
+                self.assertIn("Core is not self-contained.", retry.calls[0][1])
+                self.assertEqual(retry.calls[1][0], "run:read-only")
+                recovered = question_status(root=root, question_id=package.name)
+                self.assertEqual(recovered["workflow_state"], "needs_human_review")
+                self.assertFalse(recovered["review"]["human_reviewed"])
+
+    def test_diagram_revision_refreshes_svg_before_validation(self) -> None:
+        for valid in (True, False):
+            with self.subTest(valid=valid), tempfile.TemporaryDirectory() as temporary:
+                root = self._root(temporary)
+                source = ROOT / "tests/e2e/system-design/news-feed.md"
+                package = submit_question(
+                    root=root,
+                    question_kind="design",
+                    input_path=source,
+                    runner=None,
+                    question_id="sd-diagram-revision",
+                    create_branch=False,
+                    run_agent=False,
+                )
+                diagram = package / "diagrams/context.mmd"
+                output = root / "generated/diagrams" / package.name / "context.svg"
+                output.parent.mkdir(parents=True)
+                original_svg = render_source(diagram.read_text())
+                output.write_text(original_svg)
+                replacement = (
+                    'flowchart LR\n    A["Client request"] --> B["Application process"]\n'
+                    if valid else "not a supported diagram\n"
+                )
+                runner = DiagramRevisingRunner([READY, PASSED], diagram, replacement)
+                if valid:
+                    continue_question(
+                        root=root, question_id=package.name, runner=runner,
+                        max_revision_rounds=0,
+                    )
+                    self.assertEqual(output.read_text(), render_source(replacement))
+                    self.assertEqual(len(runner.calls), 2)
+                    self.assertEqual(runner.calls[1][0], "run:read-only")
+                    self.assertEqual(validate_repository(root), [])
+                else:
+                    with self.assertRaisesRegex(WorkflowError, "not renderable"):
+                        continue_question(
+                            root=root, question_id=package.name, runner=runner,
+                            max_revision_rounds=0,
+                        )
+                    self.assertEqual(output.read_text(), original_svg)
+                    self.assertEqual(len(runner.calls), 1)
+                    self.assertEqual(
+                        question_status(root=root, question_id=package.name)["workflow_state"],
+                        "agent_validation_failed",
+                    )
+
     def test_agent_review_feedback_and_human_approval_lifecycle(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = self._root(temporary)
             source = root / "prompt.txt"
             source.write_text("Design a bounded risk-event stream.\n", encoding="utf-8")
+            runner = FakeRunner([READY, PASSED])
             package = submit_question(
                 root=root,
                 question_kind="system-design",
                 input_path=source,
-                runner=FakeRunner([READY, PASSED]),
+                runner=runner,
                 question_id="sd-risk-event-stream",
                 title="Bounded risk event stream",
                 create_branch=False,
@@ -240,6 +355,9 @@ class WorkflowTests(unittest.TestCase):
             status = question_status(root=root, question_id=package.name)
             self.assertEqual(status["status"], "needs_human_review")
             self.assertTrue(status["review"]["agent_reviewed"])
+            self.assertIn("system-design tutorial", runner.calls[0][1])
+            self.assertIn("metadata.design_patterns", runner.calls[0][1])
+            self.assertIn("reject a technically correct answer", runner.calls[1][1])
 
             add_feedback(
                 root=root,
@@ -261,6 +379,9 @@ class WorkflowTests(unittest.TestCase):
                 runner=(revision_runner := FakeRunner([REVISION_READY, PASSED])),
             )
             self.assertIn("focused contentctl revision", revision_runner.calls[0][1])
+            self.assertIn("freely restructure or rewrite", revision_runner.calls[0][1])
+            self.assertIn("$draft-system-design", revision_runner.calls[0][1])
+            self.assertIn("content/STYLE_GUIDE.md", revision_runner.calls[0][1])
             self.assertEqual(revision_runner.calls[0][0], "run:workspace-write")
             workflow = json.loads((package / "workflow.yaml").read_text())
             self.assertTrue(
@@ -298,6 +419,91 @@ class WorkflowTests(unittest.TestCase):
             self.assertEqual(status["pending_memory_candidates"], [])
             self.assertEqual(status["active_editorial_memory_count"], 1)
             self.assertEqual(validate_repository(root), [])
+
+    def test_drafting_guidance_is_routed_by_question_type(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self._root(temporary)
+            for question_type, skill in (
+                ("system_design", "$draft-system-design"),
+                ("coding", "$draft-coding-question"),
+                ("fundamentals", "$draft-fundamentals-question"),
+            ):
+                with self.subTest(question_type=question_type):
+                    metadata = {"id": "test-guidance", "type": question_type}
+                    prompt = _draft_prompt(root, root / "unused-package", metadata)
+                    revision = _feedback_revision_prompt(root, root / "unused-package", metadata)
+                    self.assertIn(skill, prompt)
+                    self.assertIn(skill, revision)
+                    self.assertEqual("metadata.design_patterns" in prompt, question_type == "system_design")
+                    self.assertEqual("$build-practice-question" in prompt, question_type == "coding")
+                    self.assertEqual("runnable experiment" in prompt, question_type == "fundamentals")
+
+    def test_system_design_reasoning_guidance_reaches_draft_revision_and_review(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self._root(temporary)
+            for question_type in ("system_design", "coding", "fundamentals"):
+                metadata = {"id": "test-reasoning", "type": question_type}
+                for builder in (_draft_prompt, _feedback_revision_prompt, _review_prompt):
+                    with self.subTest(question_type=question_type, stage=builder.__name__):
+                        prompt = builder(root, root / "unused-package", metadata)
+                        for requirement in (
+                            "first-person candidate voice",
+                            "Motivate important entities",
+                            "conceptual data flow before the architecture diagram",
+                            "serialization choices",
+                            "For ingestion problems",
+                            "Preserve the defining workload and challenge",
+                        ):
+                            self.assertEqual(
+                                requirement in prompt, question_type == "system_design"
+                            )
+                        if question_type == "system_design":
+                            self.assertNotIn("Keep foundational scope small", prompt)
+                            self.assertIn("artificially tiny workload", prompt)
+                if question_type == "system_design":
+                    review = _review_prompt(root, root / "unused-package", metadata)
+                    self.assertIn("two or three central decisions", review)
+                    self.assertIn("Report an important issue", review)
+                    self.assertIn("First-person wording alone is not evidence", review)
+
+    def test_feedback_is_accepted_after_agent_review_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self._root(temporary)
+            source = root / "prompt.txt"
+            source.write_text("Design a bounded risk-event stream.\n", encoding="utf-8")
+            package = submit_question(
+                root=root,
+                question_kind="system-design",
+                input_path=source,
+                runner=None,
+                question_id="sd-review-failed-feedback",
+                title="Risk event stream needing revision",
+                create_branch=False,
+                run_agent=False,
+            )
+            metadata_path = package / "metadata.yaml"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata["status"] = "draft"
+            metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            workflow_path = package / "workflow.yaml"
+            workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+            workflow["state"] = "agent_review_failed"
+            workflow_path.write_text(json.dumps(workflow, indent=2) + "\n", encoding="utf-8")
+
+            add_feedback(
+                root=root,
+                question_id=package.name,
+                feedback="Turn the specification into a scenario-led tutorial.",
+                reviewer="Human Editor",
+            )
+
+            status = question_status(root=root, question_id=package.name)
+            self.assertEqual(status["status"], "changes_requested")
+            self.assertEqual(status["workflow_state"], "changes_requested")
+            self.assertIn(
+                "Turn the specification into a scenario-led tutorial.",
+                (package / "expert-notes.md").read_text(encoding="utf-8"),
+            )
 
     def test_controller_reclaims_lifecycle_and_runs_independent_review(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

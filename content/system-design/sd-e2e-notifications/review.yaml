@@ -1,0 +1,27 @@
+{
+  "question_id": "sd-e2e-notifications",
+  "checks": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "review_notes": [
+    "Initial foundational tutorial drafted from the source and expert-authorized in-app, email, and mobile push interpretation. Workload and delivery policy are explicitly illustrative.",
+    "Core covers durable acceptance, inbox access, pending delivery rows, retries, and duplicate risk. Scaling and stronger producer guarantees remain optional. Companion handbook links cover existing prerequisites.",
+    "No runnable experiment: the material claims are transaction and failure-boundary reasoning, not a local performance measurement. Independent review and human approval remain required; all review flags remain false.",
+    "Passed python -m tools.validate --id sd-e2e-notifications, including diagram renderability and local reference checks. No practice package applies. PDF rendering, visual inspection, and repository-wide gates remain with contentctl.",
+    "Addressed independent layout review: condensed the complete pre-diagram delivery reasoning while preserving its behavior and sufficiency conditions. Removed the detached italic Figure paragraph and consolidated its meaning into the metadata caption, which the renderer keeps with the diagram. Targeted validation passed; pagination confirmation remains with the controller PDF rebuild and fresh review.",
+    "Independent agent review passed; human review is required.",
+    "Human feedback recorded in feedback/20260929T032840Z-52cb2edd.md.",
+    "Revised for human feedback 20260929T032840Z: rebuilt the chapter around clarifications, separate functional and non-functional requirements, entities, interfaces, a component diagram and an ordinary request walkthrough before three focused deep dives. Removed the mandatory comparison, failure matrix, depth labels and evaluator rubric; retained accepted scope, useful technical reasoning and both handbook links. Added controlled Data transactions and Multi-step workflows pattern tags. Consulted the repository reference-review notes; original expert tutorial PDFs are not available in the repository.",
+    "Practice reconciliation: metadata has no practice linkage and no practice package or CMake target references sd-e2e-notifications. No runnable code changes or question-specific practice tests apply. Status stays draft and all review flags stay false; independent review and human approval remain pending. PDF rebuilding, visual review and repository-wide gates are reserved for the controller.",
+    "Targeted validation initially detected unsupported diagram syntax, then a stale generated SVG. Adapted the component diagram to the supported Mermaid subset and rebuilt only this question\u2019s context.svg using tools.render_diagrams.render_source. Confirmed draft status and all review flags false. No PDFs inspected or rebuilt; repository-wide gates remain with the controller. Final python -m tools.validate --id sd-e2e-notifications passed.",
+    "Independent agent review passed; human review is required.",
+    "Human feedback recorded in feedback/20260930T025122Z-1d0b5f6a.md.",
+    "Revised against newest human feedback 20260930T025122Z and its matching feedback file after reloading current skill, style guide, taxonomy and reference-review notes. Derived entities from inbox and channel outcomes, moved the complete conceptual flow before the architecture diagram, and developed first-person decisions with alternatives and costs. Preserved channel scope, retry boundaries, pattern tags and handbook links. Added contextual JSON/Protobuf reasoning with primary references and explicit illustrative throughput, concurrency, burst-drain and storage calculations. Original expert reference PDFs are not available locally; repository reference-review notes were consulted.",
+    "Practice reconciliation confirmed no metadata practice linkage and no sd-e2e-notifications references under practice; no affected question-specific practice tests apply. Diagram source and generated artifacts were unchanged. PDF generation, visual inspection and repository-wide gates remain with contentctl. Workflow was not edited; draft status and every review flag remain false. Independent review and human approval remain required.",
+    "Validation completed: python -m tools.validate --id sd-e2e-notifications passed; scoped git diff --check passed. Confirmed draft metadata and all metadata/review flags false. No generated outputs rebuilt in this revision.",
+    "Independent agent review passed; human review is required."
+  ]
+}

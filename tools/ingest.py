@@ -78,49 +78,35 @@ def _markdown(question_type: str, title: str, prompt: str, question_id: str) -> 
     if question_type == "system_design":
         return f"""# {title}
 
-## Interview prompt
+## Question and clarifications
 
 {prompt}
 
-## What the interviewer is testing
-
-- Content drafting should identify the core system boundary and engineering invariants.
-
-## Clarifying questions
-
 - Which requirements, scale assumptions, and failure contracts should control the design?
 
-## Requirements and assumptions
+## Requirements
+
+### Functional requirements
 
 The source has been normalized; requirements remain subject to expert review.
 
-## Good solution
+### Non-functional requirements
+
+Identify the latency, scale, and reliability needs that change the design.
+
+## Core entities
+
+Explain which user operation or state distinction needs each important entity, then define it and its relationships.
+
+## High-level architecture
+
+Walk through the conceptual data flow first, explaining why each component is needed. Use the diagram to summarize that flow, not to introduce unexplained boxes.
 
 ![Normalized system context awaiting detailed drafting.](../../../generated/diagrams/{question_id}/context.svg)
 
-The package is ready for an invariant-led design draft.
+## Deep dives
 
-## Great solution improvements
-
-- Add only improvements justified by the agreed interview requirements.
-
-## Failure scenarios
-
-- Identify failures after the good solution establishes ownership and state.
-
-## Common pitfalls
-
-- Do not invent scale, latency, or reliability requirements absent from the source.
-
-## Follow-up questions
-
-### Which component should the interview examine in depth?
-
-Choose after clarifying the system boundary and the interviewer's priorities.
-
-## Evaluation rubric
-
-Evaluation criteria will be calibrated during content drafting and human review.
+Reason through the choices and trade-offs that answer the defining workload and challenge. Do not assume an artificially tiny workload to avoid those decisions.
 """
     if question_type == "coding":
         return f"""# {title}

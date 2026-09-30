@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "id": "sd-e2e-risk-limit-fanout",
+  "type": "system_design",
+  "title": "Risk-Limit Update Fan-Out",
+  "status": "needs_human_review",
+  "difficulty": 3,
+  "expected_duration_minutes": 45,
+  "categories": [
+    "distributed-systems",
+    "reliability",
+    "trading-systems"
+  ],
+  "tags": [
+    "backpressure",
+    "capacity-planning",
+    "ordering",
+    "replay",
+    "sequence-numbers",
+    "snapshot",
+    "mermaid"
+  ],
+  "prerequisites": [],
+  "related_questions": [
+    "sd-market-data-feed"
+  ],
+  "source": {
+    "input_type": "text",
+    "confidentiality": "public",
+    "original_company_removed": false,
+    "original_files": [
+      "source/risk-limit-fanout.md"
+    ]
+  },
+  "review": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "last_updated": "2026-08-14",
+  "content_file": "question.md",
+  "diagrams": [
+    {
+      "source_file": "diagrams/context.mmd",
+      "rendered_file": "context.svg",
+      "caption": "The physical good path carries committed content and a certified, nonce-bound authority proof into a view whose deadline Gate7 checks on every order.",
+      "alt_text": "A risk command passes through the API and sequencer to a quorum-committed log. A dispatcher tails committed records, forwards a receiver challenge, and relays a certified head proof containing epoch, content identity, and nonce. The receiver atomically publishes the table and proof deadline, while the Gate7 order thread checks that deadline itself and performs the stale action after expiry even if the receiver stalls."
+    },
+    {
+      "source_file": "diagrams/recovery-sequence.mmd",
+      "rendered_file": "recovery-sequence.svg",
+      "caption": "Authority isolation prevents renewal, but Gate7's independent per-order deadline check still forces stale behavior.",
+      "alt_text": "The S7 receiver sends fresh challenge n902 to the dispatcher. Forwarding it to the scope sequencer fails because the authority link is down, so no matching head proof returns. Independently, Gate7 compares its monotonic clock with the stored deadline on every order and performs the configured stale action after expiry."
+    }
+  ]
+}

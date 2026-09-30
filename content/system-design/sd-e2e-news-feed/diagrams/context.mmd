@@ -1,0 +1,5 @@
+flowchart LR
+    C["Phone: publish and browse"] --> A["Application: posts and feed"]
+    A["Application: posts and feed"] --> D["Database: follows and posts"]
+    A["Application: posts and feed"] --> O["Object storage: ready media"]
+    C["Phone: publish and browse"] --> O["Object storage: ready media"]

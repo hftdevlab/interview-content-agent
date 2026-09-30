@@ -26,6 +26,7 @@ from tools.editorial_memory import (
     reject_memory_candidate,
 )
 from tools.ingest import IMAGE_SUFFIXES, TYPE_CONFIG, ingest_question
+from tools.render_diagrams import render_source
 from tools.validate import validate_repository
 
 
@@ -380,6 +381,31 @@ def submit_question(
     return package
 
 
+def _system_design_reasoning_guidance(question_type: str) -> str:
+    """Keep the teaching contract consistent across drafting, revision, and review."""
+
+    if question_type != "system_design":
+        return ""
+    return (
+        " The tutorial should use a natural first-person candidate voice for substantive "
+        "decisions: explain the need, a plausible alternative, the reason for the choice, "
+        "and its trade-off. Merely adding 'I would' to a stack of conclusions is not reasoning; "
+        "do not force the same formula into every paragraph. Motivate important entities "
+        "from a user operation or state distinction before defining them. Explain the "
+        "conceptual data flow before the architecture diagram, introducing components "
+        "through their role in that flow; the diagram should summarize the design already "
+        "explained. Where wire representation affects a decision, compare relevant "
+        "serialization choices through payload size, parsing cost, compatibility, and "
+        "operational readability, then justify the choice from the workload. Do not force "
+        "serialization comparisons where they add no insight. For ingestion problems, "
+        "derive collection, batching, buffering, and storage choices from source ownership, "
+        "event size/rate, burstiness, freshness, and durability. Preserve the defining workload "
+        "and challenge: keep explanations accessible and scope focused, but do not assume "
+        "an artificially tiny workload to avoid the main problem. Simplify exposition, not "
+        "the reasoning needed to answer the question."
+    )
+
+
 def _draft_prompt(
     root: Path, package: Path, metadata: Mapping[str, object]
 ) -> str:
@@ -390,7 +416,29 @@ def _draft_prompt(
         "create and fully tailor the runnable package; the generic scaffold is not a final solution."
         if metadata["type"] == "coding"
         else " Add a runnable experiment only when it tests a material claim."
+        if metadata["type"] == "fundamentals"
+        else ""
     )
+    tutorial_guidance = (
+        " Develop one evolving system-design tutorial using the current style guide: question "
+        "and clarifications; prioritized functional and non-functional requirements; core "
+        "entities; useful API/data schema; high-level architecture with at least one diagram; "
+        "then focused deep dives. Interfaces and follow-ups/pitfalls are optional when they "
+        "add no insight. Walk through the main functional flows before resolving every "
+        "scaling or failure detail. Explain why each decision follows in connected prose, "
+        "using examples and calculations where they change the design. Do not force a "
+        "failure-first story, Core/Stretch labels, a separate rubric, or two complete "
+        "good/great solutions. Comparisons may help locally inside a deep dive. Tag the "
+        "developed challenges using metadata.design_patterns from the controlled registry, "
+        "display matching pattern labels, and explain their application in the tutorial. "
+        "Preserve relevant handbook links. Keep unrelated advanced branches optional "
+        "without removing the question's defining technical decisions."
+        if metadata["type"] == "system_design"
+        else " Generate the tested skills, natural reasoning, primary solution, concise "
+        "improvements, pitfalls, realistic follow-ups, and evaluation criteria according "
+        "to the repository rules."
+    )
+    reasoning_guidance = _system_design_reasoning_guidance(str(metadata["type"]))
     editorial_guidance = memory_prompt(root, str(metadata["type"]))
     return (
         f"Use {skill} to draft the normalized question {question_id}. Also use "
@@ -398,9 +446,8 @@ def _draft_prompt(
         "package source, expert notes, workflow.yaml, and deduplication.yaml. Keep the core "
         "idea while enriching incomplete wording to realistic interview standard. Do not "
         "invent a missing constraint that changes the problem; return needs_clarification "
-        "when that decision requires the human. Generate the tested skills, natural reasoning, "
-        "primary solution, concise improvements, pitfalls, realistic follow-ups, and evaluation "
-        f"criteria according to the repository rules.{practice} This run is controlled by "
+        "when that decision requires the human."
+        f"{tutorial_guidance}{reasoning_guidance}{practice} This run is controlled by "
         "contentctl: never edit workflow.yaml; keep metadata status draft and every review flag "
         "false. The controller owns lifecycle transitions, full PDF builds, and repository-wide "
         "gates. Run only targeted package validation and question-specific practice tests. "
@@ -416,10 +463,17 @@ def _feedback_revision_prompt(
     root: Path, package: Path, metadata: Mapping[str, object]
 ) -> str:
     editorial_guidance = memory_prompt(root, str(metadata["type"]))
+    reasoning_guidance = _system_design_reasoning_guidance(str(metadata["type"]))
     return (
-        f"Revise {metadata['id']} using only the newest human feedback appended to "
+        f"Use {SKILL_BY_METADATA_TYPE[str(metadata['type'])]} to revise {metadata['id']}. "
+        "Reload the current skill, content/STYLE_GUIDE.md, and relevant taxonomy; do not "
+        "reuse an earlier outline when the human changed the teaching approach. Apply "
+        "the newest human feedback appended to "
         "expert-notes.md and its matching file under feedback/. Preserve accepted material "
-        "unless the feedback requires it to change, and reconcile the linked practice package. "
+        "unless the feedback requires it to change, but freely restructure or rewrite the draft "
+        "when the feedback identifies a reader-experience, reasoning-flow, or tutorial-quality "
+        "problem. Reconcile the linked practice package."
+        f"{reasoning_guidance} "
         "This is a focused contentctl revision: do not edit workflow.yaml; keep metadata status "
         "draft and every review flag false. Do not rebuild or visually inspect PDFs and do not "
         "run repository-wide gates; the controller will do those once. Run targeted package "
@@ -439,12 +493,43 @@ def _review_prompt(
     root: Path, package: Path, metadata: Mapping[str, object]
 ) -> str:
     editorial_guidance = memory_prompt(root, str(metadata["type"]))
+    reasoning_guidance = _system_design_reasoning_guidance(str(metadata["type"]))
+    tutorial_review = (
+        " For system design, reject a technically correct answer that reads like a specification "
+        "instead of an interview tutorial. Check question/clarifications, distinct functional "
+        "and non-functional requirements, core entities, useful interfaces, an architecture "
+        "diagram and walkthrough, then focused deep dives. The main functional flows should "
+        "be understandable before their detailed hardening. Check that pattern tags match "
+        "the actual teaching and that handbook links remain useful. Comparisons, APIs/schema "
+        "when irrelevant, follow-ups, pitfalls, and evaluator rubrics are optional. Do not "
+        "require two solutions, Core/Stretch labels, a manufactured failure, or calculations "
+        "that do not inform a choice. Keep unrelated flagship complexity optional, but check "
+        "that workload assumptions do not erase the question's defining challenge. For two "
+        "or three central decisions, verify that the reader can explain why this choice, "
+        "its relevant alternative, and what would change the choice. Report an important "
+        "issue when these decisions are only asserted, even if the terminology and "
+        "conclusions are correct. First-person wording alone is not evidence of reasoning. "
+        "Sweep the first "
+        "sentence of each paragraph to verify that the argument remains understandable and flag "
+        "uniformly dense exposition or diagrams whose edges do not explain flow, ownership, or "
+        "failure behavior. If a visual inspection surface appears to crop running headers or "
+        "footers, corroborate the actual raster pixels and positioned PDF text before reporting "
+        "a defect; do not fail a review for a viewer-side crop. The controller has already run "
+        "the PDF gate and owns raster QA. In this automated read-only review, do not invoke any "
+        "browser, image, screenshot, or raster-rendering tool and do not create scratch files. "
+        "Inspect the existing PDF with pypdf/pdfplumber, its positioned text, generated SVGs, and "
+        "the deterministic validation result. A limitation of the review sandbox's display tools "
+        "is not a content failure."
+        if metadata["type"] == "system_design"
+        else ""
+    )
     return (
         f"Use $review-question to independently review {metadata['id']}. Do not edit any files. "
         "Read the preserved source, expert notes, deduplication report, question, metadata, "
         "and linked practice code. Judge source fidelity, interview realism, reasoning flow, "
         "technical correctness, page-budget discipline, follow-up quality, and runnable-code "
-        "consistency. A coding question cannot pass without a question-specific runnable package. "
+        "consistency. A coding question cannot pass without a question-specific runnable package."
+        f"{tutorial_review}{reasoning_guidance} "
         f"Also verify applicable approved guidance below:\n{editorial_guidance}\n"
         "Return blocking or important issues precisely; suggestions alone do not fail the review."
     )
@@ -568,6 +653,35 @@ def _run_deterministic_gates(root: Path, metadata: Mapping[str, object]) -> None
     _run_gate(root, ("make", "pdf-preview"), "review PDF gate")
 
 
+def _refresh_question_diagrams(root: Path, package: Path) -> None:
+    """Rebuild valid source diagrams before checking generated-artifact freshness."""
+
+    for source in sorted((package / "diagrams").glob("*.mmd")):
+        try:
+            svg = render_source(source.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            # The validator reports missing/invalid sources with package context.
+            # Do not replace a previous output with a failed rendering.
+            continue
+        output = root / "generated" / "diagrams" / package.name / f"{source.stem}.svg"
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(svg, encoding="utf-8")
+
+
+def _review_revision_prompt(review: Mapping[str, object]) -> str:
+    issues = review.get("issues", [])
+    blocking = [
+        item for item in issues
+        if isinstance(item, dict) and item.get("severity") in {"blocking", "important"}
+    ]
+    return (
+        "Address the independent review findings below. Preserve accepted material, source, "
+        "and expert notes. Keep workflow.yaml and lifecycle flags under controller ownership; "
+        "run targeted validation only. The controller rebuilds PDFs and runs a fresh review.\n"
+        + json.dumps(blocking or issues, indent=2)
+    )
+
+
 def continue_question(
     *,
     root: Path,
@@ -590,6 +704,7 @@ def continue_question(
         raise WorkflowError("resolve pending clarifications before continuing")
 
     starting_status = str(metadata.get("status", ""))
+    starting_state = str(workflow.get("state", ""))
     is_feedback_revision = starting_status == "changes_requested"
     proposed_memory: list[Mapping[str, object]] = []
     _sync_status(package, "draft", REVIEW_FLAGS_FALSE)
@@ -613,6 +728,10 @@ def continue_question(
         if is_feedback_revision
         else None
     )
+    if not is_feedback_revision and starting_state == "agent_review_failed":
+        review_path = package / "agent-review.yaml"
+        if review_path.is_file():
+            revision_message = _review_revision_prompt(load_data(review_path))
     for round_number in range(max_revision_rounds + 1):
         metadata = dict(load_data(package / "metadata.yaml"))
         draft = _run_draft(
@@ -653,6 +772,10 @@ def continue_question(
                     dict(item) for item in current_candidates if isinstance(item, dict)
                 ]
 
+        # A draft may change Mermaid while an earlier SVG still exists. Refresh
+        # it under controller ownership instead of spending a model revision
+        # asking the author to repair an otherwise valid generated artifact.
+        _refresh_question_diagrams(root, package)
         issues = validate_repository(root)
         if issues:
             revision_message = (
@@ -753,11 +876,7 @@ def continue_question(
                 )
             return package
 
-        revision_message = (
-            "Address the independent review findings below. Preserve source and expert notes, "
-            "then rerun applicable tests.\n"
-            + json.dumps(blocking or review.get("issues", []), indent=2)
-        )
+        revision_message = _review_revision_prompt(review)
         if round_number >= max_revision_rounds:
             workflow["state"] = "agent_review_failed"
             _event(
@@ -862,8 +981,17 @@ def add_feedback(
         raise WorkflowError("feedback must not be empty")
     package = _package(root.resolve(), question_id)
     metadata = dict(load_data(package / "metadata.yaml"))
-    if metadata.get("status") not in {"needs_human_review", "changes_requested"}:
-        raise WorkflowError("feedback is accepted only during human review")
+    workflow = _load_workflow(package)
+    status = metadata.get("status")
+    workflow_state = workflow.get("state")
+    feedback_allowed = status in {"needs_human_review", "changes_requested"} or (
+        status == "draft"
+        and workflow_state in {"agent_review_failed", "agent_validation_failed"}
+    )
+    if not feedback_allowed:
+        raise WorkflowError(
+            "feedback is accepted during human review or after an agent review/validation failure"
+        )
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     filename = f"{stamp}-{uuid.uuid4().hex[:8]}.md"
     feedback_path = package / "feedback" / filename
@@ -884,7 +1012,6 @@ def add_feedback(
         REVIEW_FLAGS_FALSE,
         review_note=f"Human feedback recorded in feedback/{filename}.",
     )
-    workflow = _load_workflow(package)
     workflow["state"] = "changes_requested"
     _event(
         workflow,
