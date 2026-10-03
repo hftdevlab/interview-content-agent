@@ -78,6 +78,15 @@ The catalog should group questions by categories such as:
 
 - Distributed coordination and consistency. 
 
+Current presentation note: subsequent human editorial feedback supersedes the
+section checklist below for system-design tutorials. New and substantially
+revised chapters follow `content/STYLE_GUIDE.md`: question and clarifications,
+functional/non-functional requirements, core entities, useful API/data schema,
+high-level architecture with a diagram, and selected deep dives. Comparisons,
+improvements, follow-ups, pitfalls, and an evaluator rubric are not mandatory
+standalone sections. Reusable design-pattern tags live in the controlled
+taxonomy. The original checklist remains below as historical coverage guidance.
+
 Each question should contain: 
 
 1. **Question description** 
@@ -551,6 +560,10 @@ public sanitized_real_interview private_reference
 ## 8. Standard content templates 
 
 ### 8.1 System design question template 
+
+Historical template only: the current tutorial outline and optional-section
+rules are maintained in `content/STYLE_GUIDE.md` and the `draft-system-design`
+skill. The active intake scaffold in `tools/ingest.py` follows that outline.
 
 # Question title 
 

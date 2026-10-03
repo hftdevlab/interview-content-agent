@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "question_id": "sd-e2e-news-feed",
+  "candidates": [
+    {
+      "id": "memory-052657dcdcfb",
+      "status": "pending",
+      "principle": "Tag reusable design challenges and explain each pattern where it motivates a concrete decision.",
+      "rationale": "Pattern labels should help readers transfer reasoning across questions.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-news-feed",
+        "feedback_file": "feedback/20260929T033239Z-21628000.md"
+      },
+      "proposed_at": "2026-09-29T03:36:00+00:00"
+    },
+    {
+      "id": "memory-08e615383d81",
+      "status": "pending",
+      "principle": "Develop one architecture through its user flows before exploring scaling and failure details.",
+      "rationale": "The feedback favors connected teaching and realistic interview reasoning over specification-style inventories.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-news-feed",
+        "feedback_file": "feedback/20260929T033239Z-21628000.md"
+      },
+      "proposed_at": "2026-09-29T03:36:00+00:00"
+    },
+    {
+      "id": "memory-1eb2bc694e8a",
+      "status": "pending",
+      "principle": "Teach substantive design choices through their motivation, alternatives, and trade-offs in a natural candidate voice.",
+      "rationale": "First-person phrasing alone does not turn conclusions into reusable reasoning.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-news-feed",
+        "feedback_file": "feedback/20260930T025455Z-55d470a3.md"
+      },
+      "proposed_at": "2026-09-30T02:57:38+00:00"
+    },
+    {
+      "id": "memory-423b2f0daed8",
+      "status": "pending",
+      "principle": "Use an instructor\u2019s first-person voice to develop reasoning with the reader, rather than scripting a candidate\u2019s answer.",
+      "rationale": "The newest feedback explicitly distinguishes teaching a design from presenting an answer.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-news-feed",
+        "feedback_file": "feedback/20261003T232320Z-c7139f45.md"
+      },
+      "proposed_at": "2026-10-03T23:27:13+00:00"
+    },
+    {
+      "id": "memory-49011e0e013a",
+      "status": "pending",
+      "principle": "Explain finance-domain differences where they change a design decision, while preserving and labeling the original problem\u2019s scope.",
+      "rationale": "The feedback asks for meaningful distinctions for finance engineers rather than generic consumer-tech treatment.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-news-feed",
+        "feedback_file": "feedback/20261003T232320Z-c7139f45.md"
+      },
+      "proposed_at": "2026-10-03T23:27:13+00:00"
+    },
+    {
+      "id": "memory-8378634ebb8a",
+      "status": "pending",
+      "principle": "Motivate entities from user operations and explain data flow before presenting the architecture diagram.",
+      "rationale": "Readers should understand why concepts and components exist before seeing their definitions and arrangement.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-news-feed",
+        "feedback_file": "feedback/20260930T025455Z-55d470a3.md"
+      },
+      "proposed_at": "2026-09-30T02:57:38+00:00"
+    }
+  ]
+}

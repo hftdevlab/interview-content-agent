@@ -1,0 +1,17 @@
+{
+  "question_id": "sd-e2e-log-publishing-query",
+  "checks": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "review_notes": [
+    "Revised against newest feedback/20261003T230732Z-d25eef6b.md after reloading the active draft-system-design skill, STYLE_GUIDE, source, expert notes, taxonomy, pattern guide, foundations map, and teaching reference observations. Preserved the accepted illustrative workload, architecture, three deep dives, serialization comparison, and handbook links.",
+    "Recast the chapter as an instructor-led worked design with a pricing-service investigation. Made diagnostic visibility, recovery, testability, throughput, and seconds-level freshness priorities explicit. Explained labeled trading hot-path and audit/replay variants at the collection and durability decisions, without changing the general-purpose prompt or treating diagnostic data as authoritative financial state.",
+    "Clarified whole-batch validation/rejection, shared writer/collector disk budgets, and the reachability limit of an optional broker. Architecture and diagram remain consistent; no diagram or metadata changes were needed for this revision.",
+    "Practice reconciliation: content metadata has neither practice nor runnable_experiment linkage. The practice inventory and root CMake registration contain no corresponding package or question-specific test target; no practice changes or tests apply.",
+    "Targeted validation passed via tools.validate.main with --root set to a temporary single-package fixture and --id sd-e2e-log-publishing-query; this isolates the package because --id alone still validates the repository. Checks cover schemas, taxonomy, links, Mermaid source renderability, and lifecycle consistency. Scoped git diff --check passed. PDF rendering, pagination inspection, and repository-wide gates are reserved for the controller. Status remains draft; all metadata and review flags remain false. Source inputs, expert notes, workflow, editorial memory, memory candidates, and generated artifacts were not edited. Independent and human review remain pending.",
+    "Independent agent review passed; human review is required."
+  ]
+}

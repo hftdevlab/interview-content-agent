@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "summary": "No blocking or important issues found. Source fidelity, instructor-led reasoning, technical correctness, workload assumptions, finance boundaries, pattern tags, handbook links, and follow-ups pass. Central decisions explain alternatives and trade-offs. Source validation and the deterministic PDF gate pass; positioned PDF text and SVG inspection confirm seven pages within budget. No practice package is linked or required. No files changed or outputs rebuilt. Human review remains pending.",
+  "issues": [
+    {
+      "severity": "suggestion",
+      "message": "Add a worker-to-database edge labeled \u201csave outcome / retry time\u201d to make the durable recovery loop explicit. The prose and worker label explain it correctly, but the diagram omits the return path.",
+      "file": "content/system-design/sd-e2e-notifications/diagrams/context.mmd"
+    }
+  ]
+}

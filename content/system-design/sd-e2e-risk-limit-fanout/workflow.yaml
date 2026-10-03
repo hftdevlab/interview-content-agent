@@ -1,0 +1,531 @@
+{
+  "schema_version": 1,
+  "run_id": "01bcc9bb-d488-409f-8874-ae33aae1c81c",
+  "question_id": "sd-e2e-risk-limit-fanout",
+  "question_type": "system_design",
+  "state": "needs_human_review",
+  "branch": "question/sd-e2e-risk-limit-fanout",
+  "agent_threads": {
+    "transcription": "",
+    "draft": "01a00026-8df7-78a3-82f1-63b011104a2e",
+    "review": "01a00028-2381-7323-90e7-a924b1156f8e"
+  },
+  "attempts": {
+    "draft": 10,
+    "review": 5
+  },
+  "pending_clarifications": [],
+  "created_at": "2026-08-13T09:56:41+00:00",
+  "updated_at": "2026-08-14T12:09:47+00:00",
+  "events": [
+    {
+      "at": "2026-08-13T09:56:41+00:00",
+      "actor": "human",
+      "type": "submission_archived",
+      "detail": {
+        "input": "risk-limit-fanout.md",
+        "question_type": "system_design"
+      }
+    },
+    {
+      "at": "2026-08-13T09:56:41+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-08-13T10:14:35+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-08-13T10:31:34+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-08-13T10:31:58+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-08-13T10:40:32+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-08-13T10:49:21+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Completed the initial draft for `sd-e2e-risk-limit-fanout`. Updated `question.md`, `metadata.yaml`, `review.yaml`, and `diagrams/context.mmd`; added `diagrams/recovery-sequence.mmd`. Preserved source, expert notes, deduplication, and `workflow.yaml`. Status remains `draft` and every review flag remains false. Targeted validation passes. No runnable experiment or practice target was warranted, and no generated/PDF outputs were rebuilt. Independent and human review remain pending under contentctl.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "python3 -m tools.validate --id sd-e2e-risk-limit-fanout"
+        ],
+        "memory_candidates": []
+      }
+    },
+    {
+      "at": "2026-08-13T10:58:18+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Fixed without changing the core question. Compacted `recovery-sequence.mmd`, corrected deterministic PDF sizing/table rendering, and added a page-budget regression test. `make pdf-preview` now passes; the chapter renders cleanly in 10 pages. Rebuilt :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/system-design-guide.pdf\" purpose=\"output\"}, :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/coding-interview-guide.pdf\" purpose=\"output\"}, and :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/cpp-systems-guide.pdf\" purpose=\"output\"}. Status remains `draft`; all review flags remain false, and human review is still pending.",
+        "clarification_questions": [],
+        "validation_commands": [
+          ".venv/bin/python -m unittest tests.test_publishing -v",
+          "make pdf-preview",
+          "git diff --check"
+        ],
+        "memory_candidates": []
+      }
+    },
+    {
+      "at": "2026-08-13T11:04:54+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": false,
+        "summary": "One important correctness issue prevents passage. Source fidelity, sanitization, reasoning flow, interview calibration, three-improvement/three-follow-up limits, metadata linkage, and the 10-page budget otherwise pass. The target is system design, so the coding-only runnable-package gate does not apply; no practice package is linked and no runnable claims are made. Approved editorial memory is empty. Targeted package and PDF validations passed. No files were edited.",
+        "issues": [
+          {
+            "severity": "important",
+            "message": "The freshness proof is not unambiguously end-to-end. Lines 209\u2013224 say the version authority emits `CURRENT`, while the architecture assigns live sessions to dispatchers; the recovery diagram then sends `CURRENT` directly from the dispatcher to the watchdog, bypassing both an authority-to-dispatcher freshness step and receiver validation. The design never requires a dispatcher isolated from the authority/log to expire its authority proof and stop confirmations. Such a dispatcher could keep renewing `CURRENT(v)` while newer committed limits are unavailable, allowing the gate to remain `LIVE` indefinitely on stale state. Specify an authority-sourced ordered heartbeat or bounded lease/head proof, require dispatchers to stop confirmations when that proof or log-catch-up bound expires, and show the receiver validating the confirmation against its active version before renewing the watchdog.",
+            "file": "content/system-design/sd-e2e-risk-limit-fanout/question.md and diagrams/recovery-sequence.mmd"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-08-13T11:04:54+00:00",
+      "actor": "agent",
+      "type": "agent_review_failed",
+      "detail": {
+        "passed": false,
+        "summary": "One important correctness issue prevents passage. Source fidelity, sanitization, reasoning flow, interview calibration, three-improvement/three-follow-up limits, metadata linkage, and the 10-page budget otherwise pass. The target is system design, so the coding-only runnable-package gate does not apply; no practice package is linked and no runnable claims are made. Approved editorial memory is empty. Targeted package and PDF validations passed. No files were edited.",
+        "issues": [
+          {
+            "severity": "important",
+            "message": "The freshness proof is not unambiguously end-to-end. Lines 209\u2013224 say the version authority emits `CURRENT`, while the architecture assigns live sessions to dispatchers; the recovery diagram then sends `CURRENT` directly from the dispatcher to the watchdog, bypassing both an authority-to-dispatcher freshness step and receiver validation. The design never requires a dispatcher isolated from the authority/log to expire its authority proof and stop confirmations. Such a dispatcher could keep renewing `CURRENT(v)` while newer committed limits are unavailable, allowing the gate to remain `LIVE` indefinitely on stale state. Specify an authority-sourced ordered heartbeat or bounded lease/head proof, require dispatchers to stop confirmations when that proof or log-catch-up bound expires, and show the receiver validating the confirmation against its active version before renewing the watchdog.",
+            "file": "content/system-design/sd-e2e-risk-limit-fanout/question.md and diagrams/recovery-sequence.mmd"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T06:45:47+00:00",
+      "actor": "Human Editor",
+      "type": "human_feedback_received",
+      "detail": {
+        "file": "feedback/20260814T064547Z-3c5ca1e2.md"
+      }
+    },
+    {
+      "at": "2026-08-14T06:45:55+00:00",
+      "actor": "system",
+      "type": "draft_context_rotated",
+      "detail": {
+        "previous_thread": "019ffab5-97bc-7661-87de-908e69eef504"
+      }
+    },
+    {
+      "at": "2026-08-14T06:45:55+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-08-14T06:46:16+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-08-14T06:58:46+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Drafted `sd-e2e-risk-limit-fanout` as an interview tutorial with a running S7 scenario, executed naive-design failure, derived architecture, formal contract, Core/Deep dive/Stretch markers, sizing examples, pitfalls, follow-ups, and evaluation rubric. Added/updated three Mermaid diagrams and rebuilt only their package-scoped SVGs. Foundation links were added where prerequisite material already exists. Preserved source, expert notes, deduplication, and workflow.yaml. Metadata remains draft and every review flag remains false. Targeted validation passes. No practice target exists, so no question-specific practice test applied. Full PDF and repository-wide gates were left to contentctl; independent and human review remain pending.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "python3 -m tools.validate --id sd-e2e-risk-limit-fanout"
+        ],
+        "memory_candidates": []
+      }
+    },
+    {
+      "at": "2026-08-14T07:07:13+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Fixed the deterministic PDF gate without changing the core question. Consolidated the naive-failure and derived-architecture visuals into `context.mmd`, compacted the recovery timeline, removed the redundant third diagram reference, and aligned the focused publishing test with the existing \u201cExpected outcome\u201d table header. The chapter now renders in 10 pages (pages 4\u201313); visual inspection found no clipping, overlap, or illegible diagrams. `workflow.yaml` remains untouched, status remains `draft`, and all review flags remain false. Rebuilt and validated :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/system-design-guide.pdf\" purpose=\"output\"}, :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/coding-interview-guide.pdf\" purpose=\"output\"}, and :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/cpp-systems-guide.pdf\" purpose=\"output\"}. Human and independent review remain pending.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "make pdf-preview",
+          ".venv/bin/python -m unittest tests.test_publishing.PdfPublishingTests.test_review_preview_respects_question_page_budgets -v",
+          ".venv/bin/python -m tools.validate --id sd-e2e-risk-limit-fanout"
+        ],
+        "memory_candidates": []
+      }
+    },
+    {
+      "at": "2026-08-14T09:51:08+00:00",
+      "actor": "system",
+      "type": "agent_review_interrupted",
+      "detail": {
+        "reason": "The read-only review subprocess stopped making progress after an upstream sampling timeout and was interrupted; generated artifacts were preserved."
+      }
+    },
+    {
+      "at": "2026-08-14T09:51:44+00:00",
+      "actor": "Codex visual review",
+      "type": "human_feedback_received",
+      "detail": {
+        "file": "feedback/20260814T095144Z-8322a1bb.md"
+      }
+    },
+    {
+      "at": "2026-08-14T09:52:06+00:00",
+      "actor": "system",
+      "type": "draft_context_rotated",
+      "detail": {
+        "previous_thread": "019fff05-792e-70a2-a217-fc04171a38ee"
+      }
+    },
+    {
+      "at": "2026-08-14T09:52:06+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-08-14T09:58:39+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Revised sd-e2e-risk-limit-fanout from the newest human feedback. Clarified the invariant blockquote, replaced the mixed context diagram with a labeled physical good-path sequence, moved both diagrams after their complete reasoning units, and added receiver-originated nonce binding to prevent freshness-proof stockpiling. Updated diagram metadata and rebuilt generated SVGs. Metadata remains draft, every review flag remains false, and workflow.yaml was untouched. No linked practice package exists, so no question-specific practice tests applied. No PDFs or repository-wide gates were run. Human review remains pending.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "make diagrams",
+          "python3 -m tools.validate --id sd-e2e-risk-limit-fanout"
+        ],
+        "memory_candidates": [
+          {
+            "principle": "Bind relayed freshness proofs to a requester-originated, one-time identity and a bounded local acceptance window.",
+            "rationale": "Otherwise an intermediary may stockpile valid proofs and falsely extend freshness after losing contact with the authority.",
+            "question_types": [
+              "system_design"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T10:01:46+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Fixed the pagination cause without changing question prose or technical content. The recovery sequence now removes two steps already shown in the context diagram, reducing its SVG from 746 to 634 units high so the drawing and caption fit one landscape frame instead of producing a blank page and a caption-only page. Rebuilt diagrams and passed targeted validation. The existing preview was inspected only to locate page boundaries: :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/system-design-guide.pdf\" purpose=\"source\"}. No PDF was rebuilt, workflow.yaml was not edited, lifecycle state remains draft with all review flags false, and the controller-owned PDF gate remains for the controller to rerun.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "make diagrams",
+          "python3 -m tools.validate --id sd-e2e-risk-limit-fanout"
+        ],
+        "memory_candidates": []
+      }
+    },
+    {
+      "at": "2026-08-14T10:13:11+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": false,
+        "summary": "Two important reader-facing issues prevent passage. Source fidelity, tutorial flow, concrete scenario, traced naive failure, physical definitions, sizing conclusion, tiering, first-sentence sweep, follow-ups, technical direction, metadata, and the 10-page numeric limit otherwise pass. No practice package is linked; because this is system design, the coding-only runnable-package gate does not apply. Editorial memory is empty. Targeted validation passed, the complete relevant PDF pages were inspected in :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/system-design-guide.pdf\" purpose=\"source\"}, and no files were edited or regenerated.",
+        "issues": [
+          {
+            "severity": "important",
+            "message": "The rendered chapter still violates the explicit pagination and layout guidance. Page 7 contains only the receiver-publication list and one short paragraph, leaving most of the portrait page blank immediately before the forced landscape diagram on page 8. Pages 6 and 12 also lose the running header and all but the final digit of the footer, unlike adjacent pages. Reflow without reducing normal leading, rebuild the PDF, and visually verify the complete ten-page chapter.",
+            "file": "generated/pdf-preview/system-design-guide.pdf"
+          },
+          {
+            "severity": "important",
+            "message": "The recovery diagram does not causally explain proof ownership or authority-link failure. The receiver's n901 challenge is followed by a signed proof from the sequencer without the dispatcher-to-sequencer forwarding edge; no n902 challenge is shown; `D-->>D` renders authority isolation as floating text rather than a visible failure edge; and reconnect combines the snapshot and fresh authority proof into one dispatcher message without showing renewed authority contact. The diagram therefore cannot demonstrate why isolation prevents a new proof and causes watchdog expiry. Add the missing relay, failure, and recovery edges within this diagram or narrow its claims.",
+            "file": "content/system-design/sd-e2e-risk-limit-fanout/diagrams/recovery-sequence.mmd"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T10:13:11+00:00",
+      "actor": "agent",
+      "type": "agent_review_failed",
+      "detail": {
+        "passed": false,
+        "summary": "Two important reader-facing issues prevent passage. Source fidelity, tutorial flow, concrete scenario, traced naive failure, physical definitions, sizing conclusion, tiering, first-sentence sweep, follow-ups, technical direction, metadata, and the 10-page numeric limit otherwise pass. No practice package is linked; because this is system design, the coding-only runnable-package gate does not apply. Editorial memory is empty. Targeted validation passed, the complete relevant PDF pages were inspected in :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/system-design-guide.pdf\" purpose=\"source\"}, and no files were edited or regenerated.",
+        "issues": [
+          {
+            "severity": "important",
+            "message": "The rendered chapter still violates the explicit pagination and layout guidance. Page 7 contains only the receiver-publication list and one short paragraph, leaving most of the portrait page blank immediately before the forced landscape diagram on page 8. Pages 6 and 12 also lose the running header and all but the final digit of the footer, unlike adjacent pages. Reflow without reducing normal leading, rebuild the PDF, and visually verify the complete ten-page chapter.",
+            "file": "generated/pdf-preview/system-design-guide.pdf"
+          },
+          {
+            "severity": "important",
+            "message": "The recovery diagram does not causally explain proof ownership or authority-link failure. The receiver's n901 challenge is followed by a signed proof from the sequencer without the dispatcher-to-sequencer forwarding edge; no n902 challenge is shown; `D-->>D` renders authority isolation as floating text rather than a visible failure edge; and reconnect combines the snapshot and fresh authority proof into one dispatcher message without showing renewed authority contact. The diagram therefore cannot demonstrate why isolation prevents a new proof and causes watchdog expiry. Add the missing relay, failure, and recovery edges within this diagram or narrow its claims.",
+            "file": "content/system-design/sd-e2e-risk-limit-fanout/diagrams/recovery-sequence.mmd"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T10:16:45+00:00",
+      "actor": "Codex independent review",
+      "type": "human_feedback_received",
+      "detail": {
+        "file": "feedback/20260814T101645Z-5e25bd72.md"
+      }
+    },
+    {
+      "at": "2026-08-14T10:17:03+00:00",
+      "actor": "system",
+      "type": "draft_context_rotated",
+      "detail": {
+        "previous_thread": "019fffaf-9d20-71e0-9a81-5529c6e06101"
+      }
+    },
+    {
+      "at": "2026-08-14T10:17:03+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-08-14T10:21:52+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Revised `sd-e2e-risk-limit-fanout` from the newest feedback only: condensed the three named core sections while preserving decisions, converted the invariant to a normal lead paragraph, narrowed and repositioned the authority-isolation sequence, and updated its caption/alt text. Rebuilt deterministic diagram SVGs only. No practice package is linked, so no question-specific practice test applied. Targeted validation passes. `workflow.yaml` was untouched; status remains `draft`, every review flag remains false, and human review is pending. No PDFs, visual inspection, approval, publication, or repository-wide gates were run.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "make diagrams",
+          "python3 -m tools.validate --id sd-e2e-risk-limit-fanout"
+        ],
+        "memory_candidates": [
+          {
+            "principle": "Present a short invariant as a lead paragraph; reserve bordered callouts for material that benefits from stronger visual separation.",
+            "rationale": "This avoids disproportionate visual weight and pagination artifacts without weakening the claim.",
+            "question_types": [
+              "all"
+            ]
+          },
+          {
+            "principle": "Scope a sequence diagram to one causal claim and omit recovery steps already explained clearly in prose.",
+            "rationale": "A narrower diagram reduces duplication and makes the failure sequence easier to read.",
+            "question_types": [
+              "system_design"
+            ]
+          },
+          {
+            "principle": "Fix sparse pages before forced landscape diagrams by trimming repeated prose rather than tightening body leading.",
+            "rationale": "This keeps complete reasoning units together while preserving normal reading density.",
+            "question_types": [
+              "all"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:04:30+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": false,
+        "summary": "Three important issues prevent passage. Source fidelity, tutorial flow, running scenario, naive-design failure, physical definitions, sizing conclusion, tiering, first-sentence sweep, follow-up limits, metadata, links, and deduplication otherwise pass. No practice package is linked; the coding-only runnable-package requirement does not apply to this system-design question. Editorial memory is empty. Targeted validation passed, all ten chapter pages were inspected in :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/system-design-guide.pdf\" purpose=\"source\"}, and no files were edited.",
+        "issues": [
+          {
+            "severity": "important",
+            "message": "Leader failover can strand every receiver in STALE until another risk change occurs. The fencing token rises on failover, but a receiver renews freshness only when the proof's token and head match its active table. After v42 under term 7, a new leader at term 8 signs HEAD(term=8, head=v42); receivers holding v42/term 7 reject it, while the latest snapshot can still carry term 7. This contradicts the chapter's key principle that freshness is independent of change frequency. Define a quorum-certified term-only transition, regenerate an authority-epoch snapshot, or permit a validated newer authority epoch to renew unchanged content without weakening fencing; align reconnect behavior with that rule.",
+            "file": "content/system-design/sd-e2e-risk-limit-fanout/question.md"
+          },
+          {
+            "severity": "important",
+            "message": "Watchdog-expiry ownership is unsafe or materially ambiguous for the motivating stalled-receiver fault. The prose assigns the state machine to the receiver, and both diagrams show the receiver sending expiry to Gate7. A receiver stalled after publishing LIVE cannot emit that transition, so Gate7 could continue on stale limits. Require the Gate7 order thread to compare a stored monotonic deadline on every order\u2014or use an independent local watchdog that cannot share the receiver's stall\u2014and show that ownership in the diagrams.",
+            "file": "content/system-design/sd-e2e-risk-limit-fanout/question.md; content/system-design/sd-e2e-risk-limit-fanout/diagrams/context.mmd; content/system-design/sd-e2e-risk-limit-fanout/diagrams/recovery-sequence.mmd"
+          },
+          {
+            "severity": "important",
+            "message": "The rendered chapter still violates explicit pagination and running-furniture guidance. Guide page 7 contains only list items 4\u20135 and one short paragraph, leaving nearly the entire portrait page blank immediately before the landscape good-path diagram. Pages 5, 7, and 12 also render without the visible running header and with only the page-number digit instead of the complete footer. Reflow at normal body leading, rebuild, and visually verify every portrait and landscape page.",
+            "file": "generated/pdf-preview/system-design-guide.pdf"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:21:18+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Addressed all three findings. Freshness now separates content `(version, hash)` from the certified authority epoch, allowing term-only failover without a new risk update while fencing older epochs. Gate7 independently checks the stored monotonic proof deadline on every order, including when the receiver stalls; both diagrams reflect that ownership. Condensed the core explanation from 613 to 470 words at normal leading. The chapter now occupies guide pages 4\u201312, with the core ending on portrait page 6 and the good-path diagram on landscape page 7. Every page and both diagrams were visually inspected; headers, complete footers, tables, and labels are visible and unclipped. Rebuilt :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/system-design-guide.pdf\" purpose=\"output\"}, :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/coding-interview-guide.pdf\" purpose=\"output\"}, and :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/cpp-systems-guide.pdf\" purpose=\"output\"}. Source, expert notes, and `workflow.yaml` remain unchanged; status is `draft`, all review flags remain false, and human review is pending. No practice package is linked, so no practice test applied.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "make diagrams",
+          "python3 -m tools.validate --id sd-e2e-risk-limit-fanout",
+          "make pdf-preview",
+          ".venv/bin/python -m unittest tests.test_publishing -v"
+        ],
+        "memory_candidates": []
+      }
+    },
+    {
+      "at": "2026-08-14T11:28:11+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": false,
+        "summary": "One important presentation issue prevents passage. Source fidelity, interview realism, tutorial flow, technical correctness, concrete scenario, traced naive failure, physical definitions, illustrative sizing and bottleneck conclusion, Core/Deep dive/Stretch paths, paragraph-thesis sweep, diagrams, three-improvement/three-follow-up limits, metadata, links, and deduplication otherwise pass. The chapter occupies nine pages. No practice package is linked; the runnable-package gate applies only to coding questions. Editorial memory contains no applicable lessons. Targeted validation passed, the current PDF was visually inspected, and no files were edited or rebuilt.",
+        "issues": [
+          {
+            "severity": "important",
+            "message": "The current PDF still violates the explicit running-furniture requirement. Guide pages 5 and 11 omit the running header and show only footer fragments (\u201c0 | 5\u201d and \u201c| 11\u201d), while adjacent portrait and landscape pages have complete headers and footers. Fix the pagination/rendering without reducing normal body leading, rebuild, and visually verify every page.",
+            "file": "generated/pdf-preview/system-design-guide.pdf"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:28:11+00:00",
+      "actor": "agent",
+      "type": "agent_review_failed",
+      "detail": {
+        "passed": false,
+        "summary": "One important presentation issue prevents passage. Source fidelity, interview realism, tutorial flow, technical correctness, concrete scenario, traced naive failure, physical definitions, illustrative sizing and bottleneck conclusion, Core/Deep dive/Stretch paths, paragraph-thesis sweep, diagrams, three-improvement/three-follow-up limits, metadata, links, and deduplication otherwise pass. The chapter occupies nine pages. No practice package is linked; the runnable-package gate applies only to coding questions. Editorial memory contains no applicable lessons. Targeted validation passed, the current PDF was visually inspected, and no files were edited or rebuilt.",
+        "issues": [
+          {
+            "severity": "important",
+            "message": "The current PDF still violates the explicit running-furniture requirement. Guide pages 5 and 11 omit the running header and show only footer fragments (\u201c0 | 5\u201d and \u201c| 11\u201d), while adjacent portrait and landscape pages have complete headers and footers. Fix the pagination/rendering without reducing normal body leading, rebuild, and visually verify every page.",
+            "file": "generated/pdf-preview/system-design-guide.pdf"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:38:20+00:00",
+      "actor": "Codex PDF verification",
+      "type": "human_feedback_received",
+      "detail": {
+        "file": "feedback/20260814T113820Z-fc16c66f.md"
+      }
+    },
+    {
+      "at": "2026-08-14T11:38:39+00:00",
+      "actor": "system",
+      "type": "draft_context_rotated",
+      "detail": {
+        "previous_thread": "019fffc6-71cd-7f30-8474-a1e349e62b1b"
+      }
+    },
+    {
+      "at": "2026-08-14T11:38:39+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-08-14T11:40:13+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "No source changes were warranted: the newest feedback says the chapter and diagrams already pass and explicitly forbids further edits or compression. No linked practice package exists, so no question-specific practice test applied. Targeted validation passed. No PDFs or generated outputs were rebuilt or inspected, and no repository-wide gates ran. workflow.yaml was untouched; metadata remains draft, every review flag remains false, and human review is still pending.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "python3 -m tools.validate --id sd-e2e-risk-limit-fanout"
+        ],
+        "memory_candidates": [
+          {
+            "principle": "When an inspection surface appears cropped, verify the underlying artifact with independent pixel and positioned-text evidence before reporting missing content.",
+            "rationale": "This prevents viewer-side display artifacts from being misclassified as publication defects.",
+            "question_types": [
+              "all"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:54:18+00:00",
+      "actor": "system",
+      "type": "agent_review_interrupted",
+      "detail": {
+        "reason": "The read-only reviewer stalled while attempting unavailable browser/raster fallbacks; deterministic PDF validation and generated artifacts were preserved."
+      }
+    },
+    {
+      "at": "2026-08-14T12:01:41+00:00",
+      "actor": "Codex workflow recovery",
+      "type": "human_feedback_received",
+      "detail": {
+        "file": "feedback/20260814T120141Z-9406cb97.md"
+      }
+    },
+    {
+      "at": "2026-08-14T12:02:01+00:00",
+      "actor": "system",
+      "type": "draft_context_rotated",
+      "detail": {
+        "previous_thread": "01a00011-287f-79f1-a87d-e4f052c92dc9"
+      }
+    },
+    {
+      "at": "2026-08-14T12:02:01+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-08-14T12:03:45+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "No source changes were warranted: the newest human feedback explicitly requests no chapter or diagram changes. No practice package is linked, so no question-specific practice tests applied. Targeted validation passed with python3. workflow.yaml was untouched; metadata remains draft and every review flag remains false. No PDFs, generated outputs, repository-wide gates, approval, or publication actions were performed. Human review remains pending.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "python3 -m tools.validate --id sd-e2e-risk-limit-fanout"
+        ],
+        "memory_candidates": []
+      }
+    },
+    {
+      "at": "2026-08-14T12:09:47+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": true,
+        "summary": "Pass with no blocking or important issues. The chapter preserves the source, reads as an interview tutorial, and includes the required running scenario, fully traced naive failure, physically grounded architecture, illustrative sizing with bottleneck conclusions, and visible Core/Deep dive/Stretch paths. The first-sentence sweep forms a coherent argument without uniformly dense exposition. Both diagrams explain flow, ownership, ordering, and failure behavior. There are exactly three improvements and three realistic follow-ups. Metadata, deduplication, related links, and taxonomy validate; no practice package is linked or required for this system-design question. Editorial memory has no applicable lessons. Targeted validation and the deterministic PDF gate passed. `pypdf` confirms the chapter occupies nine of ten permitted pages and that complete positioned headers and footers exist on every relevant page in :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/system-design-guide.pdf\" purpose=\"source\"}. No files or generated artifacts were changed.",
+        "issues": []
+      }
+    },
+    {
+      "at": "2026-08-14T12:09:47+00:00",
+      "actor": "system",
+      "type": "human_review_requested",
+      "detail": {
+        "summary": "Pass with no blocking or important issues. The chapter preserves the source, reads as an interview tutorial, and includes the required running scenario, fully traced naive failure, physically grounded architecture, illustrative sizing with bottleneck conclusions, and visible Core/Deep dive/Stretch paths. The first-sentence sweep forms a coherent argument without uniformly dense exposition. Both diagrams explain flow, ownership, ordering, and failure behavior. There are exactly three improvements and three realistic follow-ups. Metadata, deduplication, related links, and taxonomy validate; no practice package is linked or required for this system-design question. Editorial memory has no applicable lessons. Targeted validation and the deterministic PDF gate passed. `pypdf` confirms the chapter occupies nine of ten permitted pages and that complete positioned headers and footers exist on every relevant page in :codex-file-citation{path=\"/Users/jiahaocui/Documents/New Project/e2e-testing/generated/pdf-preview/system-design-guide.pdf\" purpose=\"source\"}. No files or generated artifacts were changed."
+      }
+    }
+  ]
+}

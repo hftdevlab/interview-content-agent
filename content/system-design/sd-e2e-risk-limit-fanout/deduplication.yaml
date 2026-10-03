@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "algorithm": "token-jaccard-v1",
+  "query": {
+    "title": "Risk-Limit Update Fan-Out",
+    "question_type": "system_design"
+  },
+  "blocking_threshold": 0.82,
+  "blocking_candidates": [],
+  "candidates": [],
+  "human_decision": "not_required",
+  "human_reason": ""
+}

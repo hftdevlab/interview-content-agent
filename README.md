@@ -207,6 +207,30 @@ the question as JSON-compatible `workflow.yaml`, `deduplication.yaml`, and (when
 needed) `memory-candidates.yaml`. Human-approved reusable lessons live in root
 `editorial-memory.yaml`.
 
+### Foundational readability trials
+
+The [three live E2E trials](tests/e2e/system-design/README.md) exercise news feeds,
+notifications, and log collection/search from short prompts. Their
+[evaluation record](tests/e2e/system-design/RESULTS.md) separates readability
+findings from build and review outcomes. Run them explicitly in an isolated
+worktree; ordinary CI uses deterministic lifecycle tests and does not call a
+model. After a failed agent review, `contentctl continue` now resumes from the
+saved findings and requires a fresh independent review.
+
+System-design tutorials now follow requirements, entities, useful interfaces,
+architecture, and focused deep dives, rather than mandatory good/great/rubric
+sections. First-person instructor tutorials (not candidate answer scripts)
+derive entities and choices, explain data flow before the diagram, and connect
+interface/storage decisions to the
+workload. Accessible exposition must not remove the problem's defining scale
+challenge. [Design patterns](content/SYSTEM_DESIGN_PATTERNS.md) are expandable
+challenge categories. Meaningful trading/finance distinctions belong at the
+decisions they change, with explicit workload and correctness assumptions, not
+as generic domain sidebars. The patterns provide trading-domain applications;
+selected metadata IDs are validated and indexed in the catalogs. Existing legacy chapters remain
+valid. The [expert-style revision record](tests/e2e/system-design/REFERENCE_REVIEW.md)
+explains the teaching changes and feedback replay procedure.
+
 ### Codex execution errors
 
 `contentctl` reports Codex subprocess failures with a stable category in square

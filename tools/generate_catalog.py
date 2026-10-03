@@ -13,6 +13,7 @@ from tools.content import (
     QuestionRecord,
     discover_questions,
     guide_spec,
+    load_data,
     question_anchor,
     questions_by_type,
 )
@@ -45,6 +46,7 @@ def render_catalog_markdown(
     *,
     link_prefix: str,
     heading_level: int = 1,
+    root: Path = ROOT,
 ) -> str:
     """Render counts and a categorized question index.
 
@@ -88,6 +90,33 @@ def render_catalog_markdown(
     )
     for difficulty in range(1, 6):
         lines.append(f"| {difficulty} | {difficulties.get(difficulty, 0)} |")
+
+    by_pattern: dict[str, list[QuestionRecord]] = defaultdict(list)
+    for record in records:
+        for pattern in record.metadata.get("design_patterns", []):
+            by_pattern[str(pattern)].append(record)
+    if by_pattern:
+        pattern_labels = {
+            item["id"]: item["label"]
+            for item in load_data(root / "taxonomy/design-patterns.yaml")["patterns"]
+        }
+        lines.extend(["", f"{subheading} Design patterns", ""])
+        for pattern, items in sorted(by_pattern.items()):
+            label = pattern_labels.get(pattern, _display_slug(pattern))
+            lines.extend(
+                [
+                    f'<a id="pattern-{pattern}"></a>',
+                    "",
+                    f"{item_heading} {label}",
+                    "",
+                ]
+            )
+            for record in sorted(
+                items, key=lambda item: (item.title.casefold(), item.question_id)
+            ):
+                target = f"{link_prefix}#{question_anchor(record.question_id)}"
+                lines.append(f"- [{record.title}]({target})")
+            lines.append("")
 
     by_category: dict[str, list[QuestionRecord]] = defaultdict(list)
     for record in records:
@@ -140,6 +169,7 @@ def generate_catalogs(
                 question_type,
                 grouped[question_type],
                 link_prefix=guide_target,
+                root=root,
             ),
             encoding="utf-8",
         )

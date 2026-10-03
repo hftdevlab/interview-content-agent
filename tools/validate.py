@@ -73,6 +73,14 @@ REQUIRED_HEADINGS = {
     ],
 }
 
+SYSTEM_DESIGN_TUTORIAL_HEADINGS = (
+    "## Question and clarifications",
+    "## Requirements",
+    "## Core entities",
+    "## High-level architecture",
+    "## Deep dives",
+)
+
 PLACEHOLDER_PATTERN = re.compile(
     r"\b(?:TODO|TBD|FIXME|INSERT\s+ANSWER|NEEDS\s+DIAGRAM|"
     r"UNKNOWN\s+COMPLEXITY|PLACEHOLDER)\b",
@@ -84,6 +92,10 @@ SECTION_ITEM_LIMITS = {
     "system_design": (
         "## Great solution improvements",
         "## Follow-up questions",
+        "## Follow-ups",
+        "## Pitfalls",
+        "## Improvements",
+        "## Follow-ups and pitfalls",
     ),
     "coding": (
         "## Optional improvements",
@@ -354,6 +366,115 @@ def _load_taxonomy(root: Path, name: str) -> set[str]:
     if len(values) != len(set(values)):
         raise ValueError(f"taxonomy/{name}.yaml: values must be unique")
     return set(values)
+
+
+def _load_design_patterns(root: Path) -> set[str]:
+    """Validate the expandable pattern registry and return its controlled IDs."""
+
+    relative = "taxonomy/design-patterns.yaml"
+    registry = load_data(root / relative)
+    if not isinstance(registry, dict) or registry.get("schema_version") != 1:
+        raise ValueError(f"{relative}: expected registry schema_version 1")
+    patterns = registry.get("patterns")
+    if not isinstance(patterns, list) or not patterns:
+        raise ValueError(f"{relative}: patterns must be a non-empty list")
+    ids: set[str] = set()
+    for pattern in patterns:
+        required = ("id", "label", "challenge", "trading_application", "caveat")
+        if not isinstance(pattern, dict) or any(
+            not isinstance(pattern.get(field), str) or not pattern[field].strip()
+            for field in required
+        ):
+            raise ValueError(f"{relative}: each pattern requires non-empty {required}")
+        pattern_id = pattern["id"]
+        if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", pattern_id):
+            raise ValueError(f"{relative}: invalid pattern ID {pattern_id!r}")
+        if pattern_id in ids:
+            raise ValueError(f"{relative}: duplicate pattern ID {pattern_id!r}")
+        ids.add(pattern_id)
+    return ids
+
+
+def _unfenced_lines(markdown: str) -> list[str]:
+    """Keep line positions while excluding fenced examples from structure checks."""
+
+    lines: list[str] = []
+    fence: Optional[str] = None
+    for line in markdown.splitlines():
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
+        if marker:
+            candidate = marker.group(1)
+            if fence is None:
+                fence = candidate
+            elif (
+                candidate[0] == fence[0]
+                and len(candidate) >= len(fence)
+                and not line[marker.end():].strip()
+            ):
+                fence = None
+            lines.append("")
+        else:
+            lines.append(line if fence is None else "")
+    return lines
+
+
+def _heading_issues(
+    location: str,
+    markdown: str,
+    question_type: str,
+    diagrams: Sequence[Mapping[str, Any]],
+) -> List[ValidationIssue]:
+    lines = _unfenced_lines(markdown)
+    headings = {
+        line.strip(): index
+        for index, line in enumerate(lines)
+        if re.match(r"^ {0,3}#{1,6} ", line)
+    }
+    legacy = REQUIRED_HEADINGS[question_type]
+    tutorial = question_type == "system_design" and any(
+        heading in headings for heading in SYSTEM_DESIGN_TUTORIAL_HEADINGS
+    )
+    if all(heading in headings for heading in legacy):
+        return []
+    required = SYSTEM_DESIGN_TUTORIAL_HEADINGS if tutorial else legacy
+    issues = [
+        ValidationIssue(location, f"missing required heading {heading!r}")
+        for heading in required
+        if heading not in headings
+    ]
+    if not tutorial:
+        return issues
+
+    def section(heading: str) -> list[str]:
+        if heading not in headings:
+            return []
+        start = headings[heading] + 1
+        end = next(
+            (
+                index for index in range(start, len(lines))
+                if re.match(r"^ {0,3}## ", lines[index])
+            ),
+            len(lines),
+        )
+        return lines[start:end]
+
+    requirements = section("## Requirements")
+    for heading in ("### Functional requirements", "### Non-functional requirements"):
+        if heading not in {line.strip() for line in requirements}:
+            issues.append(
+                ValidationIssue(location, f"Requirements must contain {heading!r}")
+            )
+    architecture = "\n".join(section("## High-level architecture"))
+    declared = {diagram.get("rendered_file") for diagram in diagrams}
+    images = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", architecture)
+    if not any(Path(target).name in declared for target in images):
+        issues.append(
+            ValidationIssue(
+                location,
+                "High-level architecture must reference at least one declared diagram",
+            )
+        )
+    return issues
 
 
 def _review_file_issues(
@@ -681,7 +802,15 @@ def _section_item_issues(
     question_type: str,
 ) -> List[ValidationIssue]:
     issues: List[ValidationIssue] = []
-    lines = markdown.splitlines()
+    lines = _unfenced_lines(markdown)
+
+    def count_items(section: Sequence[str], heading_prefix: str = "### ") -> int:
+        subsection_count = sum(line.startswith(heading_prefix) for line in section)
+        top_level_bullets = sum(
+            bool(re.match(r"^(?:[-*] |[0-9]+[.)] )", line)) for line in section
+        )
+        return subsection_count if subsection_count else top_level_bullets
+
     for section_heading in SECTION_ITEM_LIMITS[question_type]:
         try:
             start = lines.index(section_heading) + 1
@@ -696,18 +825,39 @@ def _section_item_issues(
             len(lines),
         )
         section = lines[start:end]
-        subsection_count = sum(line.startswith("### ") for line in section)
-        top_level_bullets = sum(
-            line.startswith(("- ", "* ")) for line in section
-        )
-        item_count = subsection_count if subsection_count else top_level_bullets
-        if item_count > 3:
-            issues.append(
-                ValidationIssue(
-                    str(content_path.relative_to(root)),
-                    f"{section_heading!r} has {item_count} items; maximum is 3",
+        counts = {section_heading: count_items(section)}
+        if section_heading == "## Follow-ups and pitfalls":
+            aliases = {
+                "### follow-ups": "Follow-ups",
+                "### follow-up questions": "Follow-ups",
+                "### pitfalls": "Pitfalls",
+                "### common pitfalls": "Pitfalls",
+            }
+            groups = [
+                (index, aliases.get(line.casefold()))
+                for index, line in enumerate(section)
+                if line.startswith("### ")
+            ]
+            if groups and all(label is not None for _, label in groups):
+                # Clear groups may contain three of each, not three in total.
+                counts = {section_heading: count_items(section[:groups[0][0]])}
+                for group_index, (group_start, label) in enumerate(groups):
+                    group_end = (
+                        groups[group_index + 1][0]
+                        if group_index + 1 < len(groups) else len(section)
+                    )
+                    key = f"{section_heading} / {label}"
+                    counts[key] = counts.get(key, 0) + count_items(
+                        section[group_start + 1:group_end], "#### "
+                    )
+        for heading, item_count in counts.items():
+            if item_count > 3:
+                issues.append(
+                    ValidationIssue(
+                        str(content_path.relative_to(root)),
+                        f"{heading!r} has {item_count} items; maximum is 3",
+                    )
                 )
-            )
     return issues
 
 
@@ -1107,6 +1257,7 @@ def validate_repository(root: Path = ROOT) -> List[ValidationIssue]:
     try:
         allowed_categories = _load_taxonomy(root, "categories")
         allowed_tags = _load_taxonomy(root, "tags")
+        allowed_design_patterns = _load_design_patterns(root)
         difficulty = load_data(root / "taxonomy" / "difficulty.yaml")
         expected_levels = {str(number) for number in range(1, 6)}
         if set(difficulty.get("levels", {})) != expected_levels:
@@ -1200,8 +1351,14 @@ def validate_repository(root: Path = ROOT) -> List[ValidationIssue]:
         for field, allowed in (
             ("categories", allowed_categories),
             ("tags", allowed_tags),
+            ("design_patterns", allowed_design_patterns),
         ):
-            for value in metadata.get(field, []):
+            values = metadata.get(field, [])
+            if not isinstance(values, list):
+                continue  # The metadata schema reports the type error.
+            for value in values:
+                if not isinstance(value, str):
+                    continue
                 if value not in allowed:
                     issues.append(
                         ValidationIssue(
@@ -1243,14 +1400,14 @@ def validate_repository(root: Path = ROOT) -> List[ValidationIssue]:
         content_path = package_dir / str(metadata.get("content_file", "question.md"))
         if content_path.is_file():
             markdown = content_path.read_text(encoding="utf-8")
-            for heading in REQUIRED_HEADINGS[question_type]:
-                if heading not in markdown:
-                    issues.append(
-                        ValidationIssue(
-                            str(content_path.relative_to(root)),
-                            f"missing required heading {heading!r}",
-                        )
-                    )
+            issues.extend(
+                _heading_issues(
+                    str(content_path.relative_to(root)),
+                    markdown,
+                    question_type,
+                    metadata.get("diagrams", []),
+                )
+            )
             issues.extend(
                 _section_item_issues(
                     root,
