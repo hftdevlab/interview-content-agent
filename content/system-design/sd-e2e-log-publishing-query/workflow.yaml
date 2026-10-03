@@ -7,16 +7,16 @@
   "branch": "",
   "agent_threads": {
     "transcription": "",
-    "draft": "01a0f033-930c-72b1-a5bc-1743dbf133bc",
-    "review": "01a0f038-4e02-7f32-8c9e-8913e9dd143c"
+    "draft": "01a10405-d199-7ef3-962a-496b419f5bf1",
+    "review": "01a10410-d5c7-7403-a64b-8a4363b8a03b"
   },
   "attempts": {
-    "draft": 5,
-    "review": 5
+    "draft": 6,
+    "review": 6
   },
   "pending_clarifications": [],
   "created_at": "2026-09-28T04:05:19+00:00",
-  "updated_at": "2026-09-30T02:51:13+00:00",
+  "updated_at": "2026-10-03T23:20:30+00:00",
   "events": [
     {
       "at": "2026-09-28T04:05:19+00:00",
@@ -292,6 +292,85 @@
       "type": "human_review_requested",
       "detail": {
         "summary": "Independent review passed: source fidelity, interview realism, first-person decision reasoning, workload assumptions, technical correctness, paragraph flow, pattern tags, handbook links, and follow-ups are sound. Source validation and the deterministic PDF gate pass. Positioned PDF text confirms the previous pagination issue is resolved; pages 4\u20139 fit the ten-page budget. The SVG agrees with the walkthrough. No runnable package is linked or required for this system-design question. No files changed; human review remains pending."
+      }
+    },
+    {
+      "at": "2026-10-03T23:07:32+00:00",
+      "actor": "Human Editor",
+      "type": "human_feedback_received",
+      "detail": {
+        "file": "feedback/20261003T230732Z-d25eef6b.md"
+      }
+    },
+    {
+      "at": "2026-10-03T23:07:32+00:00",
+      "actor": "system",
+      "type": "draft_context_rotated",
+      "detail": {
+        "previous_thread": "01a0f033-930c-72b1-a5bc-1743dbf133bc"
+      }
+    },
+    {
+      "at": "2026-10-03T23:07:32+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-10-03T23:19:33+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Revised question.md and review.yaml with instructor-led reasoning and finance-specific diagnostic, hot-path, and audit/replay distinctions. Preserved workload calculations and three deep dives. Targeted validation passed; no linked practice package or applicable tests exist. Generated outputs were not rebuilt. Status remains draft, all review flags remain false, and workflow.yaml is untouched. Independent and human review remain pending.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "PYTHONPATH=. python /tmp/check_logs.py",
+          "git diff --check -- content/system-design/sd-e2e-log-publishing-query/question.md content/system-design/sd-e2e-log-publishing-query/review.yaml"
+        ],
+        "memory_candidates": [
+          {
+            "principle": "Teach system design as an instructor developing a worked example, rather than a candidate reciting an answer.",
+            "rationale": "The newest feedback distinguishes teaching reusable reasoning from narrating implementation choices.",
+            "question_types": [
+              "system_design"
+            ]
+          },
+          {
+            "principle": "Explain domain differences where they change a design decision, and label variants that require a different contract.",
+            "rationale": "Finance-focused teaching should connect reliability, latency, and correctness priorities to concrete choices without changing the original prompt.",
+            "question_types": [
+              "system_design"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-10-03T23:20:30+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": true,
+        "summary": "Independent review passed. The source-faithful tutorial develops justified choices, explains flows before the diagram, preserves meaningful ingestion scale, and distinguishes diagnostics from authoritative financial records. Paragraph openings, three deep dives, two follow-ups, pattern tags, and handbook links support the teaching. Repository validation and deterministic PDF validation passed; positioned PDF text confirms seven chapter pages within budget. No practice package is linked or required for this system-design question. No files changed; human review remains pending.",
+        "issues": []
+      }
+    },
+    {
+      "at": "2026-10-03T23:20:30+00:00",
+      "actor": "agent",
+      "type": "memory_candidates_proposed",
+      "detail": [
+        "memory-9713eb2fc8bd",
+        "memory-bbcd08c849c5"
+      ]
+    },
+    {
+      "at": "2026-10-03T23:20:30+00:00",
+      "actor": "system",
+      "type": "human_review_requested",
+      "detail": {
+        "summary": "Independent review passed. The source-faithful tutorial develops justified choices, explains flows before the diagram, preserves meaningful ingestion scale, and distinguishes diagnostics from authoritative financial records. Paragraph openings, three deep dives, two follow-ups, pattern tags, and handbook links support the teaching. Repository validation and deterministic PDF validation passed; positioned PDF text confirms seven chapter pages within budget. No practice package is linked or required for this system-design question. No files changed; human review remains pending."
       }
     }
   ]

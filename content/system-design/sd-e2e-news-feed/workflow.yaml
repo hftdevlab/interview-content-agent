@@ -7,16 +7,16 @@
   "branch": "",
   "agent_threads": {
     "transcription": "",
-    "draft": "01a0f03c-8dcc-7751-996f-9cd0f6435efa",
-    "review": "01a0f03e-4cc9-7cb0-89c2-81588153df1c"
+    "draft": "01a10414-4a24-7783-b49e-6a24a2712b4f",
+    "review": "01a10416-a667-79a0-bfdc-691ce0f63ae0"
   },
   "attempts": {
-    "draft": 7,
-    "review": 5
+    "draft": 8,
+    "review": 6
   },
   "pending_clarifications": [],
   "created_at": "2026-09-28T03:50:13+00:00",
-  "updated_at": "2026-09-30T02:57:38+00:00",
+  "updated_at": "2026-10-03T23:27:13+00:00",
   "events": [
     {
       "at": "2026-09-28T03:50:13+00:00",
@@ -387,6 +387,97 @@
       "type": "human_review_requested",
       "detail": {
         "summary": "Source fidelity, interview realism, reasoning flow, technical correctness, pattern tags, handbook links, and follow-ups pass. Central decisions explain alternatives and trade-offs. Repository validation and the PDF gate pass; positioned PDF text confirms six pages within the ten-page budget. No practice package is linked or required for this system-design question. No files changed; human approval remains pending."
+      }
+    },
+    {
+      "at": "2026-10-03T23:23:20+00:00",
+      "actor": "Human Editor",
+      "type": "human_feedback_received",
+      "detail": {
+        "file": "feedback/20261003T232320Z-c7139f45.md"
+      }
+    },
+    {
+      "at": "2026-10-03T23:23:20+00:00",
+      "actor": "system",
+      "type": "draft_context_rotated",
+      "detail": {
+        "previous_thread": "01a0f03c-8dcc-7751-996f-9cd0f6435efa"
+      }
+    },
+    {
+      "at": "2026-10-03T23:23:20+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-10-03T23:25:54+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Revised question.md and review.yaml with instructor-led reasoning, finance-specific distinctions, and recovery tests while preserving accepted workload and design material. Targeted validation passed. No linked practice package or applicable practice tests exist. Status remains draft with all review flags false. Workflow and preserved inputs are unchanged; no PDFs or generated outputs rebuilt. Independent and human review remain pending.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "python -m tools.validate --root /var/folders/vp/bgnwhh197218lglwrqt8wt_m0000gn/T/news-feed-targeted-ycrrq46s --id sd-e2e-news-feed",
+          "python /tmp/validate_news_feed.py",
+          "git diff --check -- content/system-design/sd-e2e-news-feed"
+        ],
+        "memory_candidates": [
+          {
+            "principle": "Use an instructor\u2019s first-person voice to develop reasoning with the reader, rather than scripting a candidate\u2019s answer.",
+            "rationale": "The newest feedback explicitly distinguishes teaching a design from presenting an answer.",
+            "question_types": [
+              "system_design"
+            ]
+          },
+          {
+            "principle": "Explain finance-domain differences where they change a design decision, while preserving and labeling the original problem\u2019s scope.",
+            "rationale": "The feedback asks for meaningful distinctions for finance engineers rather than generic consumer-tech treatment.",
+            "question_types": [
+              "system_design"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-10-03T23:27:13+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": true,
+        "summary": "Source fidelity, instructor-led reasoning, technical correctness, workload, pattern tags, handbook links, and follow-ups pass. Central decisions explain alternatives and trade-offs. Repository validation and the deterministic PDF gate pass; the chapter occupies seven pages within its ten-page budget. No runnable package is linked or required for this system-design question. No files changed; human approval remains pending.",
+        "issues": [
+          {
+            "severity": "suggestion",
+            "message": "Label architecture edges with their operations and route the direct phone-to-storage edge around the application box. SVG coordinates confirm that this edge passes behind the box, obscuring the independent media path. The preceding walkthrough explains the flow correctly.",
+            "file": "content/system-design/sd-e2e-news-feed/diagrams/context.mmd"
+          },
+          {
+            "severity": "suggestion",
+            "message": "The generated SVG accessibility title says \u201cMarket data architecture.\u201d Update the renderer to supply a question-specific title and regenerate.",
+            "file": "generated/diagrams/sd-e2e-news-feed/context.svg"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-10-03T23:27:13+00:00",
+      "actor": "agent",
+      "type": "memory_candidates_proposed",
+      "detail": [
+        "memory-423b2f0daed8",
+        "memory-49011e0e013a"
+      ]
+    },
+    {
+      "at": "2026-10-03T23:27:13+00:00",
+      "actor": "system",
+      "type": "human_review_requested",
+      "detail": {
+        "summary": "Source fidelity, instructor-led reasoning, technical correctness, workload, pattern tags, handbook links, and follow-ups pass. Central decisions explain alternatives and trade-offs. Repository validation and the deterministic PDF gate pass; the chapter occupies seven pages within its ten-page budget. No runnable package is linked or required for this system-design question. No files changed; human approval remains pending."
       }
     }
   ]

@@ -69,8 +69,13 @@ For each chapter, record concrete evidence for these checks:
   diagram summarizes them? Can a reader follow the flow without decoding the
   diagram first?
 - For two or three central decisions, can the reader explain the need, relevant
-  alternative, reason for the choice, and trade-off? Does the first-person voice
-  convey this reasoning instead of attaching "I would" to unexplained claims?
+  alternative, reason for the choice, and trade-off? Does the first-person
+  instructor teach reusable reasoning, rather than perform a candidate answer
+  or attach teaching phrases to unexplained claims?
+- Are meaningful finance/trading differences tied to decisions, with explicit
+  priority assumptions and without silently changing the general-purpose
+  prompt? Does the chapter distinguish operational visibility from risk
+  enforcement, lossless audit, or replay when those distinctions matter?
 - When wire representation affects the design, are serialization choices tied
   to payload size, parsing cost, compatibility, and operational readability?
 - Are unfamiliar terms explained at first use, with useful prerequisite links
@@ -112,7 +117,7 @@ submission. Any proposed editorial memories remain pending human approval.
 
 ## Apply the reasoning-rich tutorial feedback
 
-The next [editor feedback](reasoning-feedback.md) asks for a candidate's reasoning,
+The earlier [editor feedback](reasoning-feedback.md) asks for visible reasoning,
 not just the right outline and conclusions: motivate entities, explain data flow
 before the diagram, discuss relevant serialization trade-offs, and preserve the
 defining workload. Apply it to existing trials with the current skills and
@@ -131,3 +136,25 @@ the same feedback again. Record concrete before/after reasoning evidence in
 `RESULTS.md`; a prompt-routing test or first-person wording is not a teaching
 quality score. Keep all content and proposed reusable memories awaiting human
 approval.
+
+## Apply the instructor-led finance-engineering feedback
+
+The latest [editor request and verbatim skill snapshot](instructor-feedback.md)
+clarify that the narrator is an instructor, not a candidate performing an
+answer. The tutorial teaches a reusable way to derive the design. It should
+highlight meaningful trading/finance differences without replacing the original
+question or treating every component as a trading hot path. The active skill,
+style guide, review criteria, and all three workflow prompts now agree on this.
+
+```bash
+"$PYTHON" -m tools.workflow feedback --id sd-e2e-log-publishing-query \
+  --file tests/e2e/system-design/instructor-feedback.md --continue
+```
+
+Repeat sequentially for notifications and news feeds. The controller appends
+feedback, revises the source, runs validation, and obtains independent review.
+If interrupted, use `contentctl continue`; never re-submit the same ID or
+manually reset lifecycle flags. Existing feedback and pending memory proposals
+are historical records, not new instructions or human approvals. Assess the
+actual prose and rendered pages; prompt-routing tests do not prove teaching
+quality.

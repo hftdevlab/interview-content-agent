@@ -45,6 +45,34 @@
       "proposed_at": "2026-09-30T02:51:13+00:00"
     },
     {
+      "id": "memory-9713eb2fc8bd",
+      "status": "pending",
+      "principle": "Teach system design as an instructor developing a worked example, rather than a candidate reciting an answer.",
+      "rationale": "The newest feedback distinguishes teaching reusable reasoning from narrating implementation choices.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-log-publishing-query",
+        "feedback_file": "feedback/20261003T230732Z-d25eef6b.md"
+      },
+      "proposed_at": "2026-10-03T23:20:30+00:00"
+    },
+    {
+      "id": "memory-bbcd08c849c5",
+      "status": "pending",
+      "principle": "Explain domain differences where they change a design decision, and label variants that require a different contract.",
+      "rationale": "Finance-focused teaching should connect reliability, latency, and correctness priorities to concrete choices without changing the original prompt.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-log-publishing-query",
+        "feedback_file": "feedback/20261003T230732Z-d25eef6b.md"
+      },
+      "proposed_at": "2026-10-03T23:20:30+00:00"
+    },
+    {
       "id": "memory-c33d242e97e1",
       "status": "pending",
       "principle": "Derive ingestion and serialization choices from explicit workload assumptions while preserving the defining scale challenge.",

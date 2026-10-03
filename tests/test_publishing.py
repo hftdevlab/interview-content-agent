@@ -4,6 +4,7 @@ import json
 import shutil
 import tempfile
 import unittest
+from io import BytesIO
 from pathlib import Path
 
 from tools.build_pdfs import _styles, build_all_pdfs, markdown_flowables
@@ -13,6 +14,48 @@ from tools.validate_pdfs import validate_pdf_outputs
 
 
 class PdfPublishingTests(unittest.TestCase):
+    def test_heading_stays_with_first_list_item_and_long_lists_split(self) -> None:
+        from pypdf import PdfReader
+        from reportlab.platypus import SimpleDocTemplate, Spacer
+
+        for ordered in (False, True):
+            for item_count in (1, 2, 24):
+                with self.subTest(ordered=ordered, item_count=item_count):
+                    items = []
+                    for number in range(1, item_count + 1):
+                        marker = f"{number}." if ordered else "-"
+                        items.append(
+                            f"{marker} Item-{number:02d} marker. "
+                            + "Explanation with useful detail. " * 6
+                        )
+                    record = QuestionRecord(
+                        metadata_path=Path("/unused/metadata.yaml"),
+                        package_dir=Path("/unused"),
+                        metadata={"id": "sd-list", "type": "system_design", "diagrams": []},
+                        markdown="# Fixture\n\n## Follow-up marker\n\n" + "\n".join(items),
+                    )
+                    output = BytesIO()
+                    document = SimpleDocTemplate(
+                        output, pagesize=(300, 300), leftMargin=20,
+                        rightMargin=20, topMargin=20, bottomMargin=20,
+                    )
+                    # There is room for the heading, but not for its first item.
+                    document.build([
+                        Spacer(1, 195),
+                        *markdown_flowables(record, _styles("#0F6B78"), 700, 248),
+                    ])
+                    pages = [page.extract_text() or "" for page in PdfReader(output).pages]
+                    heading_page = next(page for page in pages if "Follow-up marker" in page)
+                    self.assertIn("Item-01 marker", heading_page)
+                    all_text = "\n".join(pages)
+                    for number in range(1, item_count + 1):
+                        self.assertEqual(all_text.count(f"Item-{number:02d} marker"), 1)
+                    if ordered and item_count > 1:
+                        # Splitting after the first item must not restart numbering.
+                        self.assertIn("2\nItem-02 marker", all_text)
+                    if item_count == 24:
+                        self.assertGreater(len(pages), 3)
+
     def _make_root(self, destination: Path) -> Path:
         shutil.copy2(ROOT / "pyproject.toml", destination / "pyproject.toml")
         shutil.copytree(ROOT / "taxonomy", destination / "taxonomy")

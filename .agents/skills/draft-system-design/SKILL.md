@@ -1,11 +1,13 @@
 ---
 name: draft-system-design
-description: "Draft or substantially revise a system-design interview tutorial that develops requirements, entities, interfaces, architecture, and focused deep dives as one evolving design. Use for content/system-design packages that need an interview-ready answer before human review."
+description: "Draft or substantially revise an instructor-led system-design interview tutorial, developing requirements, entities, interfaces, architecture, and focused deep dives for finance engineers. Use for content/system-design packages before human review."
 ---
 
 # Draft System Design Question
 
-Write for a real interview conversation, not for schema completion.
+Write an interview tutorial in the instructor's first-person voice, not a
+candidate's answer or schema completion. Teach the reader how to arrive at and
+adapt an interview design; the chapter itself is not a script to recite.
 
 ## Inputs
 
@@ -28,10 +30,13 @@ than resolving them silently.
    material, not as authority over the editor's request.
 2. Use the interview progression below. Start with what the system does for its
    users, not an invariant, failure matrix, or implementation checklist.
-3. Build one design incrementally in a first-person candidate voice: "I need",
-   "I'll choose", or an inclusive "we". Let the reader discover why a choice is
-   needed before seeing its final shape. Adding "I would" to a list of design
-   conclusions is not reasoning. Do not invent personal production experience.
+3. Build one design incrementally as a first-person instructor guiding the
+   reader: explain what I want us to notice, why we explore an option, and what
+   the reader can reuse. Use an inclusive "we" naturally. Do not role-play a
+   candidate answering an interviewer, narrate every move as "I'll choose",
+   or replace teaching with interview coaching. Let the reader discover why a
+   choice is needed before seeing its final shape. Adding instructor phrases
+   to a list of conclusions is not reasoning. Do not invent personal experience.
 4. For the central decisions, explain the need, a plausible alternative, why
    this choice fits, and what cost or changed requirement could reverse it.
    This is a test of the explanation, not a four-part template for every
@@ -71,7 +76,10 @@ Use these major sections for new and substantially rewritten chapters:
    when the whole platform exceeds one interview and identify likely focus.
 2. **Requirements**: separate **Functional requirements** (user capabilities)
    and **Non-functional requirements** (the qualities that shape this design).
-   Keep them prioritized and brief, not a complete production specification.
+   Establish the boundary before selecting components. Keep them prioritized
+   and brief, not a complete production specification. State consequential
+   domain assumptions explicitly; use the finance guidance below rather than
+   defaulting to consumer-internet scale or applying CAP as a slogan.
 3. **Core entities**: derive the important nouns from a user operation or a
    distinction the design needs. Explain their relationships in ordinary
    words, then define them accurately, before showing detailed storage fields.
@@ -80,7 +88,13 @@ Use these major sections for new and substantially rewritten chapters:
    conceptual data-flow walkthrough can bridge entities and interfaces.
 4. **API and data schema**, when useful: show only interfaces and fields needed
    to explain the main flows. A market-data wire event or queue contract can
-   replace HTTP endpoints. Explain why the important operations and fields
+   replace HTTP endpoints. REST is a useful starting point for resource CRUD;
+   RPC fits action-oriented or performance-sensitive service calls when the
+   workload justifies it. An internal query interface or dashboard may suffice.
+   Choose by caller and operation, not by a universal REST/RPC rule. Introduce
+   detailed data models only when format, querying, or scale changes a decision;
+   derive fields such as backtest timestamps with their query semantics.
+   Explain why the important operations and fields
    exist before presenting the compact contract. When serialization matters,
    distinguish readable interview notation from the actual wire format; weigh
    debugging, bytes, parsing work, and schema compatibility. JSON versus
@@ -88,11 +102,17 @@ Use these major sections for new and substantially rewritten chapters:
 5. **High-level architecture**: derive and walk through the design before its
    summary diagram. Explain what each component contributes and what data
    moves or changes. Complete the core capabilities before the deep dives;
-   name unresolved limits without solving every edge case immediately.
-6. **Deep dives**: develop the most relevant lower-level decisions, preferably
-   under questions the interviewer might ask. Connect them to requirements and
+   name unresolved limits without solving every edge case immediately. Name
+   applicable patterns and common tools/platforms as concrete examples, not a
+   shopping list. Add caching or partitioning only after explaining its need.
+   A separate Data flow section is optional; for processing systems, develop
+   the write/process/deliver flow explicitly before the diagram.
+6. **Deep dives**: select one to three of the most relevant lower-level decisions,
+   preferably under questions the interviewer might ask. Connect them to requirements and
    tagged patterns. Bad/good/great comparisons are optional local teaching
    devices, not separate complete architectures or mandatory headings.
+   These may probe a tool's internals or an OS/network boundary when it changes
+   correctness or performance. Keep their combined depth within the page budget.
 7. **Follow-ups and pitfalls**, optionally: keep only realistic extensions or
    mistakes not already explained. At most three of each; omit redundant lists.
 
@@ -113,6 +133,29 @@ question may use up to fourteen when the extra pages contain interview-relevant
 decisions rather than prerequisite tutorials. Five-page past examples are not
 a target: use the available budget for reasoning, cutting repeated conclusions
 and peripheral guarantees before cutting the explanation of a core choice.
+
+## Teach for hedge-fund, trading, and finance engineers
+
+Keep the stated question intact, including general-purpose practice questions,
+but teach meaningful differences from a traditional consumer-tech interview at
+the decision they affect. Reliability, recovery, testability, and predictable
+behavior may matter more than enormous user counts. Latency, throughput,
+system/network costs, and failure tests may shape boundaries early. State why
+that priority applies to this subsystem; do not treat every finance system as a
+microsecond hot path or assert that scalability never matters.
+
+Define what must remain available and which stale or missing data is unsafe.
+Availability is not permission to accept incorrect orders or risk state. CAP
+concerns consistency versus availability during a network partition, not a
+ranking of testability, latency, and scale. Explain the concrete trade-off only
+when a partition changes this design's behavior.
+
+Use contrasts when they teach a reusable choice: a social feed versus licensed
+research content; operational notifications versus authoritative risk actions;
+diagnostic logs versus lossless audit/replay records. These are illustrations,
+not mandatory sidebars or new requirements. Connect each chosen distinction to
+an interface, retention/ordering rule, overload policy, or test. Link to the
+companion handbook for low-level foundations instead of re-teaching them.
 
 ## Outputs and edit boundary
 

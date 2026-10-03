@@ -27,7 +27,8 @@ that improves the reader's experience.
 
 ### System design
 
-Use an interview walkthrough, not an implementation specification. The reader
+Use an instructor-led interview tutorial, not an answer script or implementation
+specification. The reader
 should see how the requirements lead to one working design, then learn how to
 handle the design's most interesting limits. The current presentation replaces
 the historical good/great/rubric checklist in `PROJECT_PLAN.md`:
@@ -54,7 +55,7 @@ the historical good/great/rubric checklist in `PROJECT_PLAN.md`:
    diagram. Follow a request from entry to response and explain what is stored
    along the way. A conceptual flow can precede the API section when that helps
    the reader understand who calls it. Finish the flow before every edge case.
-6. **Deep dives**: select the challenges that follow from the non-functional
+6. **Deep dives**: select one to three challenges that follow from the non-functional
    requirements. Frame them as useful engineering questions and evolve the
    same design. A local bad/good/great comparison is optional; two complete
    competing solutions are normally unnecessary.
@@ -67,10 +68,13 @@ it must not claim a guarantee that the unfinished design does not provide.
 Explain unfamiliar components by what they do in this flow. Do not repeatedly
 define every box as a process or turn every paragraph into a contract clause.
 
-Use first-person narration for all system-design walkthroughs: a candidate's
-"I" or an inclusive "we" explaining how we reach the design. This is not a
-pronoun quota; factual definitions, requirements, tables, and code can remain
-direct. Do not invent the narrator's professional experience. A concrete example or a short
+Use the instructor's first-person narration for all system-design tutorials.
+The author guides the reader through a worked design, explains what deserves
+attention, and teaches how to adapt the reasoning. An inclusive "we" belongs
+here; a running candidate monologue answering an interviewer does not. Do not
+turn the chapter into a script to memorize or a succession of interview tips.
+This is not a pronoun quota; factual definitions, requirements, tables, and code
+can remain direct. Do not invent the narrator's professional experience. A concrete example or a short
 request trace often explains more than another requirements table. A named
 character, failure story, numerical estimate, formal invariant, or
 Core/Deep dive/Stretch label is a tool, not a mandatory writing template.
@@ -90,10 +94,11 @@ component names. Requirements should describe desired behavior, not smuggle in
 the architecture that the next sections are supposed to derive.
 
 For example, "Use a worker, retries, and a durable queue" states three results.
-"If I wait for the email provider before replying, a slow provider also delays
-the user's inbox. I can return sooner by sending in the background, but then
-I need to remember unfinished sends across a restart. I'll store that pending
-work with the inbox item; a worker can retry it later" teaches the causal
+"I want to separate two moments here: saving a notification and asking an email
+provider to send it. If we wait for the provider before replying, its slowness
+also delays the inbox. Background delivery removes that wait, but now a restart
+could erase unfinished sends. Storing pending work with the inbox item gives
+the worker something durable to resume" teaches the causal
 connection. The subsequent discussion can weigh database work rows against a
 separate broker. This is an illustrative reasoning passage, not prose to copy
 into every question.
@@ -135,6 +140,33 @@ to the relevant deep dives. Tags should help the reader recognize a transferable
 decision, not merely advertise technologies or decorate the page. Trading-domain
 applications belong where they illuminate a real difference, not as forced
 changes to a general-purpose prompt.
+
+#### The finance-engineering audience
+
+Teach for hedge-fund, trading, and finance engineers, including when using a
+general-purpose interview exercise. State which subsystem we are designing and
+what it must protect before importing consumer-tech assumptions. Modest user
+counts can coexist with bursty ingestion, stringent recovery needs, and tail
+latency constraints. Availability, testability, and fault tolerance often
+deserve more attention than hypothetical global scale, but derive that priority
+from the stated workload; do not make it a universal industry claim.
+
+Highlight a domain difference where it changes a decision. For example, a
+research-content feed may need entitlement checks that a public social feed
+does not; asynchronous notification delivery cannot itself enforce a risk
+limit; dropping diagnostic logs under overload differs from losing an audit
+record. Explain the consequence for this choice, not an unrelated finance
+sidebar. Preserve the raw question and label domain variants as variants.
+Use a concrete recovery or fault-injection test when it teaches the boundary.
+
+Latency, throughput, low-level system behavior, and network costs can shape
+the initial design, not just a final optimization list. That does not mean
+adding kernel bypass to an email service or a dashboard. Define what must
+remain available and when rejecting work is safer than using stale state.
+CAP is a consistency/availability trade-off under network partition; it does
+not rank latency, testability, fault tolerance, and scalability, nor does it
+justify executing with unsafe risk state. Link to handbook mechanisms where
+they become relevant instead of teaching the foundations again.
 
 At least one diagram must orient the architecture; use an additional sequence
 diagram only when it adds important ordering detail. Put diagrams at complete

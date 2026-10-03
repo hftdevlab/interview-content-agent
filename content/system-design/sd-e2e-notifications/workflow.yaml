@@ -7,16 +7,16 @@
   "branch": "",
   "agent_threads": {
     "transcription": "",
-    "draft": "01a0f039-4e4a-7e12-9b92-6e5112b3a1da",
-    "review": "01a0f03b-516e-7180-b689-68d0d0636232"
+    "draft": "01a10411-d444-7781-a92d-a6170f39ff6a",
+    "review": "01a10413-511a-7ae1-982a-e8e4ba112a0f"
   },
   "attempts": {
-    "draft": 4,
-    "review": 4
+    "draft": 5,
+    "review": 5
   },
   "pending_clarifications": [],
   "created_at": "2026-09-28T04:01:09+00:00",
-  "updated_at": "2026-09-30T02:54:38+00:00",
+  "updated_at": "2026-10-03T23:23:08+00:00",
   "events": [
     {
       "at": "2026-09-28T04:01:09+00:00",
@@ -270,6 +270,91 @@
       "type": "human_review_requested",
       "detail": {
         "summary": "No blocking or important issues found. Source fidelity, first-person reasoning, interview scope, technical correctness, workload calculations, pattern tags, handbook links, and three follow-ups pass. Central choices explain alternatives and trade-offs; the main flow precedes hardening. Existing PDF pages 10\u201315 meet the page budget; positioned text and SVG inspection reveal no important layout issue. Repository validation and deterministic PDF validation pass. No practice package is linked or required. No files changed; human review remains pending."
+      }
+    },
+    {
+      "at": "2026-10-03T23:20:39+00:00",
+      "actor": "Human Editor",
+      "type": "human_feedback_received",
+      "detail": {
+        "file": "feedback/20261003T232039Z-0d1fd8c2.md"
+      }
+    },
+    {
+      "at": "2026-10-03T23:20:39+00:00",
+      "actor": "system",
+      "type": "draft_context_rotated",
+      "detail": {
+        "previous_thread": "01a0f039-4e4a-7e12-9b92-6e5112b3a1da"
+      }
+    },
+    {
+      "at": "2026-10-03T23:20:39+00:00",
+      "actor": "system",
+      "type": "draft_started",
+      "detail": {}
+    },
+    {
+      "at": "2026-10-03T23:22:15+00:00",
+      "actor": "agent",
+      "type": "agent_draft_completed",
+      "detail": {
+        "outcome": "ready",
+        "summary": "Revised question.md and review.yaml for instructor-led reasoning, finance-specific boundaries, and recovery testing while preserving the accepted design and workload. Targeted validation passed. No linked practice package or applicable tests exist. No generated outputs or PDFs rebuilt. Workflow untouched; status remains draft and all review flags false. Independent and human review remain pending.",
+        "clarification_questions": [],
+        "validation_commands": [
+          "python -m tools.validate --id sd-e2e-notifications",
+          "git diff --check -- content/system-design/sd-e2e-notifications/question.md content/system-design/sd-e2e-notifications/review.yaml"
+        ],
+        "memory_candidates": [
+          {
+            "principle": "Teach system design as an instructor developing reasoning with the reader, rather than as a candidate reciting choices.",
+            "rationale": "The newest feedback distinguishes a tutorial's teaching voice from an interview answer script.",
+            "question_types": [
+              "system_design"
+            ]
+          },
+          {
+            "principle": "Explain finance-domain differences where they change a design decision, while preserving the original problem's scope.",
+            "rationale": "The newest feedback asks for meaningful trading and finance distinctions within the worked design.",
+            "question_types": [
+              "system_design"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-10-03T23:23:08+00:00",
+      "actor": "agent",
+      "type": "agent_review_completed",
+      "detail": {
+        "passed": true,
+        "summary": "No blocking or important issues found. Source fidelity, instructor-led reasoning, technical correctness, workload assumptions, finance boundaries, pattern tags, handbook links, and follow-ups pass. Central decisions explain alternatives and trade-offs. Source validation and the deterministic PDF gate pass; positioned PDF text and SVG inspection confirm seven pages within budget. No practice package is linked or required. No files changed or outputs rebuilt. Human review remains pending.",
+        "issues": [
+          {
+            "severity": "suggestion",
+            "message": "Add a worker-to-database edge labeled \u201csave outcome / retry time\u201d to make the durable recovery loop explicit. The prose and worker label explain it correctly, but the diagram omits the return path.",
+            "file": "content/system-design/sd-e2e-notifications/diagrams/context.mmd"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-10-03T23:23:08+00:00",
+      "actor": "agent",
+      "type": "memory_candidates_proposed",
+      "detail": [
+        "memory-7f4698a72d7b",
+        "memory-83cd92607bc9"
+      ]
+    },
+    {
+      "at": "2026-10-03T23:23:08+00:00",
+      "actor": "system",
+      "type": "human_review_requested",
+      "detail": {
+        "summary": "No blocking or important issues found. Source fidelity, instructor-led reasoning, technical correctness, workload assumptions, finance boundaries, pattern tags, handbook links, and follow-ups pass. Central decisions explain alternatives and trade-offs. Source validation and the deterministic PDF gate pass; positioned PDF text and SVG inspection confirm seven pages within budget. No practice package is linked or required. No files changed or outputs rebuilt. Human review remains pending."
       }
     }
   ]

@@ -7,7 +7,8 @@ presentation guidance; its results are recorded separately after fresh runs.
 The next review accepted the outline but found that the prose still stacked
 conclusions without enough reasoning. Earlier agent passes and short page
 counts below are historical results, not evidence that the editor accepted
-their teaching quality. The reasoning-focused revision is recorded last.
+their teaching quality. Later sections record the reasoning-focused revision
+and the instructor-led finance-engineering revision.
 
 ## Setup and scope
 
@@ -251,3 +252,70 @@ protect delivery of system-design guidance to drafting, revision, and review,
 plus scaffold ordering; they do not score prose by pronoun counts or phrases.
 Visual inspection of every rewritten page is complete; no clipping, overlapping
 text, unreadable diagrams, or nearly empty pre-diagram portrait pages remain.
+
+## Instructor-led finance-engineering revision
+
+The editor clarified that the narrator is an instructor teaching interview
+design, not a candidate performing an answer. The latest request and manually
+edited skill are preserved verbatim in `instructor-feedback.md`. The original
+checkout and its edited skill were left untouched. The active drafting skill
+incorporates that intent alongside the existing causal-explanation, page-budget,
+and human-review safeguards. Review criteria, the style guide, content
+instructions, and all three workflow prompts now agree on the instructor role
+and the hedge-fund/trading/finance audience.
+
+Each existing example was regenerated through the real feedback workflow and
+received a fresh independent read-only review. All three passed on the first
+draft/review pair in this round; no manuscript was substituted or hand-edited
+after generation. Raw prompts remain byte-identical to their fixtures, and the
+controller appended the feedback to the existing notes without replacing them.
+
+| Question | Words | Pages in final preview | Additional draft/review calls | Observed teaching changes |
+|---|---:|---|---:|---|
+| Log publishing/query | 3,336 | 4-10 (7 pages) | 1 / 1 | A pricing-service investigation motivates collection and health; high-rate arithmetic still drives batching and shards. The instructor distinguishes diagnostic loss, hot-path I/O isolation, and stronger audit/replay capture, with recovery tests. |
+| Notifications | 3,508 | 11-17 (7 pages) | 1 / 1 | Message identity and channel outcomes lead to durable work. Commit-boundary and fake-provider tests expose retry guarantees. Fund-operations alerts report authoritative decisions rather than enforce risk; incident fan-out, not employee count, drives bursts. |
+| News feed | 3,716 | 18-24 (7 pages) | 1 / 1 | The instructor follows media bytes, derives selection and fan-out, and tests interrupted publication. Licensed-research variants distinguish interest from entitlement, including cached pages and saved media URLs; today's feed is not historical access evidence. |
+
+Domain variants are labeled and tied to decisions; they do not replace the
+general-purpose questions. The chapters preserve workload assumptions, one
+evolving design, three deep dives each, and useful handbook links. They do not
+equate every finance subsystem with an execution hot path. All examples remain
+`needs_human_review`, with only `agent_reviewed` true. The advanced risk-limit
+and market-data manuscripts were not rewritten in this batch.
+
+### Visual QA found a renderer defect after the agent pass
+
+The news-feed preview left its closing heading at the foot of page 23 and all
+three follow-up bullets on page 24. Both the independent review and existing
+PDF gate passed, so neither alone established visual quality. The main agent's
+page-by-page raster inspection caught the actual orphan, not a viewer crop.
+
+ReportLab excludes list containers from automatic heading `keepWithNext`
+grouping. The publisher now explicitly keeps a preceding heading chain with
+the first list item while allowing the rest of the list to split. A small-PDF
+regression failed before the fix and passes afterward; it covers bulleted and
+numbered lists, single items and long lists, content preservation, and numbering
+continuation. The source prose did not need a pagination workaround.
+
+The final heading and its bullets share page 24. Positioned-text fingerprints
+show no layout changes in the other guides or the advanced system-design
+chapters; only news-feed pages 23-24 reflowed (page 18 also reflects its final
+review status). The rebuilt chapter ranges remain seven pages each. Final
+raster inspection covers the affected pages as well as the regenerated content.
+
+### Validation and remaining authority
+
+`make ci` passes, including `make all`, source validation, Markdown lint,
+69 Python tests, four C++ checks, catalogs/Markdown guides, eight diagrams, and
+all release/review PDF gates. Both updated skills pass their validators. The
+guidance-routing test checks delivery to draft, revision, and review only for
+system design; it does not grade generated prose by phrase counts.
+
+Six new reusable-memory proposals remain pending alongside the earlier
+fourteen; root `editorial-memory.yaml` is unchanged and has no active entries.
+Older pending proposals mentioning a candidate voice are historical and are
+superseded by the latest editorial direction; they were not promoted, rewritten,
+or rejected by an agent. No approval or publishing lifecycle command ran.
+The versioned generation instructions apply under this explicit request,
+independently of memory approval. These are feedback-regeneration trials, not
+evidence from new unseen prompts or proof of stable human-rated quality.

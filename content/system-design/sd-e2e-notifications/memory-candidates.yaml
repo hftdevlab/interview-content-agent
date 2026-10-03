@@ -59,6 +59,34 @@
       "proposed_at": "2026-09-29T03:32:23+00:00"
     },
     {
+      "id": "memory-7f4698a72d7b",
+      "status": "pending",
+      "principle": "Teach system design as an instructor developing reasoning with the reader, rather than as a candidate reciting choices.",
+      "rationale": "The newest feedback distinguishes a tutorial's teaching voice from an interview answer script.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-notifications",
+        "feedback_file": "feedback/20261003T232039Z-0d1fd8c2.md"
+      },
+      "proposed_at": "2026-10-03T23:23:08+00:00"
+    },
+    {
+      "id": "memory-83cd92607bc9",
+      "status": "pending",
+      "principle": "Explain finance-domain differences where they change a design decision, while preserving the original problem's scope.",
+      "rationale": "The newest feedback asks for meaningful trading and finance distinctions within the worked design.",
+      "question_types": [
+        "system_design"
+      ],
+      "source": {
+        "question_id": "sd-e2e-notifications",
+        "feedback_file": "feedback/20261003T232039Z-0d1fd8c2.md"
+      },
+      "proposed_at": "2026-10-03T23:23:08+00:00"
+    },
+    {
       "id": "memory-d95caee7da09",
       "status": "pending",
       "principle": "Use the defining workload to justify representation and capacity choices without simplifying away the central challenge.",

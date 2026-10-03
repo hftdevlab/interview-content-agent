@@ -1,15 +1,15 @@
 {
   "passed": true,
-  "summary": "Source fidelity, interview realism, reasoning flow, technical correctness, pattern tags, handbook links, and follow-ups pass. Central decisions explain alternatives and trade-offs. Repository validation and the PDF gate pass; positioned PDF text confirms six pages within the ten-page budget. No practice package is linked or required for this system-design question. No files changed; human approval remains pending.",
+  "summary": "Source fidelity, instructor-led reasoning, technical correctness, workload, pattern tags, handbook links, and follow-ups pass. Central decisions explain alternatives and trade-offs. Repository validation and the deterministic PDF gate pass; the chapter occupies seven pages within its ten-page budget. No runnable package is linked or required for this system-design question. No files changed; human approval remains pending.",
   "issues": [
     {
       "severity": "suggestion",
-      "message": "Label diagram edges with their operations and route the direct phone-to-storage connection around the application box. SVG coordinates show that connection passing behind the box, obscuring the independent media path. The preceding walkthrough explains the flow correctly.",
-      "file": "generated/diagrams/sd-e2e-news-feed/context.svg"
+      "message": "Label architecture edges with their operations and route the direct phone-to-storage edge around the application box. SVG coordinates confirm that this edge passes behind the box, obscuring the independent media path. The preceding walkthrough explains the flow correctly.",
+      "file": "content/system-design/sd-e2e-news-feed/diagrams/context.mmd"
     },
     {
       "severity": "suggestion",
-      "message": "The SVG accessibility title incorrectly says \u201cMarket data architecture.\u201d Supply a news-feed-specific title through the renderer and regenerate.",
+      "message": "The generated SVG accessibility title says \u201cMarket data architecture.\u201d Update the renderer to supply a question-specific title and regenerate.",
       "file": "generated/diagrams/sd-e2e-news-feed/context.svg"
     }
   ]

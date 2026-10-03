@@ -387,8 +387,10 @@ def _system_design_reasoning_guidance(question_type: str) -> str:
     if question_type != "system_design":
         return ""
     return (
-        " The tutorial should use a natural first-person candidate voice for substantive "
-        "decisions: explain the need, a plausible alternative, the reason for the choice, "
+        " The tutorial should use a natural first-person instructor voice, not a candidate "
+        "answer script. Teach the reader what to notice and how to reuse the reasoning while "
+        "developing one design. For substantive decisions, explain the need, a plausible "
+        "alternative, the reason for the choice, "
         "and its trade-off. Merely adding 'I would' to a stack of conclusions is not reasoning; "
         "do not force the same formula into every paragraph. Motivate important entities "
         "from a user operation or state distinction before defining them. Explain the "
@@ -402,7 +404,14 @@ def _system_design_reasoning_guidance(question_type: str) -> str:
         "event size/rate, burstiness, freshness, and durability. Preserve the defining workload "
         "and challenge: keep explanations accessible and scope focused, but do not assume "
         "an artificially tiny workload to avoid the main problem. Simplify exposition, not "
-        "the reasoning needed to answer the question."
+        "the reasoning needed to answer the question. Teach for hedge-fund, trading, and "
+        "finance engineers: highlight material differences from consumer-tech designs at "
+        "the decisions they affect, preserve the core prompt, and label domain variants. "
+        "Make reliability, testability, recovery, latency, and throughput priorities explicit "
+        "where relevant; do not turn every subsystem into a trading hot path. Availability "
+        "does not justify unsafe financial state. Distinguish operational visibility from "
+        "authoritative risk, audit, or replay requirements. Select one to three deep dives "
+        "that develop the important non-functional requirements."
     )
 
 

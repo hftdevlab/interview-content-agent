@@ -447,7 +447,10 @@ class WorkflowTests(unittest.TestCase):
                     with self.subTest(question_type=question_type, stage=builder.__name__):
                         prompt = builder(root, root / "unused-package", metadata)
                         for requirement in (
-                            "first-person candidate voice",
+                            "first-person instructor voice",
+                            "not a candidate answer script",
+                            "hedge-fund, trading, and finance engineers",
+                            "preserve the core prompt",
                             "Motivate important entities",
                             "conceptual data flow before the architecture diagram",
                             "serialization choices",
@@ -458,6 +461,7 @@ class WorkflowTests(unittest.TestCase):
                                 requirement in prompt, question_type == "system_design"
                             )
                         if question_type == "system_design":
+                            self.assertNotIn("first-person candidate voice", prompt)
                             self.assertNotIn("Keep foundational scope small", prompt)
                             self.assertIn("artificially tiny workload", prompt)
                 if question_type == "system_design":

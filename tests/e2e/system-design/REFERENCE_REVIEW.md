@@ -89,7 +89,7 @@ takes precedence: keep the explanation accessible while retaining the defining
 ingestion challenge. New workload numbers remain explicit illustrative choices,
 not retroactively attributed to the raw prompt or copied from the reference.
 
-The shared guidance now asks for a first-person candidate walkthrough and
+At that stage, the shared guidance asked for a first-person candidate walkthrough and
 decision-level reasoning. Review must examine central choices, not only verify
 headings, factual conclusions, or narrative continuity. The editor's exact new
 request is archived in `reasoning-feedback.md`; replay it through the same
@@ -104,3 +104,35 @@ These help verify representation, event/observation timestamps, and bulk-write
 trade-offs. They are not a mandate to adopt those products, nor evidence for a
 particular server's throughput. Keep their use selective and link the source
 at the point where a chapter needs it.
+
+## Follow-up: the instructor is not the candidate
+
+The editor's next clarification accepts the reasoning direction but changes the
+narrator's role: this is a book teaching interview design, not a candidate's
+answer. `instructor-feedback.md` preserves the exact request and the editor's
+manually revised skill. The original checkout's edited skill remains untouched;
+its intent is reconciled into the active generation branch with the existing
+workflow and human-approval safeguards.
+
+An instructor explains what deserves attention and why an alternative helps us
+understand the choice. The worked design remains concrete and complete, but its
+prose should not sound like an ongoing performance for an interviewer. Neither
+"I'll choose" nor "I want us to notice" proves that an explanation teaches.
+Review therefore examines the narrator's role and causal explanations, not a
+pronoun quota.
+
+The audience is explicitly hedge-fund, trading, and finance engineers. Preserve
+the examples' original scope while explaining consequential differences where
+they affect decisions. Reliability, recovery, testability, and latency can
+matter more than user-count scale; state why that is true for this subsystem.
+Do not turn that preference into a claim that finance systems always prioritize
+availability over correctness, that CAP ranks all non-functional requirements,
+or that every service needs low-latency networking. Domain contrasts should
+change a design assumption, interface, overload policy, or test, not decorate
+the ending with trading vocabulary.
+
+The shared draft/review skills, style guide, content instructions, and controller
+prompts now agree on instructor-led teaching and this domain lens. The real
+feedback workflow tests the combined instructions on the same three examples;
+the new record in `RESULTS.md` distinguishes observed prose from automated
+correctness gates and leaves editorial acceptance with the human.

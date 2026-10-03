@@ -7,12 +7,12 @@
     "interview_realism_reviewed": false
   },
   "review_notes": [
-    "Applied newest feedback/20260930T025455Z-55d470a3.md after reloading the drafting skill, style guide, controlled taxonomy, and reference teaching summary. Preserved the accepted structure and rewrote decision explanations in a first-person candidate voice.",
-    "Motivated users, follows, posts, media assets, retry records, and feed entries from operations and state distinctions. Moved the complete publication/read flow before the architecture diagram. Preserved ordering, cursor semantics, indexed top-K derivation, fan-out arithmetic, membership fallback, retry guarantees, and handbook links.",
-    "Added contextual JSON/binary representation reasoning, explicit illustrative workload and freshness targets, and causal explanations for media separation, indexed retrieval, hybrid fan-out, atomic retry records, and durable pending work.",
-    "Practice reconciliation: metadata has no practice link or runnable experiment, and no practice package references this ID. No question-specific C++ tests apply; database/service integration scenarios remain in the chapter.",
-    "Targeted validation passed: python -m tools.validate --id sd-e2e-news-feed. Local handbook links and draft/false-review lifecycle assertions passed; git diff --check passed for the package.",
-    "No generated artifacts or PDFs were rebuilt or visually inspected. Controller-owned workflow, source, expert notes, feedback, and memory files were preserved. A fresh independent review and human approval remain pending.",
+    "Applied feedback/20261003T232320Z-c7139f45.md and the matching newest expert notes after reloading the current draft-system-design skill, STYLE_GUIDE, taxonomy, design-pattern guidance, and empty editorial memory. The active contentctl safeguards take precedence over lifecycle instructions in the historical feedback snapshot.",
+    "Revised the narrator into an instructor guiding a worked design. Preserved the social-feed prompt, illustrative workload, motivated entities, pre-diagram data flow, contextual serialization comparison, indexed top-K derivation, hybrid fan-out, membership fallback, transactional retry handling, and handbook links.",
+    "Added explicit recovery/testability priorities and labeled finance variants at the decisions they affect: entitlements versus follows, revocation on metadata/media delivery, publication admission versus externally owned sources, and operational metrics versus historical audit evidence. Kept three focused deep dives and added database/worker failure-test reasoning.",
+    "Practice reconciliation: no practice or runnable_experiment link exists, and no package under practice references sd-e2e-news-feed. No question-specific practice tests apply; no practice code was changed.",
+    "Targeted validation passed using tools.validate --id sd-e2e-news-feed against an isolated root containing only this question and its schema, taxonomy, memory, and handbook dependencies; the current --id implementation otherwise scans all packages. Draft/false-review assertions, practice reconciliation, handbook-link checks, preserved-file hashes, and package git diff --check passed. Independent review and human approval remain pending.",
+    "No PDFs or generated artifacts rebuilt or visually inspected; repository-wide gates deferred to the controller. Preserved workflow.yaml, original source, expert notes, feedback, and memory files.",
     "Independent agent review passed; human review is required."
   ]
 }

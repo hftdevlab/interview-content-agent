@@ -219,12 +219,15 @@ saved findings and requires a fresh independent review.
 
 System-design tutorials now follow requirements, entities, useful interfaces,
 architecture, and focused deep dives, rather than mandatory good/great/rubric
-sections. First-person walkthroughs derive entities and choices, explain data
-flow before the diagram, and connect interface/storage decisions to the
+sections. First-person instructor tutorials (not candidate answer scripts)
+derive entities and choices, explain data flow before the diagram, and connect
+interface/storage decisions to the
 workload. Accessible exposition must not remove the problem's defining scale
 challenge. [Design patterns](content/SYSTEM_DESIGN_PATTERNS.md) are expandable
-challenge categories with trading-domain applications; selected metadata IDs
-are validated and indexed in the catalogs. Existing legacy chapters remain
+challenge categories. Meaningful trading/finance distinctions belong at the
+decisions they change, with explicit workload and correctness assumptions, not
+as generic domain sidebars. The patterns provide trading-domain applications;
+selected metadata IDs are validated and indexed in the catalogs. Existing legacy chapters remain
 valid. The [expert-style revision record](tests/e2e/system-design/REFERENCE_REVIEW.md)
 explains the teaching changes and feedback replay procedure.
 

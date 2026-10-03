@@ -51,8 +51,10 @@ just against the schema.
    what relevant alternative was considered, why does this choice fit, and
    what cost or changed assumption could change it? Cite missing reasoning as
    an important issue even when every conclusion is technically correct. A
-   first-person voice is required for system-design walkthroughs, but simply
-   adding "I would" to prescriptions is not a fix. Look for a reusable decision
+   first-person instructor voice is required for system-design tutorials, not
+   a candidate monologue. Does the author teach the reader what to notice and
+   how the reasoning transfers, rather than perform an answer for an interviewer?
+   Merely adding "I want us to notice" to prescriptions is not a fix. Look for a reusable decision
    principle developed in the explanation, not merely a pattern label or link.
    Preserve good derivations instead of expanding every sentence into a lesson.
    Read only the first sentence of each explanatory paragraph. They should form
@@ -63,6 +65,14 @@ just against the schema.
    comparisons, and editorial process language can obscure the explanation.
    Require changes when those patterns materially interrupt the teaching flow;
    do not replace them with a rigid word-count or readability-score threshold.
+   For this finance-engineering audience, check meaningful domain distinctions
+   where they change decisions, not token trading references or an appended
+   generic finance checklist. Preserve the question's core scope. Require
+   explicit priority assumptions; do not demand hot-path optimizations for a
+   dashboard or confuse diagnostic logs/notifications with authoritative audit,
+   replay, or risk control. Recovery and testability should be concrete where
+   material. Never endorse availability as permission to accept unsafe state
+   or misuse CAP as a universal ranking of non-functional requirements.
 7. Enforce the page budget and the limit of three optional improvements and
    follow-ups each; for the new system-design outline also cap optional pitfalls
    at three. Do not fail a tutorial for omitting those sections, an evaluation

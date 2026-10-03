@@ -639,12 +639,38 @@ def markdown_flowables(
             }
             if ordered:
                 list_arguments["start"] = "1"
-            flowables.append(
-                ListFlowable(
-                    [ListItem(item) for item in items],
-                    **list_arguments,
+            # ReportLab excludes ListFlowable containers from automatic
+            # keepWithNext grouping. Explicitly attach a preceding heading
+            # chain to the first item, not the entire (possibly long) list.
+            list_headings: list[Flowable] = []
+            while (
+                flowables
+                and isinstance(flowables[-1], Paragraph)
+                and flowables[-1].style.name
+                in {"GuideH1", "GuideH2", "GuideH3"}
+            ):
+                list_headings.append(flowables.pop())
+            if list_headings:
+                list_headings.reverse()
+                first_arguments = dict(list_arguments)
+                if len(items) > 1:
+                    first_arguments["spaceAfter"] = 0
+                flowables.append(
+                    KeepTogether([
+                        *list_headings,
+                        ListFlowable([ListItem(items[0])], **first_arguments),
+                    ])
                 )
-            )
+                items = items[1:]
+                if ordered:
+                    list_arguments["start"] = "2"
+            if items:
+                flowables.append(
+                    ListFlowable(
+                        [ListItem(item) for item in items],
+                        **list_arguments,
+                    )
+                )
             continue
 
         paragraph_lines = [line]
