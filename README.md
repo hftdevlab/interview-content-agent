@@ -81,6 +81,8 @@ Create an isolated Python environment:
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -e .
+# optional, for make sd-preview:
+.venv/bin/python -m pip install -e ".[preview]" && .venv/bin/python -m playwright install chromium
 ```
 
 Metadata files use JSON syntax, which is valid YAML, so the deterministic
