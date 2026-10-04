@@ -222,6 +222,16 @@ __marimo__/
 /tmp/
 /inbox/*
 !/inbox/.gitkeep
+!/inbox/README.md
+!/inbox/system-design/
+!/inbox/coding/
+!/inbox/fundamentals/
+/inbox/system-design/*
+/inbox/coding/*
+/inbox/fundamentals/*
+!/inbox/system-design/.gitkeep
+!/inbox/coding/.gitkeep
+!/inbox/fundamentals/.gitkeep
 
 /generated/catalogs/*
 !/generated/catalogs/.gitkeep
@@ -235,3 +245,11 @@ __marimo__/
 !/dist/
 /dist/*
 !/dist/.gitkeep
+
+# Local-only material that must not be pushed
+/Claude outputs/
+/system-design-guide.pdf
+/.vscode/
+# Third-party reference PDFs used for style calibration (copyrighted)
+/content/human_example/*Hello Interview*
+

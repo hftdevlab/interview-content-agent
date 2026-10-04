@@ -357,15 +357,39 @@ def lint_file(path: Path, *, min_figures: Optional[int] = None) -> Report:
     return lint_text(path.read_text(encoding="utf-8"), str(path), min_figures=min_figures)
 
 
+UNSTARTED_STATUSES = {"normalized", "needs_clarification"}
+
+
+def _is_unstarted(question: Path) -> bool:
+    """A freshly ingested package holds a scaffold, not a chapter, so it is not linted yet."""
+
+    metadata = question.parent / "metadata.yaml"
+    if not metadata.is_file():
+        return False
+    try:
+        status = json.loads(metadata.read_text(encoding="utf-8")).get("status")
+    except (OSError, ValueError):
+        return False
+    return status in UNSTARTED_STATUSES
+
+
 def main(argv: Optional[Iterable[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("files", nargs="+", type=Path)
     parser.add_argument("--json", action="store_true", help="print machine-readable summaries")
     parser.add_argument("--min-figures", type=int, default=None)
     parser.add_argument("--quiet", action="store_true", help="print summaries only")
+    parser.add_argument(
+        "--skip-unstarted",
+        action="store_true",
+        help="skip packages still at intake (status normalized or needs_clarification)",
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
 
-    reports = [lint_file(path, min_figures=args.min_figures) for path in args.files]
+    files = list(args.files)
+    if args.skip_unstarted:
+        files = [path for path in files if not _is_unstarted(path)]
+    reports = [lint_file(path, min_figures=args.min_figures) for path in files]
     if args.json:
         print(json.dumps([report.summary() for report in reports], indent=2))
     else:

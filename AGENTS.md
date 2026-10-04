@@ -4,8 +4,9 @@
 
 - This repository produces human-reviewed C++ quant-developer interview
   material and runnable practice exercises.
-- Markdown, JSON-compatible YAML, Mermaid, C++, tests, schemas, and taxonomy are
-  the source of truth. Never edit `generated/`, `dist/`, or `build/` by hand.
+- Markdown, JSON-compatible YAML, Graphviz and Mermaid sources, C++, tests,
+  schemas, and taxonomy are the source of truth. Never edit `generated/`,
+  `dist/`, or `build/` by hand.
 - Preserve original source inputs and `expert-notes.md`. Human expert notes
   override generated suggestions.
 - `editorial-memory.yaml` contains only human-approved, reusable feedback. Apply
@@ -23,6 +24,13 @@
 - Never promote or reject `memory-candidates.yaml` entries and never edit
   `editorial-memory.yaml` during a drafting or review turn. Agents may only
   propose generalized lessons in the structured feedback-revision result.
+
+## New questions
+
+- The editor adds questions as Markdown files under `inbox/<type>/`. Pick them
+  up with `$process-inbox` (`contentctl inbox`), one file per question branch.
+  Never edit or delete the editor's inbox files by hand; the command archives
+  them and moves them to `inbox/processed/`.
 
 ## Change discipline
 
@@ -42,6 +50,8 @@
 - Run `make practice-test` after C++ practice or CMake changes.
 - Run `make pdf-preview` after content, diagram, or renderer changes and inspect
   the rendered pages when layout could change.
+- For system design, also run `make readability` and `make sd-preview`, and read
+  the rendered chapter rather than the Markdown.
 - Add or update deterministic tests when changing tools.
 - Run `make all` before declaring a repository-wide task complete.
 

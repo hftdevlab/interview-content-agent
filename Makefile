@@ -14,7 +14,7 @@ lint: ## Run dependency-free Markdown integrity checks
 	$(PYTHON) -m tools.lint_markdown
 
 readability: ## Lint system-design chapters for paragraph length, prose runs, and figures
-	$(PYTHON) -m tools.lint_readability --quiet content/system-design/*/question.md
+	$(PYTHON) -m tools.lint_readability --quiet --skip-unstarted content/system-design/*/question.md
 
 validate: ## Validate schemas, taxonomy, content, references, and practice links
 	$(PYTHON) -m tools.validate

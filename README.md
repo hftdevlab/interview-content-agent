@@ -48,6 +48,23 @@ The drafting rules live in `.agents/skills/draft-system-design/` (skill plus
 `references/`). The diagnosis behind the October 2026 reset is in
 `docs/system-design-v2/DIAGNOSIS.md`.
 
+### Adding a question through the inbox
+
+Drop one question per Markdown file into `inbox/system-design/` (or
+`inbox/coding/`, `inbox/fundamentals/`). A file can be just the prompt, or follow
+`templates/system-design/inbox-question.md`: optional front matter (`title`,
+`id`, `confidentiality`), a `## Prompt` section, and a `## Notes` section that
+becomes the package's `expert-notes.md`.
+
+```bash
+contentctl inbox --list      # what is waiting
+contentctl inbox --open-pr   # next file: intake, Codex draft, gates, independent review, draft PR
+contentctl inbox --offline   # next file: intake and question branch only (when you draft in-session)
+```
+
+Inside a Codex session, `$process-inbox` runs the same steps. See
+`inbox/README.md` for details.
+
 ## Prerequisites
 
 - Python 3.9 or newer

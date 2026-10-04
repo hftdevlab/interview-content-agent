@@ -376,11 +376,42 @@ class WorkflowTests(unittest.TestCase):
             self.assertEqual(gate.call_args_list[0].args[1], ("make", "practice-test"))
             self.assertEqual(gate.call_args_list[1].args[1], ("make", "pdf-preview"))
 
-            with patch("tools.workflow._run_gate") as gate:
+            with patch("tools.workflow._run_gate") as gate, patch(
+                "tools.workflow.shutil.which", return_value="/usr/bin/pandoc"
+            ):
                 _run_deterministic_gates(root, {"type": "system_design"})
-            gate.assert_called_once_with(
-                root, ("make", "pdf-preview"), "review PDF gate"
+            self.assertEqual(
+                [call.args[1] for call in gate.call_args_list],
+                [
+                    ("make", "diagrams"),
+                    ("make", "readability"),
+                    ("make", "sd-preview"),
+                    ("make", "pdf-preview"),
+                ],
             )
+
+            with patch("tools.workflow._run_gate") as gate, patch(
+                "tools.workflow.shutil.which", return_value=None
+            ):
+                _run_deterministic_gates(root, {"type": "system_design"})
+            self.assertNotIn(
+                ("make", "sd-preview"), [call.args[1] for call in gate.call_args_list]
+            )
+
+    def test_system_design_prompts_carry_the_chapter_rules(self) -> None:
+        from tools.workflow import _draft_prompt, _review_prompt
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self._root(temporary)
+            metadata = {"id": "sd-example", "type": "system_design"}
+            draft = _draft_prompt(root, root, metadata)
+            self.assertIn("pseudocode", draft)
+            self.assertIn("lint_readability content/system-design/sd-example/question.md", draft)
+            self.assertNotIn("evaluation criteria", draft)
+            review = _review_prompt(root, root, metadata)
+            self.assertIn("reader-experience gate", review)
+            coding = _draft_prompt(root, root, {"id": "code-example", "type": "coding"})
+            self.assertIn("evaluation criteria", coding)
 
     def test_image_transcription_is_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

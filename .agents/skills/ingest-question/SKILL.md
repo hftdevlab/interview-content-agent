@@ -8,6 +8,10 @@ description: "Archive and normalize a raw text prompt, screenshot, or photograph
 Create the package with the deterministic ingestion command. Do not draft a
 finished answer during intake.
 
+For Markdown questions the editor dropped into `inbox/<type>/`, use
+`$process-inbox` (`contentctl inbox`) instead: it parses the prompt and notes,
+archives the original, and moves the file out of the inbox.
+
 ## Inputs
 
 - Question type: `system-design`, `coding`, or `fundamentals`.
