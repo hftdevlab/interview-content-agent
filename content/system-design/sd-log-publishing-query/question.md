@@ -59,12 +59,12 @@ The idea to notice is the **format ID**. The hot thread does not produce text. I
 
 ## API
 
-Three interfaces serve three callers. Inside the trading process, the log call is a macro:
+Three interfaces serve three callers. Inside the trading process, the log call looks like any formatted log line:
 
-```cpp
-LOG_INFO("order {} acked px={} qty={}", order_id, px, qty);
-// The format string is registered once, at startup, under an ID.
-// The hot path writes {tsc, format_id, order_id, px, qty} into this thread's ring.
+```text
+log_info("order {} acked px={} qty={}", order_id, px, qty)
+    at startup:    the format string is registered once, under a format_id
+    on each call:  the thread writes { timestamp, format_id, order_id, px, qty } into its own ring
 ```
 
 Between a host and the platform, batches carry their own identity:

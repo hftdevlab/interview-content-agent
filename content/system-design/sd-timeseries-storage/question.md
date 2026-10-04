@@ -78,41 +78,27 @@ The relationship that matters, once the design is complete, is **one write = one
 
 ## API
 
-The read side returns a batch at a time — the first deep dive explains why:
+Two calls carry the design. In pseudocode:
 
-```cpp
-struct ReadRequest {
-  std::vector<SeriesId> series;          // e.g. 500 instruments of "trades"
-  TimeRange range;                       // [t0, t1)
-  std::vector<ColumnId> columns;         // e.g. {time, price, size}
-  std::optional<Version> as_of;          // default: latest committed
-  int splits = 1;                        // independent iterators for parallel readers
-};
+```text
+write(series, [t0, t1), rows, idempotency_key)  ->  version
+    replaces everything stored for the series in [t0, t1); every row lies inside the range
+write_batch([(series, [t0, t1), rows), ...], idempotency_key)  ->  version
+    many range writes committed as one version, such as a vendor's correction file
 
-class BatchIterator {
- public:
-  virtual ~BatchIterator() = default;
-  virtual bool next(RowBatch& out) = 0;  // up to out.capacity() rows, column by column; false at end
-  virtual Version version() const = 0;   // the snapshot this iterator reads
-};
-
-std::vector<std::unique_ptr<BatchIterator>> read(const ReadRequest& req);
+read(series[], [t0, t1), columns[], as_of?, splits?)  ->  iterators
+    iterator.next()   ->  the next batch of rows, column by column; empty at the end
+    iterator.version  ->  the version this iterator reads
 ```
 
-The write side streams, because a recompute can be terabytes:
+The parameters an interviewer will probe:
 
-```cpp
-// Replace everything stored for `series` in [range.begin, range.end).
-// Every row must lie inside the range. Commits atomically; returns the new version.
-Version write(SeriesId series, TimeRange range, RowStream rows,
-              std::string_view idempotency_key);
+- **`columns`** — the query names the columns it needs, which decides how many bytes it reads (deep dive 1).
+- **`[t0, t1)` on writes** — the range being replaced, not just the rows sent; it is how a write deletes (deep dive 2).
+- **`version` and `as_of`** — a backtest stores the version it read and can read it again later (deep dives 2 and 3).
+- **`splits`** — independent iterators over disjoint partitions, so many readers can scan in parallel.
 
-// Commit many range writes as one version: a vendor's correction file, a recompute.
-// Ranges for one series must not overlap within a batch.
-Version write_batch(std::span<const RangeWrite> writes, std::string_view idempotency_key);
-```
-
-`version()` matters for reproducibility: a backtest stores it with its results, and `as_of` reads it back. Range records and versions are the subject of the second deep dive.
+`next()` returns a batch, not a row; the first deep dive explains why. Writes stream their rows, because a recompute can be terabytes.
 
 ## High-level design
 
@@ -334,7 +320,7 @@ Immutability pays off once more at the lowest level. Storage nodes can read segm
 
 **A backtest from last March must be reproduced exactly. What do you keep?**
 
-> Keep catalog versions, and the segments they reference, for a retention window — say 90 days — and let a team tag the version a published backtest used so it is kept for good. The backtest stored `version()` with its results, so it replays with `as_of`. Corrections are small, so retention is cheap for them; a ten-year recompute doubles the dataset's storage for as long as both versions are kept. Name that cost, and let the owners choose.
+> Keep catalog versions, and the segments they reference, for a retention window — say 90 days — and let a team tag the version a published backtest used so it is kept for good. The backtest stored its iterator's version with its results, so it replays with `as_of`. Corrections are small, so retention is cheap for them; a ten-year recompute doubles the dataset's storage for as long as both versions are kept. Name that cost, and let the owners choose.
 
 **Researchers want all 500 instruments in one time-ordered stream, not one series after another.**
 

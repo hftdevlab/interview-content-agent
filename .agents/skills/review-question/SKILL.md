@@ -58,6 +58,7 @@ finding with a location and a concrete fix.
 | 16 | Is the finance lens placed at a decision it changes, and accurate? | Move or cut it |
 | 17 | Do figures read at print size, with edge labels that match the numbered flows? | Re-layout top-down; shorten labels |
 | 18 | Are caveats stated once, not repeated in every section? | Delete the repeats |
+| 19 | Can a reader who does not write C++ follow every code block? Is each API shown as short pseudocode or a field list, followed by the parameters that matter? | Replace class definitions and `std::` types with pseudocode; show layouts as tables |
 
 Do not demand an evaluator rubric, a failure matrix, a closing summary of
 design moves, or more than three follow-ups. Do not accept an architecture that arrives complete in one diagram

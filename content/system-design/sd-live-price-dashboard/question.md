@@ -64,29 +64,25 @@ The relationship that matters is **many updates, one latest price**. AAPL may up
 
 ## API
 
-Hosts publish a small binary message to the firm's internal messaging bus:
-
-```cpp
-struct PriceUpdate {          // topic: prices.<shard>, chosen by ticker
-  uint32_t ticker_id;
-  int64_t  bid, ask, last;    // scaled integers, never doubles
-  uint32_t host_id;
-  uint64_t host_seq;          // per-host sequence number
-  uint64_t publish_ns;        // host's synchronised wall clock
-};
-```
-
-Browsers talk to a gateway over one WebSocket, in JSON:
+Hosts publish a small binary message to the firm's internal bus, on the topic for the ticker's shard:
 
 ```text
-→ { "op": "subscribe", "tickers": ["AAPL", "MSFT", ...] }
-← { "op": "snapshot",  "prices": [{ "t": "AAPL", "bid": "187.20", "ask": "187.21", "age_ms": 12, "status": "LIVE" }, ...] }
-← { "op": "update",    "seq": 1042, "prices": [ ...only tickers that changed... ] }
-→ { "op": "ack",       "seq": 1042 }          // sent when the page's handler runs
-← { "op": "heartbeat", "gw_ts": 1759831800123 }
+PriceUpdate { ticker, bid, ask, last, host_id, host_seq, publish_time }
 ```
 
-Prices travel as strings, because a JSON number becomes a double in the browser and most decimal prices have no exact double ([Handbook Ch 27](../../../release1/handbook-markdown/chapters/d7-websocket-and-http/chapter.md)). The `update` message carries only changed tickers, and `ack` is the page's flow control — the first deep dive relies on both. `age_ms` and `heartbeat` serve the third.
+Prices are integers in ticks, never floating point. `host_seq` lets the price service ignore a stale or replayed update, and `publish_time` is where the latency budget starts.
+
+Browsers talk to a gateway over one WebSocket:
+
+```text
+→ subscribe  { tickers }
+← snapshot   { prices: [{ ticker, bid, ask, age_ms, status }] }
+← update     { seq, prices: [only the tickers that changed] }
+→ ack        { seq }                    sent when the page has handled the update
+← heartbeat  { gateway_time }
+```
+
+In JSON, send prices as strings: a JSON number becomes a double in the browser, and most decimal prices have no exact double ([Handbook Ch 27](../../../release1/handbook-markdown/chapters/d7-websocket-and-http/chapter.md)). The `update` message carries only changed tickers, and `ack` is the page's flow control — the first deep dive relies on both. `age_ms` and `heartbeat` serve the third.
 
 ## High-level design
 

@@ -182,3 +182,37 @@ argument for the refinement collapsed, and with it the reader's trust.
 **Rule:** steelman the simple option, concede what it handles at this scale, and
 argue the refinement on what it still cannot do.
 
+---
+
+## 10. An API written as a header file
+
+**Before** (time-series storage, first draft):
+
+```cpp
+struct ReadRequest {
+  std::vector<SeriesId> series;
+  TimeRange range;
+  std::vector<ColumnId> columns;
+  std::optional<Version> as_of;
+  int splits = 1;
+};
+std::vector<std::unique_ptr<BatchIterator>> read(const ReadRequest& req);
+```
+
+The reader parses `std::optional` and `unique_ptr` before reaching the one idea
+that matters: the query names its columns, and the result carries a version.
+
+**After:**
+
+```text
+read(series[], [t0, t1), columns[], as_of?, splits?)  ->  iterators
+    iterator.next()   ->  the next batch of rows, column by column
+    iterator.version  ->  the version this iterator reads
+```
+
+> - **`columns`** — decides how many bytes the query reads (deep dive 1).
+> - **`version` and `as_of`** — a backtest can read exactly the same data again.
+
+**Rule:** pseudocode for the interface, then the parameters an interviewer will
+probe and why. The language is never the barrier.
+

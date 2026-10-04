@@ -50,6 +50,10 @@ design moves, and later questions reuse them by name. The drafting skill
   chapters by number and title at the point of use. No closing recap.
 - **Finance lens where it changes a decision.** Prefer the trading-firm reading
   of an ambiguous prompt, say so, and contrast it with the consumer-tech version.
+- **APIs as pseudocode.** Show the calls, the parameters that change the design,
+  and the metadata returned. C++ is the default illustrative language, but never
+  the barrier: no class definitions, smart pointers, templates, or `std::` types.
+  Show a memory layout as a table of fields.
 
 A 45-minute chapter typically renders in 12–14 airy pages; a 60-minute flagship
 in up to 16. Judge it from `make sd-preview`, not from the Markdown.

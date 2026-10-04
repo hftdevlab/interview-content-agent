@@ -71,26 +71,18 @@ The relationship to hold on to is **sequence numbers belong to channels**. One l
 
 ## API
 
-Here the interface is a memory layout, not an HTTP endpoint. Strategies read this struct from shared memory:
+Here the interface is a memory layout, not an HTTP endpoint. Strategies read fixed-size normalized events from shared memory:
 
-```cpp
-struct alignas(64) NormalizedEvent {   // exactly one cache line
-    uint64_t exchange_ts_ns;           // the venue's timestamp
-    uint64_t receive_ts_ns;            // NIC hardware timestamp
-    uint64_t order_id;
-    int64_t  price;                    // integer; scale is per instrument
-    uint64_t channel_seq;
-    uint32_t instrument_id;
-    uint32_t quantity;
-    uint16_t channel_id;
-    uint8_t  type;                     // ADD, MODIFY, DELETE, TRADE, CLEAR, STATUS
-    uint8_t  side;
-    uint8_t  flags;                    // e.g. LAST_IN_PACKET
-};
-static_assert(sizeof(NormalizedEvent) == 64);
-```
+| Field | Bytes | Note |
+|---|---|---|
+| exchange time, receive time | 8 + 8 | the venue's timestamp; the NIC's hardware timestamp |
+| order ID, channel sequence number | 8 + 8 | |
+| price | 8 | an integer; the scale is per instrument |
+| instrument, quantity | 4 + 4 | |
+| channel, type, side, flags | 2 + 1 + 1 + 1 | type is add, modify, delete, trade, clear, or status; flags include `LAST_IN_PACKET` |
+| padding | 11 | to exactly 64 bytes: one cache line |
 
-A few choices in that struct are deliberate:
+A few choices in that layout are deliberate:
 
 - **Fixed size, one cache line.** Rings of fixed-size slots need no allocation and no length parsing, and one event never straddles two cache lines.
 - **Integer prices.** Doubles cannot represent most decimal prices exactly, and every equality check and tick-size check downstream inherits the error ([Handbook Ch 21](../../../release1/handbook-markdown/chapters/d1-market-data-and-protocols/chapter.md), Part 2).

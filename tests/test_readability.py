@@ -53,6 +53,22 @@ class ReadabilityLintTests(unittest.TestCase):
         report = lint_text(GOOD + "\n" + wall + "\n")
         self.assertTrue(any("at end of file" in f.message and f.severity == "warn" for f in report.findings))
 
+    def test_language_specific_code_warns(self) -> None:
+        code = "```cpp\nstd::vector<std::unique_ptr<Iterator>> read(const Request& r);\n```\n"
+        report = lint_text(GOOD + "\n" + code)
+        self.assertTrue(any("language-specific constructs" in f.message for f in report.findings))
+        self.assertEqual(0, report.errors)
+
+    def test_pseudocode_does_not_warn(self) -> None:
+        code = "```text\nread(series[], [t0, t1), columns[], as_of?)  ->  iterators\n```\n"
+        report = lint_text(GOOD + "\n" + code)
+        self.assertFalse(any("code block" in f.message for f in report.findings))
+
+    def test_long_code_block_warns(self) -> None:
+        code = "```text\n" + "\n".join(f"line {i}" for i in range(20)) + "\n```\n"
+        report = lint_text(GOOD + "\n" + code)
+        self.assertTrue(any("code block has 20 lines" in f.message for f in report.findings))
+
     def test_missing_figures_is_an_error(self) -> None:
         report = lint_text("# Title\n\nOne paragraph.\n")
         self.assertTrue(any("figures" in f.message for f in report.findings))

@@ -62,11 +62,25 @@ bottleneck. CPU time per message is."). One "Out of scope:" line.
 Then one short paragraph on the relationship that matters, with a concrete example
 ("one critical alert to an eight-person desk is one notification and sixteen deliveries").
 
-## `## API` — code blocks, one or two sentences each
+## `## API` — short pseudocode, then the parameters that matter
 
-Show only what the flows need. Use the real interface: a REST call, a binary
-message, a C++ struct in shared memory, a macro. Explain the one or two fields
-that will matter later, and say which deep dive uses them.
+Show only what an interviewer will probe: the calls the flows need, the
+parameters that change the design, and the metadata a caller gets back. The
+programming language must never be the barrier to reading the design.
+
+- Write calls as pseudocode or plain field lists:
+  `read(series[], [t0, t1), columns[], as_of?)  ->  iterators`,
+  `PriceUpdate { ticker, bid, ask, host_seq, publish_time }`. A REST call, a
+  message contract, or short SQL is fine when that is the real interface.
+- No class definitions, smart pointers, templates, `std::` containers,
+  `virtual`, `alignas`, or memory-order arguments. Name the guarantee in words
+  ("one store with release ordering") and link the handbook for the mechanism.
+- When a memory layout *is* the design (a 64-byte event in shared memory),
+  show it as a table of fields, sizes, and why — not as a struct.
+- Keep each block under about 12 lines. After it, a short list of the two to
+  four parameters that matter and the deep dive that uses each.
+
+The lint warns on blocks over 15 lines and on language-specific constructs.
 
 ## `## High-level design` (required) — one `###` per functional requirement
 

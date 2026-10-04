@@ -153,24 +153,20 @@ Each failure is a missing proof. The check needs a complete version; "delivered"
 2. Validate the complete table.
 3. Publish it with a single atomic store of the active-slot index.
 
-```cpp
-struct LimitTable { uint64_t version; Limits limits; };
-LimitTable slots[2];                    // in shared memory, one pair per strategy
-std::atomic<uint32_t> active;           // an index, not a pointer: valid across processes
+```text
+shared memory, per strategy:   slots[2] of { version, limits },   active = index of the live slot
 
-// Host agent (writer)
-uint32_t next = 1 - active.load(std::memory_order_relaxed);
-slots[next] = slots[1 - next];          // start from the current version
-apply(slots[next], delta);              // every field, off to the side
-validate(slots[next]);
-active.store(next, std::memory_order_release);   // one store publishes everything
+host agent, per delta:
+    next = 1 - active
+    slots[next] = slots[active];  apply the whole delta;  validate
+    active = next                        one store, with release ordering
 
-// Order thread (reader), once per order
-const LimitTable& t = slots[active.load(std::memory_order_acquire)];
-check(order, t);                        // every field from the same version
+order thread, per order:
+    table = slots[active]                one load, with acquire ordering
+    check(order, table)                  every field comes from the same version
 ```
 
-The release store and the acquire load pair up: an order thread that sees the new index also sees every field written before it. That is the publish-data-then-flag pattern from [Handbook Ch 9 — *What the Other Thread Can See*](../../../release1/handbook-markdown/chapters/b1-cpp-memory-model/chapter.md). The check reads one complete version per order: 41 or 42, never a mixture.
+`active` is an index rather than a pointer, so it means the same thing in every process that maps the memory. The release store and the acquire load pair up: an order thread that sees the new index also sees every field written before it. That is the publish-data-then-flag pattern from [Handbook Ch 9 — *What the Other Thread Can See*](../../../release1/handbook-markdown/chapters/b1-cpp-memory-model/chapter.md). The check reads one complete version per order: 41 or 42, never a mixture.
 
 The writer must not reuse the old slot while a check might still be reading it. A check takes nanoseconds and updates arrive at most every 20 ms, so in practice that window is tiny — but "in practice" is not a proof. Have the order thread publish the version it last read, and let the agent wait until it has moved on before overwriting that slot.
 

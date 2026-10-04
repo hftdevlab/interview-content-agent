@@ -43,7 +43,16 @@ THRESHOLDS = {
     "caveat_density_warn": 3.0,
     # A system-design chapter needs pictures that grow with the design.
     "min_figures": 2,
+    # Code in a design chapter shows an interface, not an implementation.
+    "code_block_lines_warn": 15,
 }
+
+# Language features that make a reader parse C++ instead of the design.
+# Pseudocode, field lists, REST calls, and short SQL are preferred in API sections.
+LANGUAGE_SPECIFIC_CODE = re.compile(
+    r"std::|template\s*<|\bvirtual\b|\balignas\b|static_assert|unique_ptr|shared_ptr|"
+    r"#include|\bconstexpr\b|memory_order|\bnoexcept\b|\boverride\b"
+)
 
 CAVEAT_PATTERN = re.compile(
     r"\b(?:not|never|cannot|can't|doesn't|don't|isn't|aren't|won't|"
@@ -172,8 +181,9 @@ def parse_blocks(markdown: str) -> List[Block]:
             index += 1
             while index < len(lines) and not lines[index].strip().startswith("```"):
                 index += 1
+            body = "\n".join(lines[start + 1:index])
             index += 1
-            blocks.append(Block("code", "", start + 1))
+            blocks.append(Block("code", body, start + 1))
             continue
         heading = re.match(r"^(#{1,6})\s+(.*)$", stripped)
         if heading:
@@ -308,6 +318,12 @@ def lint_text(markdown: str, path: str = "<memory>", *, min_figures: Optional[in
             report.callouts += 1
         elif block.kind == "code":
             anchors += 1
+            code_lines = [line for line in block.text.splitlines() if line.strip()]
+            if len(code_lines) > THRESHOLDS["code_block_lines_warn"]:
+                report.findings.append(Finding("warn", block.line, f"code block has {len(code_lines)} lines (aim <= {THRESHOLDS['code_block_lines_warn']}); show the interface, not the implementation"))
+            constructs = sorted(set(LANGUAGE_SPECIFIC_CODE.findall(block.text)))
+            if constructs:
+                report.findings.append(Finding("warn", block.line, "code block uses language-specific constructs (" + ", ".join(c.strip() for c in constructs) + "); prefer pseudocode or a field list"))
 
     flush_run(at_end=True)
 

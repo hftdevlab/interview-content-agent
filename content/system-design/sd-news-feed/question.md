@@ -56,12 +56,9 @@ Two relationships do most of the work. **One raw item becomes one or more revisi
 
 Adapters plug into the platform through one narrow interface:
 
-```cpp
-struct Adapter {
-    // A pure function of the bytes: no clock reads, no network, no global state.
-    virtual std::vector<StoryRevision> parse(const RawItem& raw) const = 0;
-    virtual ~Adapter() = default;
-};
+```text
+adapter.parse(raw_item)  ->  [StoryRevision]
+    a pure function of the bytes: no clock reads, no network, no global state
 ```
 
 "Pure" is the important word. An adapter that depends only on the raw bytes can be re-run on yesterday's data and produce the same answer. That makes parsing bugs fixable after the fact, and new adapter versions testable.
