@@ -1,0 +1,20 @@
+// purpose: logs leave the host in batches, over the management network, into a partitioned log
+// critical distinction: the local file decouples trading hosts from collector outages
+// forbidden implication: that shipping shares the order-entry network
+digraph step2 {
+  rankdir=TB;
+  subgraph cluster_host {
+    label="Each trading host"; role=zone;
+    proc  [label="Trading processes"];
+    file  [label="Local binary\nlog files", role=store];
+    agent [label="Shipping agent\nbatch 1 MB or 200 ms", role=new];
+  }
+  coll  [label="Collectors", role=new];
+  kafka [label="Kafka\npartitioned by host + stream", role="store new"];
+
+  proc  -> file  [label=" append"];
+  file  -> agent [label=" 1. tail"];
+  agent -> coll  [label=" 2. PushBatch(stream, first_seq..last_seq)\n management network"];
+  coll  -> kafka [label=" 3. append"];
+  coll  -> agent [label=" 4. ack last_seq", role=async];
+}

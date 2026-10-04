@@ -1,0 +1,18 @@
+// purpose: the naive live path: every change of a subscribed ticker goes to every session
+// critical distinction: subscriptions are per session, so the shard's fan-out grows with tabs
+// forbidden implication: that this scales to the open
+digraph step3 {
+  rankdir=TB; nodesep=0.45; ranksep=0.45;
+  bus [label="Bus", role=ext];
+  ps  [label="Price-service shard\nsubscriptions per session", role=store];
+  gw  [label="Gateway"];
+  b1  [label="Tab 1", role=ext];
+  b2  [label="Tab 2", role=ext];
+  b3  [label="Tab 600", role=ext];
+  bus -> ps;
+  gw -> ps [label=" 1. register each\n session's tickers", role=new];
+  ps -> gw [label=" 2. every change,\n once per session", role=warn];
+  gw -> b1 [label=" 3."];
+  gw -> b2;
+  gw -> b3;
+}

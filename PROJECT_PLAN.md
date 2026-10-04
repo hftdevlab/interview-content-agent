@@ -78,6 +78,15 @@ The catalog should group questions by categories such as:
 
 - Distributed coordination and consistency. 
 
+Current presentation note (2026-10-03): system-design chapters now follow the
+track skeleton in `.agents/skills/draft-system-design/references/chapter-skeleton.md`
+— a short question with a bold crux, requirements with numbers, entities, API,
+a design built one requirement at a time, deep dives that grow from concrete
+failures, calibration, follow-ups, and a design-moves recap. Questions form a
+knowledge graph (`taxonomy/design-moves.yaml`, `content/system-design/TRACK.md`)
+linked to the companion handbook. The checklist below remains historical
+coverage guidance.
+
 Each question should contain: 
 
 1. **Question description** 

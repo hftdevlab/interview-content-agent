@@ -1,0 +1,16 @@
+{
+  "question_id": "sd-news-feed",
+  "checks": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "review_notes": [
+    "Plan. Crux: turn many differently shaped, sometimes duplicated feeds into one trustworthy stream, fast enough for strategies and honest about time for backtests. Interpretation: hedge-fund machine-readable news ingestion from several vendors; the social feed is named as the consumer-tech version (human to confirm). Introduces: normalize-at-the-edge, content-dedup, point-in-time-timestamps, push-vs-pull-fanout. Reuses: idempotency-key, accept-then-work, partitioned-log, index-for-the-query. Deep dives: modelling sources that disagree — uniform schema vs per-vendor schema vs core + extensions + raw, with an explicit 'no perfect model' trade-off (NFR2/NFR3); duplicates (NFR3); as-of history (NFR4). Finance lens: not the social feed; licensing at delivery; lookahead bias.",
+    "Revised 2026-10-04 per track-owner feedback: chapter stands alone (header shows level and related questions by title; no question numbers); every reused move is re-explained in a sentence and linked by title; the closing design-moves recap and 'Next' line were removed. Deep dive 1 now shows the uniform and per-vendor schemas candidates reach for first, their costs, and the core-plus-extensions refinement as a judgement call rather than an obvious answer.",
+    "Rewritten from scratch for the system-design track reset (2026-10-03). Supersedes the e2e pilot sd-e2e-news-feed, which used the social-feed interpretation.",
+    "Volume and latency targets are labelled assumptions. The 'display vs non-display' licensing point is stated generally, without vendor-specific terms.",
+    "Human review required: confirm the interpretation, interview realism, difficulty, and approval."
+  ]
+}

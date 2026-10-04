@@ -1,0 +1,25 @@
+// purpose: one thread owns a channel from the NIC queue to the strategy rings
+// critical distinction: no locks, no allocation, no system calls, no durable write on this path
+// forbidden implication: that the strategy runs on another host
+digraph step1 {
+  rankdir=TB; ranksep=0.45;
+  nic [label="NIC receive queue\nchannel 7, line A", role=ext];
+  subgraph cluster_fh {
+    label="Feed-handler thread · isolated core · busy polling"; role=zone;
+    seq  [label="Sequence check", role=new];
+    dec  [label="Decode venue messages", role=new];
+    norm [label="Normalize to 64-byte events", role=new];
+    book [label="Update instrument books", role=new];
+  }
+  r1 [label="SPSC ring\nstrategy A", role=store];
+  r2 [label="SPSC ring\nstrategy B", role=store];
+  sa [label="Strategy A", role=ext];
+  sb [label="Strategy B", role=ext];
+
+  nic -> seq [label=" 1. poll"];
+  seq -> dec; dec -> norm;
+  norm -> book [label=" 2."];
+  book -> r1 [label=" 3. write event"];
+  book -> r2;
+  r1 -> sa; r2 -> sb;
+}

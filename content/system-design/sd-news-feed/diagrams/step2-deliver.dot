@@ -1,0 +1,19 @@
+// purpose: machines get pushed revisions; humans get a live view that backfills by query
+// critical distinction: entitlements are enforced where data leaves, not where it enters
+// forbidden implication: that storage or indexing sits in front of delivery
+digraph step2 {
+  rankdir=TB;
+  norm   [label="Normalizer"];
+  router [label="Router\nsubscription filters + entitlements", role=new];
+  strat  [label="Strategies\npush over low-latency bus", role=new];
+  gw     [label="Terminal gateway\nWebSocket", role=new];
+  tr     [label="Traders' terminals", role=ext];
+  store  [label="Story store\n(next step)", role=store];
+
+  norm   -> router [label=" 1. every revision"];
+  norm   -> store  [label=" in parallel", role=async];
+  router -> strat  [label=" 2. matching, licensed"];
+  router -> gw     [label=" 2."];
+  gw     -> tr     [label=" 3. live view"];
+  tr     -> store  [label=" backfill on connect", role=async];
+}

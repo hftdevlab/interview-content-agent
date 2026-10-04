@@ -1,0 +1,14 @@
+// purpose: overwrite as versions over ranges; the visible result takes the newest version per interval
+// critical distinction: deletion is an empty write whose range hides older rows
+// forbidden implication: that any file is edited
+digraph dd2 {
+  rankdir=TB;
+  grid [shape=plain, label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="5">
+      <tr><td bgcolor="#ffffff" color="#ffffff"></td><td bgcolor="#f3f4f6"><b>09:30–10:00</b></td><td bgcolor="#f3f4f6"><b>10:00–10:15</b></td><td bgcolor="#f3f4f6"><b>10:15–10:20</b></td><td bgcolor="#f3f4f6"><b>10:20–11:00</b></td><td bgcolor="#f3f4f6"><b>11:00–16:00</b></td></tr>
+      <tr><td align="left" bgcolor="#f3f4f6"><b>v815</b> empty write</td><td color="#d0d7de"></td><td color="#d0d7de"></td><td bgcolor="#fde7d9" color="#b5541a">range, no rows</td><td color="#d0d7de"></td><td color="#d0d7de"></td></tr>
+      <tr><td align="left" bgcolor="#f3f4f6"><b>v812</b> correction</td><td color="#d0d7de"></td><td colspan="3" bgcolor="#dbeafe" color="#1a6fb5">new rows for 10:00–11:00</td><td color="#d0d7de"></td></tr>
+      <tr><td align="left" bgcolor="#f3f4f6"><b>v700</b> base</td><td colspan="5" bgcolor="#f3f4f6" color="#9aa4b2">original day</td></tr>
+      <tr><td align="left" bgcolor="#e3f1e8"><b>Visible</b></td><td bgcolor="#e3f1e8" color="#2f7a4f">v700</td><td bgcolor="#e3f1e8" color="#2f7a4f">v812</td><td bgcolor="#ffffff" color="#2f7a4f">nothing</td><td bgcolor="#e3f1e8" color="#2f7a4f">v812</td><td bgcolor="#e3f1e8" color="#2f7a4f">v700</td></tr>
+    </table>>];
+}

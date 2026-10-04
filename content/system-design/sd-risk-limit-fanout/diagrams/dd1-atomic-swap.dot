@@ -1,0 +1,21 @@
+// purpose: build the new table aside, publish with one store, acknowledge only after the swap
+// critical distinction: the order thread reads one complete version per order
+// forbidden implication: that the agent edits fields in the table the order thread is reading
+digraph dd1 {
+  rankdir=TB; ranksep=0.4;
+  delta [label="Delta v42 arrives at host agent", role=ext];
+  subgraph cluster_shm {
+    label="Shared memory for S7"; role=zone;
+    a  [label="slot A: v41\n(active)", role=store];
+    b  [label="slot B: building v42\n(inactive)", role="store new"];
+    ix [label="active index\natomic, release store", role=new];
+  }
+  ot  [label="S7 order thread\nacquire-load index once per order,\ncheck every field from that slot"];
+  ack [label="Applied(S7, v42)\nsent after the swap", role=ok];
+
+  delta -> b  [label=" 1. copy v41, apply all fields,\n validate"];
+  b  -> ix [label=" 2. one store: index = B"];
+  ix -> ot [label=" 3. next order sees v42"];
+  ix -> ack [label=" 4.", role=ok];
+  a  -> ot [label=" orders before the swap see v41", role=async];
+}

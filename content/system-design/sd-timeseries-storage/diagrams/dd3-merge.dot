@@ -1,0 +1,23 @@
+// purpose: a lazy k-way merge with version filtering, reading one pinned snapshot
+// critical distinction: compaction publishes a new version beside the pinned one; nothing is deleted under the reader
+// forbidden implication: that the iterator sees writes committed after it opened
+digraph dd3 {
+  rankdir=TB; nodesep=0.35; ranksep=0.4;
+  subgraph cluster_pin {
+    label="Pinned snapshot · version 820 (compaction's 821 is published beside it)"; role=zone;
+    c700 [label="Cursor\nsegment v700", role=store];
+    c812 [label="Cursor\nsegment v812", role=store];
+  }
+  fast  [label="Fast path\nno overlap: decode\nblocks in bulk", role=ok];
+  heap  [label="Min-heap on (series, time)\nO(log k) per row", role=new];
+  mask  [label="Range filter\nrecords 812, 815", role=new];
+  batch [label="Batch builder\n4,096 rows, column by column", role=new];
+  caller [label="next(batch)", role=ext];
+
+  c700 -> fast [role=ok];
+  c700 -> heap; c812 -> heap;
+  heap -> mask [label=" 1–2. drop\n hidden rows"];
+  mask -> batch [label=" 3"];
+  fast -> batch [role=ok];
+  batch -> caller;
+}

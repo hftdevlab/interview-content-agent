@@ -1,0 +1,27 @@
+// purpose: every source gets its own connector and adapter; raw bytes are kept before parsing
+// critical distinction: connectors own sessions, adapters own formats, the normalizer owns the canonical model
+// forbidden implication: that one parser can handle every vendor
+digraph step1 {
+  rankdir=TB;
+  wa  [label="Wire A\nTCP stream, XML", role=ext];
+  wb  [label="Wire B\nWebSocket, JSON", role=ext];
+  rss [label="Press releases, filings\npolled RSS / Atom", role=ext];
+  subgraph cluster_ingest {
+    label="Ingest"; role=zone;
+    ca [label="Connector A", role=new];
+    cb [label="Connector B", role=new];
+    cr [label="Poller", role=new];
+  }
+  raw  [label="Raw log\nexact bytes + receive time\npartitioned by source", role="store new"];
+  ad   [label="Adapters\none per source format", role=new];
+  norm [label="Normalizer\ncanonical StoryRevision", role=new];
+  ref  [label="Reference data\nvendor IDs to firm security IDs", role=store];
+
+  wa -> ca; wb -> cb; rss -> cr;
+  ca -> raw [label=" 1. stamp + append"];
+  cb -> raw;
+  cr -> raw;
+  raw -> ad [label=" 2. parse"];
+  ad -> norm [label=" 3. canonical"];
+  ref -> norm [label=" 4. map securities", role=async];
+}

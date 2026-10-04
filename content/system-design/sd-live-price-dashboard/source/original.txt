@@ -1,0 +1,1 @@
+Design a website that listening to trading hosts who publishing ticker price continuously and show the live price to traders on a dash broad within 100ms latency.

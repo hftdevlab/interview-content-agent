@@ -1,0 +1,22 @@
+// purpose: hosts publish fire-and-forget onto a bus; shards keep the latest price per ticker
+// critical distinction: the bus never pushes back on a host; the shard overwrites, it does not queue
+// forbidden implication: that hosts know who is watching
+digraph step1 {
+  rankdir=TB; nodesep=0.4; ranksep=0.45;
+  subgraph cluster_hosts {
+    label="Trading hosts · 200"; role=zone;
+    h1 [label="Pricing engine", role=ext];
+    h2 [label="Strategy host", role=ext];
+  }
+  bus [label="Internal bus\ntopics by ticker shard\nno durability, no back-pressure", role=new];
+  subgraph cluster_ps {
+    label="Price service · 8 shards"; role=zone;
+    s1 [label="Shard 1\nlatest price per ticker", role="store new"];
+    s2 [label="Shard 8\nlatest price per ticker", role="store new"];
+  }
+  h1 -> bus [label=" 1. publish"];
+  h2 -> bus [label=" 1. publish"];
+  bus -> s1 [label=" 2. deliver"];
+  bus -> s2;
+  s1 -> s1 [label=" 3. overwrite if\n newer host_seq", role=ok];
+}

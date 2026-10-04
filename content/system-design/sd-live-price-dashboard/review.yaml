@@ -1,0 +1,15 @@
+{
+  "question_id": "sd-live-price-dashboard",
+  "checks": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "review_notes": [
+    "Plan. Crux: show every trader the latest price within 100 ms when prices change faster than any screen can show, without letting a slow browser reach back to the hosts. Introduces: conflate-to-latest, fan-out-in-tiers, latency-budget. Reuses: push-vs-pull-fanout (contrasted: here humans need push), slow-consumer-isolation, explicit-staleness. Deep dives: conflation (NFR2, NFR4), tiered fan-out (NFR4, scale), latency budget and visible staleness (NFR1, NFR3). Finance lens: traders act on what they see, so a frozen price that looks live is the worst failure; the dashboard is control plane.",
+    "Prompt grammar corrected in question.md; original kept verbatim in source/original.txt.",
+    "Workload numbers and per-hop budget figures are labelled assumptions. Conflation is tied to Handbook Ch 24's rule (conflate state, never deltas).",
+    "Human review required: interpretation, interview realism, difficulty, and approval."
+  ]
+}

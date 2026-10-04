@@ -17,7 +17,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from tools.render_diagrams import render_source
+from tools.render_diagrams import (
+    graphviz_available,
+    graphviz_version_of,
+    local_graphviz_version,
+    render_path,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,15 +46,17 @@ ID_PREFIX_BY_TYPE = {
 }
 
 REQUIRED_HEADINGS = {
+    # System-design chapters follow the track skeleton in
+    # .agents/skills/draft-system-design/references/chapter-skeleton.md.
+    # The legacy answer-key headings remain accepted for older packages.
     "system_design": [
-        "## Interview prompt",
-        "## What the interviewer is testing",
-        "## Good solution",
-        "## Great solution improvements",
-        "## Failure scenarios",
-        "## Common pitfalls",
-        "## Follow-up questions",
-        "## Evaluation rubric",
+        "## The question",
+        "## Requirements",
+        "### Functional requirements",
+        "### Non-functional requirements",
+        "## Core entities",
+        "## High-level design",
+        "## Deep dives",
     ],
     "coding": [
         "## Interview prompt",
@@ -73,6 +80,17 @@ REQUIRED_HEADINGS = {
     ],
 }
 
+LEGACY_SYSTEM_DESIGN_HEADINGS = (
+    "## Interview prompt",
+    "## What the interviewer is testing",
+    "## Good solution",
+    "## Great solution improvements",
+    "## Failure scenarios",
+    "## Common pitfalls",
+    "## Follow-up questions",
+    "## Evaluation rubric",
+)
+
 PLACEHOLDER_PATTERN = re.compile(
     r"\b(?:TODO|TBD|FIXME|INSERT\s+ANSWER|NEEDS\s+DIAGRAM|"
     r"UNKNOWN\s+COMPLEXITY|PLACEHOLDER)\b",
@@ -84,6 +102,7 @@ SECTION_ITEM_LIMITS = {
     "system_design": (
         "## Great solution improvements",
         "## Follow-up questions",
+        "## Follow-ups",
     ),
     "coding": (
         "## Optional improvements",
@@ -732,9 +751,13 @@ def _diagram_issues(
             issues.append(
                 ValidationIssue(
                     str(source_path.relative_to(root)),
-                    "declared Mermaid source is missing",
+                    "declared diagram source is missing",
                 )
             )
+            continue
+
+        if source_path.suffix == ".dot":
+            issues.extend(_dot_diagram_issues(root, source_path, generated_path, rendered_name))
             continue
 
         expected_name = source_path.with_suffix(".svg").name
@@ -747,7 +770,7 @@ def _diagram_issues(
             )
 
         try:
-            expected_svg = render_source(source_path.read_text(encoding="utf-8"))
+            expected_svg = render_path(source_path)
             ET.fromstring(expected_svg)
         except (OSError, ValueError, ET.ParseError) as exc:
             issues.append(
@@ -779,6 +802,211 @@ def _diagram_issues(
                 )
 
     return issues, generated_paths
+
+
+def _dot_diagram_issues(
+    root: Path,
+    source_path: Path,
+    generated_path: Path,
+    rendered_name: str,
+) -> List[ValidationIssue]:
+    """Check a Graphviz source and its committed SVG.
+
+    Graphviz layout can differ between versions, so exact staleness is only
+    checked when the local Graphviz version matches the one recorded in the SVG.
+    Without Graphviz installed, the committed SVG is still required and parsed.
+    """
+    issues: List[ValidationIssue] = []
+    location = str(source_path.relative_to(root))
+    expected_name = source_path.with_suffix(".svg").name
+    if rendered_name != expected_name:
+        issues.append(ValidationIssue(location, f"rendered_file must be {expected_name!r}"))
+    expected_svg = None
+    if graphviz_available():
+        try:
+            expected_svg = render_path(source_path)
+        except (OSError, ValueError) as exc:
+            issues.append(ValidationIssue(location, f"Graphviz source is not renderable: {exc}"))
+            return issues
+    if not generated_path.is_file():
+        issues.append(
+            ValidationIssue(
+                str(generated_path.relative_to(root)),
+                "generated SVG is missing; run `make diagrams`",
+            )
+        )
+        return issues
+    actual_svg = generated_path.read_text(encoding="utf-8")
+    try:
+        ET.fromstring(actual_svg)
+    except ET.ParseError as exc:
+        issues.append(
+            ValidationIssue(str(generated_path.relative_to(root)), f"generated SVG is invalid XML: {exc}")
+        )
+        return issues
+    if expected_svg is None:
+        return issues
+    if graphviz_version_of(actual_svg) == local_graphviz_version() and actual_svg != expected_svg:
+        issues.append(
+            ValidationIssue(
+                str(generated_path.relative_to(root)),
+                "generated SVG is stale; run `make diagrams`",
+            )
+        )
+    return issues
+
+
+def _load_design_moves(root: Path) -> Optional[Mapping[str, Mapping[str, Any]]]:
+    path = root / "taxonomy" / "design-moves.yaml"
+    if not path.is_file():
+        return None
+    data = load_data(path)
+    moves = data.get("moves", []) if isinstance(data, dict) else []
+    return {move["id"]: move for move in moves if isinstance(move, dict) and "id" in move}
+
+
+def _handbook_chapter_ids(root: Path) -> Optional[set]:
+    path = root / "release1" / "handbook-markdown" / "curriculum.yaml"
+    if not path.is_file():
+        return None
+    return set(re.findall(r"^\s*-\s+id:\s*([a-z0-9-]+)\s*$", path.read_text(encoding="utf-8"), re.MULTILINE))
+
+
+QUESTION_NUMBER_REFERENCE = re.compile(r"\bQ[1-9][0-9]?\b")
+
+
+def _chapter_text_issues(
+    root: Path,
+    relative: Path,
+    metadata: Mapping[str, Any],
+    design_moves: Optional[Mapping[str, Any]],
+    moves: Optional[Mapping[str, Mapping[str, Any]]],
+) -> List[ValidationIssue]:
+    """Checks that keep chapters standalone and the moves explicit.
+
+    * other questions are referred to by title, never as "Q3";
+    * every move a chapter introduces is taught in a ``Design move — <label>`` callout.
+    """
+    content_path = root / relative.parent / str(metadata.get("content_file", "question.md"))
+    if not content_path.is_file():
+        return []
+    markdown = content_path.read_text(encoding="utf-8")
+    location = str(content_path.relative_to(root))
+    issues = []
+    for match in sorted(set(QUESTION_NUMBER_REFERENCE.findall(markdown))):
+        issues.append(
+            ValidationIssue(location, f"refer to other questions by title, not as {match!r}")
+        )
+    if isinstance(design_moves, dict) and moves:
+        lowered = markdown.casefold()
+        for move_id in design_moves.get("introduces", []):
+            label = str(moves.get(move_id, {}).get("label", ""))
+            if label and f"design move — {label.casefold()}" not in lowered:
+                issues.append(
+                    ValidationIssue(location, f"introduced move {label!r} has no 'Design move — {label}' callout")
+                )
+    return issues
+
+
+def track_issues(
+    root: Path,
+    records: Sequence[Tuple[Path, Mapping[str, Any]]],
+) -> List[ValidationIssue]:
+    """Validate the system-design knowledge graph.
+
+    * every move named in metadata exists in taxonomy/design-moves.yaml;
+    * a question introduces exactly the moves the taxonomy assigns to it;
+    * a reused move is introduced by some other question;
+    * chapters refer to other questions by title and teach introduced moves in callouts;
+    * handbook chapter IDs exist in the handbook curriculum.
+    """
+    issues: List[ValidationIssue] = []
+    try:
+        moves = _load_design_moves(root)
+    except (OSError, ValueError) as exc:
+        return [ValidationIssue("taxonomy/design-moves.yaml", str(exc))]
+    handbook_ids = _handbook_chapter_ids(root)
+    order_by_id = {
+        metadata.get("id"): metadata.get("track_order")
+        for _, metadata in records
+        if metadata.get("type") == "system_design" and isinstance(metadata.get("track_order"), int)
+    }
+    introduced_by: dict = {}
+    for relative, metadata in records:
+        if metadata.get("type") != "system_design":
+            continue
+        question_id = metadata.get("id")
+        design_moves = metadata.get("design_moves")
+        if design_moves is not None and moves is None:
+            issues.append(ValidationIssue(f"{relative}.design_moves", "taxonomy/design-moves.yaml is missing"))
+            continue
+        if isinstance(design_moves, dict) and moves is not None:
+            for move_id in design_moves.get("introduces", []):
+                move = moves.get(move_id)
+                if move is None:
+                    issues.append(ValidationIssue(f"{relative}.design_moves", f"unknown design move {move_id!r}"))
+                    continue
+                introduced_by.setdefault(move_id, []).append(question_id)
+                if move.get("introduced_in") != question_id:
+                    issues.append(
+                        ValidationIssue(
+                            f"{relative}.design_moves",
+                            f"{move_id!r} is introduced by {move.get('introduced_in')!r} in the taxonomy",
+                        )
+                    )
+            for move_id in design_moves.get("reuses", []):
+                move = moves.get(move_id)
+                if move is None:
+                    issues.append(ValidationIssue(f"{relative}.design_moves", f"unknown design move {move_id!r}"))
+                    continue
+                origin = move.get("introduced_in")
+                if origin == question_id:
+                    issues.append(ValidationIssue(f"{relative}.design_moves", f"{move_id!r} cannot be both introduced and reused"))
+                    continue
+        # Chapters stand alone, so a reused move may come from any question in
+        # the track; the chapter re-explains it briefly and links the question.
+        issues.extend(_chapter_text_issues(root, relative, metadata, design_moves, moves))
+        if "handbook_chapters" in metadata:
+            content_path = root / relative.parent / str(metadata.get("content_file", "question.md"))
+            if content_path.is_file():
+                linked = set(
+                    re.findall(
+                        r"handbook-markdown/chapters/([a-z0-9-]+)/chapter\.md",
+                        content_path.read_text(encoding="utf-8"),
+                    )
+                )
+                for chapter_id in sorted(linked - set(metadata.get("handbook_chapters", []))):
+                    issues.append(
+                        ValidationIssue(
+                            f"{relative}.handbook_chapters",
+                            f"chapter links handbook {chapter_id!r} but metadata does not list it",
+                        )
+                    )
+        if handbook_ids is not None:
+            for chapter_id in metadata.get("handbook_chapters", []):
+                if chapter_id not in handbook_ids:
+                    issues.append(
+                        ValidationIssue(f"{relative}.handbook_chapters", f"unknown handbook chapter {chapter_id!r}")
+                    )
+    if moves is not None:
+        present = {metadata.get("id") for _, metadata in records}
+        for move_id, move in moves.items():
+            origin = move.get("introduced_in")
+            if origin in present and move_id not in introduced_by:
+                issues.append(
+                    ValidationIssue(
+                        "taxonomy/design-moves.yaml",
+                        f"{move_id!r} is assigned to {origin!r} but that question does not introduce it",
+                    )
+                )
+            if len(introduced_by.get(move_id, [])) > 1:
+                issues.append(
+                    ValidationIssue("taxonomy/design-moves.yaml", f"{move_id!r} is introduced by more than one question")
+                )
+    orders = [order for order in order_by_id.values()]
+    if len(orders) != len(set(orders)):
+        issues.append(ValidationIssue("content/system-design", "track_order values must be unique"))
+    return issues
 
 
 def _practice_issues(
@@ -1243,7 +1471,12 @@ def validate_repository(root: Path = ROOT) -> List[ValidationIssue]:
         content_path = package_dir / str(metadata.get("content_file", "question.md"))
         if content_path.is_file():
             markdown = content_path.read_text(encoding="utf-8")
-            for heading in REQUIRED_HEADINGS[question_type]:
+            required_headings = REQUIRED_HEADINGS[question_type]
+            if question_type == "system_design" and all(
+                heading in markdown for heading in LEGACY_SYSTEM_DESIGN_HEADINGS
+            ):
+                required_headings = list(LEGACY_SYSTEM_DESIGN_HEADINGS)
+            for heading in required_headings:
                 if heading not in markdown:
                     issues.append(
                         ValidationIssue(
@@ -1318,6 +1551,7 @@ def validate_repository(root: Path = ROOT) -> List[ValidationIssue]:
             )
 
     issues.extend(duplicate_id_issues(records))
+    issues.extend(track_issues(root, records))
 
     known_ids = {
         metadata["id"]

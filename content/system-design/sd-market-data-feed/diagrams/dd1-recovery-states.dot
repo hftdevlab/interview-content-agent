@@ -1,0 +1,17 @@
+// purpose: trust state per channel, and the transitions that move it
+// critical distinction: RECOVERING and STALE are published to consumers, not hidden in logs
+// forbidden implication: that the live feed stops receiving during recovery
+digraph dd1 {
+  rankdir=TB; ranksep=0.55; nodesep=0.7;
+  live  [label="LIVE\npublish books", role=ok];
+  rec   [label="RECOVERING\nbuffer live packets,\nrequest retransmission", role=warn];
+  stale [label="STALE\nno heartbeat, no data", role=warn];
+  snap  [label="SNAPSHOT RESYNC\nrebuild from snapshot S,\napply buffered > S", role=warn];
+
+  live -> rec   [label=" gap on\n both lines"];
+  rec  -> live  [label=" hole filled", role=ok];
+  live -> stale [label=" heartbeat\n missed"];
+  rec  -> snap  [label=" refused, slow,\n or buffer full"];
+  stale -> snap [label=" data resumes"];
+  snap -> live  [label=" caught up", role=ok, constraint=false];
+}

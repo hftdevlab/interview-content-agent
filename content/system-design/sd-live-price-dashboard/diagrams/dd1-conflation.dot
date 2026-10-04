@@ -1,0 +1,17 @@
+// purpose: per-session latest-value slots and a dirty set; flush at most every 25 ms
+// critical distinction: updates overwrite slots; nothing is queued per update
+// forbidden implication: that every update reaches the browser
+digraph dd1 {
+  rankdir=TB; nodesep=0.4; ranksep=0.4;
+  upd [label="AAPL updates\n800 per second", role=ext];
+  slots [shape=plain, label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td colspan="3" bgcolor="#f3f4f6"><b>One session's slots</b> — one per watched ticker</td></tr>
+      <tr><td bgcolor="#dbeafe" color="#1a6fb5">AAPL 187.24<br/>dirty</td><td bgcolor="#dbeafe" color="#1a6fb5">MSFT 411.02<br/>dirty</td><td bgcolor="#ffffff" color="#9aa4b2">… 198 more<br/>unchanged</td></tr>
+    </table>>];
+  flush [label="Flush\nat once if idle, else at the end\nof the 25 ms window; wait while\ntwo flushes are unacknowledged", role=new];
+  tab [label="Browser tab\n≤ 40 messages/s, each with\nonly dirty tickers; acks each", role=ext];
+  upd -> slots [label=" 1. overwrite slot,\n mark dirty"];
+  slots -> flush [label=" 2. window ends"];
+  flush -> tab [label=" 3. one update message", role=ok];
+}

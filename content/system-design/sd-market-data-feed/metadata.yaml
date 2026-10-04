@@ -6,7 +6,13 @@
   "status": "needs_human_review",
   "difficulty": 4,
   "expected_duration_minutes": 60,
-  "categories": ["market-data", "data-pipeline", "low-latency", "reliability"],
+  "track_order": 6,
+  "categories": [
+    "market-data",
+    "data-pipeline",
+    "low-latency",
+    "reliability"
+  ],
   "tags": [
     "multicast",
     "feed-arbitration",
@@ -16,21 +22,61 @@
     "snapshot-resync",
     "replay",
     "normalization",
-    "schema-evolution",
     "kernel-bypass",
     "lock-free-ring",
     "numa",
-    "ptp",
-    "capacity-planning",
-    "mermaid"
+    "hardware-timestamping",
+    "slow-consumer",
+    "capacity-planning"
+  ],
+  "design_moves": {
+    "introduces": [
+      "split-hot-and-reliable-paths",
+      "sequence-gap-recovery",
+      "redundant-feed-arbitration",
+      "explicit-staleness",
+      "capture-for-replay",
+      "slow-consumer-isolation"
+    ],
+    "reuses": [
+      "hot-path-handoff",
+      "explicit-loss-policy",
+      "partitioned-log",
+      "batch-to-amortize",
+      "normalize-at-the-edge",
+      "point-in-time-timestamps",
+      "queue-buys-time",
+      "content-dedup"
+    ]
+  },
+  "handbook_chapters": [
+    "d1-market-data-and-protocols",
+    "d2-tcp-udp-multicast",
+    "d3-sequence-and-gap-recovery",
+    "d6-kernel-bypass",
+    "b2-spsc-ring-buffer",
+    "b5-waiting-strategies",
+    "c2-preallocation-and-pools",
+    "c5-numa-placement",
+    "a3-latency-throughput",
+    "e2-order-book-construction",
+    "e4-deterministic-replay"
   ],
   "prerequisites": [],
-  "related_questions": ["code-multi-source-stream-merger", "fund-sequence-lock"],
+  "related_questions": [
+    "sd-log-publishing-query",
+    "sd-news-feed",
+    "sd-risk-limit-fanout",
+    "code-multi-source-stream-merger",
+    "fund-sequence-lock"
+  ],
   "source": {
     "input_type": "text",
     "confidentiality": "public",
     "original_company_removed": true,
-    "original_files": ["source/original.txt"]
+    "original_files": [
+      "source/original.txt"
+    ]
   },
   "review": {
     "agent_reviewed": true,
@@ -38,26 +84,33 @@
     "technical_accuracy_reviewed": false,
     "interview_realism_reviewed": false
   },
-  "last_updated": "2026-08-11",
+  "last_updated": "2026-10-04",
   "content_file": "question.md",
   "diagrams": [
     {
-      "source_file": "diagrams/architecture.mmd",
-      "rendered_file": "architecture.svg",
-      "caption": "Latency-critical trading, recovery, capture, and research planes remain explicitly separated.",
-      "alt_text": "Exchange multicast feeds enter per-channel receivers, pass through decoding and normalization, then publish to consumers while a separate recovery service handles sequence gaps."
+      "source_file": "diagrams/step1-live-path.dot",
+      "rendered_file": "step1-live-path.svg",
+      "caption": "Step 1: one feed-handler thread owns a channel from the NIC queue to the strategy rings.",
+      "alt_text": "A feed-handler thread on an isolated core busy-polls the NIC receive queue for channel 7 line A, checks sequence numbers, decodes venue messages, normalizes them into 64-byte events, updates instrument books, and writes events into one SPSC ring per strategy."
     },
     {
-      "source_file": "diagrams/gap-recovery.mmd",
-      "rendered_file": "gap-recovery.svg",
-      "caption": "Sequence gap detection and recovery without pausing the live feed.",
-      "alt_text": "The live receiver detects a missing sequence, continues buffering live packets, requests replay, merges the recovered range, and releases ordered events."
+      "source_file": "diagrams/step2-ab-arbitration.dot",
+      "rendered_file": "step2-ab-arbitration.svg",
+      "caption": "Step 2: each line misses a different packet; arbitration takes the first copy of each sequence number. Only a hole on both lines goes to recovery.",
+      "alt_text": "Line A delivers sequences 101, 102, and 104; line B delivers 101, 103, and 104. The arbitrator takes the first copy of each and passes the complete sequence 101 to 104 to decoding and publishing. Only when both lines miss a sequence does it hand the hole to a recovery thread, which requests missing messages from the venue. Trust state is published to strategies as STATUS events."
     },
     {
-      "source_file": "diagrams/delivery-rings.mmd",
-      "rendered_file": "delivery-rings.svg",
-      "caption": "Bounded ring delivery makes consumer independence and resynchronization explicit.",
-      "alt_text": "A single publisher chooses either per-consumer SPSC rings or a shared append-only ring with independent consumer cursors; lagging consumers recover without blocking publication."
+      "source_file": "diagrams/step3-two-paths.dot",
+      "rendered_file": "step3-two-paths.svg",
+      "caption": "Step 3: the hot path and the reliable path read the same packets; nothing on the reliable path can slow the feed handlers.",
+      "alt_text": "The venue's A and B lines reach a colo switch. Packets go to feed handlers, shared-memory rings, and strategies on the hot path. A mirror or tap sends the same packets to a capture writer that records raw packets with NIC timestamps to local files, which ship later to a central capture store used for replay and research with versioned decoders."
+    },
+    {
+      "source_file": "diagrams/dd1-recovery-states.dot",
+      "rendered_file": "dd1-recovery-states.svg",
+      "caption": "Deep dive 1: trust state per channel and the transitions between LIVE, RECOVERING, STALE, and SNAPSHOT RESYNC.",
+      "alt_text": "A gap on both lines moves a channel from LIVE to RECOVERING, where live packets are buffered and retransmission is requested. A filled hole returns it to LIVE. A refused or slow retransmission, or a full buffer, moves it to SNAPSHOT RESYNC. A missed heartbeat moves LIVE to STALE, and resumed data moves STALE to SNAPSHOT RESYNC. Catching up returns to LIVE."
     }
-  ]
+  ],
+  "short_title": "Market Data Feed"
 }

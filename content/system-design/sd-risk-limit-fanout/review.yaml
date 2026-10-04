@@ -1,0 +1,17 @@
+{
+  "question_id": "sd-risk-limit-fanout",
+  "checks": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "review_notes": [
+    "Plan. Crux: a limit only protects you where it is enforced; prove each strategy uses the current limits and make it stop adding risk when it cannot. Domain primer included because the system's purpose depends on what a risk limit is and where it is enforced. Introduces: versioned-state, ack-at-enforcement, freshness-lease, fail-safe-default, atomic-swap. Reuses: idempotency-key, accept-then-work, push-vs-pull-fanout, sequence-gap-recovery, explicit-staleness, slow-consumer-isolation. Deep dives: atomic application and acknowledgement (NFR3), freshness lease and fail-safe policy (NFR2), slow and reconnecting consumers (NFR5). Finance lens: not feature-flag distribution; staleness must be bounded and fail safe.",
+    "Revised 2026-10-04 per track-owner feedback: chapter stands alone (header shows level and related questions by title; no question numbers); every reused move is re-explained in a sentence and linked by title; the closing design-moves recap and 'Next' line were removed.",
+    "Rewritten from scratch for the system-design track reset (2026-10-03). Package moved from sd-e2e-risk-limit-fanout; source, expert notes, and all five feedback files are preserved verbatim.",
+    "Human feedback 20260814T064547Z applied: one running scenario (Maya, S7, 10:31:04) used throughout; physical nouns (host agent, shared memory slots, order thread); illustrative numbers with what they teach (10 MB/s, not bandwidth-bound); the naive design is run until it breaks before the fixes; theses lead sections; terms defined before diagrams; edge-labelled diagrams; the two load-bearing ideas (sent is not applied; freshness is not change frequency) are bolded theses. Feedback 20260814T095144Z item 5 applied: proofs originate at the authority and carry the agent's latest nonce, so a distributor cannot stockpile or replay proofs.",
+    "Policy values (T_stale = 2 s, lease 1 s, ping 250 ms) are labelled as the risk owner's choice.",
+    "Human review required for interview realism, difficulty, and approval."
+  ]
+}

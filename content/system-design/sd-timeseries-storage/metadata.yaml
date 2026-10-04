@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "id": "sd-timeseries-storage",
+  "type": "system_design",
+  "title": "Design a Distributed Time-Series Storage System",
+  "short_title": "Time-Series Storage",
+  "status": "needs_human_review",
+  "difficulty": 4,
+  "expected_duration_minutes": 60,
+  "track_order": 8,
+  "categories": [
+    "storage-replay",
+    "distributed-systems",
+    "performance"
+  ],
+  "tags": [
+    "time-series",
+    "columnar",
+    "compression",
+    "compaction",
+    "lsm",
+    "iterators",
+    "mvcc",
+    "snapshot",
+    "time-partitioning",
+    "versioning",
+    "point-in-time"
+  ],
+  "design_moves": {
+    "introduces": [
+      "columnar-blocks",
+      "versioned-range-replace",
+      "write-immutably-compact-later",
+      "merge-iterator",
+      "snapshot-reads"
+    ],
+    "reuses": [
+      "index-for-the-query",
+      "idempotency-key",
+      "batch-to-amortize",
+      "point-in-time-timestamps"
+    ]
+  },
+  "handbook_chapters": [
+    "a5-cache-locality-and-layout",
+    "b6-hot-path-dispatch",
+    "c6-mmap-and-zero-copy",
+    "e4-deterministic-replay"
+  ],
+  "prerequisites": [],
+  "related_questions": [
+    "sd-log-publishing-query",
+    "sd-market-data-feed",
+    "sd-live-price-dashboard"
+  ],
+  "source": {
+    "input_type": "text",
+    "confidentiality": "public",
+    "original_company_removed": false,
+    "original_files": [
+      "source/original.txt"
+    ]
+  },
+  "review": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "last_updated": "2026-10-04",
+  "content_file": "question.md",
+  "diagrams": [
+    {
+      "source_file": "diagrams/step1-write.dot",
+      "rendered_file": "step1-write.svg",
+      "caption": "Step 1, the simplest overwrite: rewrite each touched partition, then switch to the new files in one catalog commit.",
+      "alt_text": "A writer, such as a vendor loader or a research job, calls write with a series, range, and rows. The write coordinator finds the partitions in the catalog, splices old rows outside the range with the new rows, writes the replacement file to storage nodes 4, 9, and 17, and commits version 812 in the catalog."
+    },
+    {
+      "source_file": "diagrams/step2-read.dot",
+      "rendered_file": "step2-read.svg",
+      "caption": "Step 2: iterators get the file list and version from the catalog once, then stream blocks lazily and prefetch ahead.",
+      "alt_text": "A backtest calls read and pulls batches at its own pace. Iterators, one per split, remember version 811, ask the catalog for the files at the current version, stream blocks from the node holding AAPL January, and prefetch AAPL February and March from other nodes."
+    },
+    {
+      "source_file": "diagrams/dd1-segment.dot",
+      "rendered_file": "dd1-segment.svg",
+      "caption": "Deep dive 1: each column is a run of compressed blocks; the footer's statistics let a reader fetch only what it needs.",
+      "alt_text": "A segment for AAPL trades, October 2026, version 700, stores time, price, and size each as a row of blocks, and five more columns that this query never reads. A footer records, per column and block, the offset, length, first and last time, and min and max. The reader first reads the footer, then fetches only the blocks it needs from three columns."
+    },
+    {
+      "source_file": "diagrams/dd2-range-overlay.dot",
+      "rendered_file": "dd2-range-overlay.svg",
+      "caption": "Deep dive 2: each interval of October 3 is served by the newest version whose range covers it; an empty write removes rows.",
+      "alt_text": "A grid with time intervals across the top: 09:30 to 10:00, 10:00 to 10:15, 10:15 to 10:20, 10:20 to 11:00, and 11:00 to 16:00. The base version 700 covers the whole day. Version 812 covers 10:00 to 11:00 with new rows. Version 815 covers 10:15 to 10:20 with no rows. The visible row shows v700, v812, nothing, v812, v700."
+    },
+    {
+      "source_file": "diagrams/dd3-merge.dot",
+      "rendered_file": "dd3-merge.svg",
+      "caption": "Deep dive 3: a lazy k-way merge over one pinned snapshot; blocks with no overlap skip the heap.",
+      "alt_text": "Inside a pinned snapshot at version 820, cursors over segments 700 and 812 feed a min-heap on series and time, costing O(log k) per row. A range filter using records 812 and 815 drops hidden rows, and a batch builder fills 4,096-row column batches returned by next. Blocks of segment 700 that nothing overlaps take a fast path and are decoded in bulk into the batch. Compaction's version 821 is published beside the pinned snapshot."
+    }
+  ]
+}

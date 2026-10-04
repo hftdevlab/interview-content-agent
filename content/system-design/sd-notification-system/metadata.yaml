@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "id": "sd-notification-system",
+  "type": "system_design",
+  "title": "Design a Notification System",
+  "status": "needs_human_review",
+  "difficulty": 2,
+  "expected_duration_minutes": 45,
+  "track_order": 1,
+  "categories": [
+    "distributed-systems",
+    "reliability"
+  ],
+  "tags": [
+    "at-least-once",
+    "idempotency",
+    "retries",
+    "priority-lanes",
+    "outbox",
+    "burst-arithmetic",
+    "backpressure"
+  ],
+  "design_moves": {
+    "introduces": [
+      "accept-then-work",
+      "idempotency-key",
+      "retry-with-backoff",
+      "priority-lanes",
+      "queue-buys-time"
+    ],
+    "reuses": []
+  },
+  "handbook_chapters": [
+    "e1-idempotency-and-duplicates",
+    "d4-parsing-batching-backpressure",
+    "e3-pretrade-risk-engine"
+  ],
+  "prerequisites": [],
+  "related_questions": [
+    "sd-task-scheduler",
+    "sd-log-publishing-query",
+    "sd-risk-limit-fanout"
+  ],
+  "source": {
+    "input_type": "text",
+    "confidentiality": "public",
+    "original_company_removed": false,
+    "original_files": [
+      "source/original.txt"
+    ]
+  },
+  "review": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "last_updated": "2026-10-04",
+  "content_file": "question.md",
+  "diagrams": [
+    {
+      "source_file": "diagrams/step1-direct-send.dot",
+      "rendered_file": "step1-direct-send.svg",
+      "caption": "Step 1: one request writes the notification, calls providers inline, and records the outcome.",
+      "alt_text": "A risk service calls the Notification API, which looks up contact points, inserts a pending delivery in Postgres, calls the chat, email, SMS, and pager providers inline, and then marks the delivery sent or failed."
+    },
+    {
+      "source_file": "diagrams/step2-groups-preferences.dot",
+      "rendered_file": "step2-groups-preferences.svg",
+      "caption": "Step 2: groups and preferences add lookups and a suppression reason. The provider call is still inline.",
+      "alt_text": "Internal senders call the Notification API, which expands groups and reads quiet hours from recipient-and-group records synced nightly from the firm directory, writes pending or suppressed deliveries to Postgres, and calls providers inline."
+    },
+    {
+      "source_file": "diagrams/dd1-dispatcher.dot",
+      "rendered_file": "dd1-dispatcher.svg",
+      "caption": "Deep dive 1: the API commits notification and deliveries together and replies; workers claim due rows under a lease, send, and record the outcome.",
+      "alt_text": "Senders post to the API, which commits a notification and its deliveries in one Postgres transaction and returns 202 Accepted. Dispatcher workers claim due rows with SKIP LOCKED and a 30-second lease, call providers without an open transaction, and write SENT or a backoff time. Exhausted deliveries become FAILED with an operational alert."
+    },
+    {
+      "source_file": "diagrams/dd3-priority-lanes.dot",
+      "rendered_file": "dd3-priority-lanes.svg",
+      "caption": "Deep dive 3: separate critical and normal lanes with their own workers and provider budgets; storm windows fold repeats into one summary.",
+      "alt_text": "The API routes pages and limit breaches to a critical lane and informational alerts to a normal lane, and folds repeated storm alerts into storm-window rows. Critical workers have a reserved provider budget; normal workers use the remainder. A window closer sends one summary per folded storm into the normal lane."
+    }
+  ],
+  "short_title": "Notification System"
+}

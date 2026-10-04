@@ -1,0 +1,20 @@
+// purpose: iterators fetch the file list once, then stream blocks lazily with bounded prefetch
+// critical distinction: the caller's pace drives the scan; order holds within an iterator
+// forbidden implication: that results are materialised before the caller sees them
+digraph step2 {
+  rankdir=TB; nodesep=0.45; ranksep=0.45;
+  caller [label="Backtest\nnext(batch) at its own pace", role=ext];
+  it  [label="Iterators · one per split\nremember version 811", role=new];
+  cat [label="Catalog", role=store];
+  subgraph cluster_nodes {
+    label="Storage nodes"; role=zone;
+    n1 [label="Node 2\nAAPL Jan", role=store];
+    n2 [label="Node 11\nAAPL Feb", role=store];
+    n3 [label="Node 6\nAAPL Mar", role=store];
+  }
+  caller -> it [label=" 1. read(...)"];
+  it -> cat [label=" 2. files at\n current version"];
+  it -> n1 [label=" 3. stream blocks"];
+  it -> n2 [label=" 4. prefetch", role=async];
+  it -> n3 [role=async];
+}

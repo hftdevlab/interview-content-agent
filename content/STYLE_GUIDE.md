@@ -27,22 +27,32 @@ that improves the reader's experience.
 
 ### System design
 
-Start with only the requirements needed to define the system boundary. When the
-prompt describes a platform too large for one interview, say so prominently,
-sketch the context, and agree with the interviewer on a few deep dives. Do not
-present a minute-by-minute allocation: the interviewer controls where the
-conversation goes.
+System-design chapters form a **track**: each question teaches a few reusable
+design moves, and later questions reuse them by name. The drafting skill
+(`.agents/skills/draft-system-design/`) owns the details; the essentials are:
 
-Build a minimal correct design before scaling it. Deep dives should emerge from
-an access pattern, failure mode, latency budget, or consistency requirement.
-Use diagrams after the reader understands the decision they represent. A
-typical system-design chapter should render in at most ten pages; an unusually
-complex question may use up to fourteen.
+- **Short question, bold crux.** About 120 words: what the system is, who uses
+  it, the one hard thing. Add a short domain primer only when the system's
+  purpose depends on domain knowledge. Scope and assumptions go in Requirements.
+- **Numbers that decide.** Labelled workload assumptions, a small arithmetic
+  table, and one sentence saying what the arithmetic teaches.
+- **Build one requirement at a time.** Each high-level-design step has a numbered
+  flow and a figure that adds components. End with "What is still broken".
+- **Deep dives from failures.** A concrete scenario, the naive option and where
+  it breaks, the better option, a comparison table when two mechanisms compete,
+  and one bolded sentence worth repeating in the interview.
+- **Trade-offs over verdicts.** When the best design is non-obvious, show the
+  answers a typical candidate gives first and what each costs, then the
+  refinement. Say when no option is perfect and which requirement decides.
+- **Standalone chapters, connected by moves.** Introduce a move once with a
+  `Design move` callout. When reusing one, explain it in a sentence and link the
+  question that develops it by its title — never by number. Link handbook
+  chapters by number and title at the point of use. No closing recap.
+- **Finance lens where it changes a decision.** Prefer the trading-firm reading
+  of an ambiguous prompt, say so, and contrast it with the consumer-tech version.
 
-For a flagship complex question, the upper budget is available for genuine
-interview depth; do not compress away the decisions that make the question
-valuable. Show the complete context, make the likely deep dives explicit, and
-develop those paths while keeping adjacent components concise.
+A 45-minute chapter typically renders in 12–14 airy pages; a 60-minute flagship
+in up to 16. Judge it from `make sd-preview`, not from the Markdown.
 
 ### Coding and API design
 
@@ -81,20 +91,23 @@ interview frequency and learning value, not to demonstrate completeness.
 
 ## Tone and density
 
-- Typical readers have strong CS and coding foundations but may lack trading
-  systems experience, or have finance experience but need sharper interview
-  explanations. Do not re-teach standard topics such as STL basics or TCP versus
-  UDP. Explain HFT-specific decisions such as kernel bypass or cache-local
-  allocation when they materially affect the answer, and link to dedicated
-  chapters as the catalog grows.
-- Use natural engineering language and short transitions that explain why the
-  next section exists.
-- Prefer a worked example, state trace, or formula over generic adjectives.
-- Define uncommon terms once; link to a primary tutorial/specification instead
-  of re-teaching a large prerequisite.
-- Prefer the companion handbook for foundations it already covers. Use a
-  primary specification or authoritative project documentation for protocol,
-  kernel, library, and platform details; never pad a chapter with a second
-  generic explanation of the same technique.
-- Avoid long inventories without a decision or narrative.
-- Keep code and diagrams close to the reasoning they support.
+These apply to every question type.
+
+- **One idea per paragraph, claim first.** About 80 words and four sentences at
+  most. If a paragraph compares options, make it a table; if it lists steps,
+  make it a numbered list.
+- **Break prose every ~200 words** with a list, table, figure, code block, or
+  callout. `python -m tools.lint_readability` enforces the limits.
+- **State an assumption once**, where it is introduced. Do not re-qualify it in
+  later sections; caveat density is the clearest signal of machine-written prose.
+- **Prefer a worked example, trace table, or formula** over adjectives, and one
+  running example over several unrelated ones.
+- **Short callouts, typed:** `Design move`, `Finance lens`, `In the interview`.
+- Readers have strong CS and C++ foundations. Do not re-teach STL basics or TCP
+  versus UDP. Explain trading-specific decisions where they change the answer,
+  and link the companion handbook for the mechanism.
+- Use natural engineering language. Name real tools as examples and say why
+  that class of tool fits.
+- Prefer primary specifications for protocol, kernel, and library claims. Never
+  invent a figure, a vendor limit, or a citation.
+- Keep code and diagrams next to the reasoning they support.

@@ -1,0 +1,16 @@
+{
+  "question_id": "sd-log-publishing-query",
+  "checks": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "review_notes": [
+    "Plan. Crux: logging costs the trading thread almost nothing and never blocks it, while one order's story stays findable across the fleet in seconds. Interpretation: trading-firm logging, producers are latency-critical C++ processes. Introduces: hot-path-handoff, batch-to-amortize, partitioned-log, index-for-the-query, explicit-loss-policy. Reuses all five Q1 moves. Deep dives: overload ladder (NFR5), finding one order (NFR3), cross-host ordering (correctness of the merged view). Finance lens: the producer is half the problem; diagnostic logs vs authoritative order record.",
+    "Revised 2026-10-04 per track-owner feedback: chapter stands alone (header shows level and related questions by title; no question numbers); every reused move is re-explained in a sentence and linked by title; the closing design-moves recap and 'Next' line were removed.",
+    "Rewritten from scratch for the system-design track reset (2026-10-03). Supersedes the e2e pilot sd-e2e-log-publishing-query.",
+    "Workload (100 hosts, 10k/s average, 5x at the open, 100 B events) is a labelled assumption. Clock-error ranges for PTP and NTP are stated as typical ranges, not guarantees. NanoLog citation: Yang, Park, Ousterhout, USENIX ATC 2018.",
+    "Human review required for interview realism, difficulty, and approval."
+  ]
+}

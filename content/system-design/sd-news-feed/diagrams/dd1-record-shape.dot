@@ -1,0 +1,23 @@
+// purpose: one revision, three layers, each read by a different consumer
+// critical distinction: the core is small and shared; extensions are typed per vendor and left unmapped
+// forbidden implication: that every vendor field is forced into the core
+digraph dd1_shape {
+  rankdir=LR; ranksep=0.7; nodesep=0.25;
+
+  strat [label="Strategies\nfilter by security", role=ext];
+  plat  [label="Platform\ndedup · search\nentitlements", role=ext];
+  spec  [label="Vendor-specific\nresearch", role=ext];
+  repro [label="New adapter\nversion", role=ext];
+
+  rev [shape=plain, label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="8">
+      <tr><td port="core" bgcolor="#dbeafe" color="#1a6fb5"><b>Core</b> — small, shared, versioned<br/>id · source · kind · headline<br/>security_ids · source_time · received_time</td></tr>
+      <tr><td port="ext" bgcolor="#e3f1e8" color="#2f7a4f"><b>Extension</b> — typed, one per vendor<br/>wire_a: urgency 1–5, topic codes<br/>wire_b: flash / alert / regular</td></tr>
+      <tr><td port="raw" bgcolor="#f3f4f6" color="#9aa4b2"><b>raw_ref</b> — exact bytes in the raw log</td></tr>
+    </table>>];
+
+  strat -> rev:core:w [label="reads"];
+  plat  -> rev:core:w [label="reads"];
+  spec  -> rev:ext:w  [label="reads"];
+  repro -> rev:raw:w  [label="re-parses"];
+}

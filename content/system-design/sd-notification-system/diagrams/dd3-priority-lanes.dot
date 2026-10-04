@@ -1,0 +1,27 @@
+// purpose: the final design: lanes isolate urgent work, collapsing shrinks bulk work
+// critical distinction: critical traffic never queues behind normal traffic
+// forbidden implication: that lanes add provider capacity (they reserve it)
+digraph dd3 {
+  rankdir=TB;
+  api    [label="Notification API\nidempotency check, quota,\nstorm collapse", role=new];
+  subgraph cluster_db {
+    label="Postgres"; role=zone;
+    crit [label="critical lane", role="store new"];
+    norm [label="normal lane", role=store];
+    win  [label="storm windows", role="store new"];
+  }
+  cw     [label="Critical workers\n100 sends/s reserved", role=new];
+  nw     [label="Normal workers\nremaining budget", role=new];
+  closer [label="Window closer\none summary per storm", role=new];
+  prov   [label="Providers: ~500 sends/s combined", role=ext];
+
+  api  -> crit [label=" pages,\n breaches"];
+  api  -> norm [label=" info,\n reports"];
+  api  -> win  [label=" fold\n repeats", role=async];
+  crit -> cw;
+  norm -> nw;
+  win  -> closer [role=async];
+  closer -> norm [label=" summary", constraint=false];
+  cw   -> prov;
+  nw   -> prov;
+}

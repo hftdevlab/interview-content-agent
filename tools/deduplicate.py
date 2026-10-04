@@ -75,7 +75,7 @@ def _prompt_excerpt(markdown: str) -> str:
         (
             index + 1
             for index, line in enumerate(lines)
-            if line in {"## Interview prompt", "## Question"}
+            if line in {"## Interview prompt", "## Question", "## The question"}
         ),
         0,
     )
@@ -84,7 +84,7 @@ def _prompt_excerpt(markdown: str) -> str:
         if line.startswith("## "):
             break
         if not line.startswith(("#", "![")):
-            body.append(line)
+            body.append(line[2:] if line.startswith("> ") else line)
     return "\n".join(body).strip()
 
 

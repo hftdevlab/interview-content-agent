@@ -1,0 +1,18 @@
+// purpose: identity first, content second; link duplicates, never delay or delete
+// critical distinction: same-source resend vs cross-source duplicate
+// forbidden implication: that dedup sits in front of delivery
+digraph dd1 {
+  rankdir=TB; ranksep=0.4;
+  in    [label="New revision arrives"];
+  q1    [label="Same source ID\nand revision\nseen before?", shape=diamond, style="filled", fillcolor="#ffffff", margin="0.02,0.02"];
+  drop  [label="Resend: drop it,\ncount it", role=warn];
+  q2    [label="Content matches\nanother source\nwithin 10 min?", shape=diamond, style="filled", fillcolor="#ffffff", margin="0.02,0.02"];
+  link  [label="Deliver now, tagged\nduplicate_of + cluster_id", role=new];
+  fresh [label="Deliver now\nas a new event cluster", role=ok];
+
+  in -> q1;
+  q1 -> drop [label=" yes"];
+  q1 -> q2   [label=" no"];
+  q2 -> link [label=" yes"];
+  q2 -> fresh [label=" no"];
+}

@@ -28,6 +28,26 @@ packaging:
 The examples are gold-standard candidates, not published content. They remain
 in `needs_human_review` until a human editor approves them.
 
+## System design track
+
+System-design questions form a learning track (`content/system-design/TRACK.md`).
+Each chapter stands alone and teaches a few reusable **design moves** registered
+in `taxonomy/design-moves.yaml`; other chapters reuse them with a short
+re-explanation and a link by question title, and every chapter links the
+companion handbook by chapter number and title. Validation checks the graph:
+moves exist, each is introduced once with a callout, questions are referenced by
+title rather than number, and linked handbook chapters exist.
+
+```bash
+make readability     # paragraph length, prose runs, figures (tools/lint_readability.py)
+make track-map       # knowledge-graph figure + move matrix (generated/)
+make sd-preview      # reader-facing PDF of the whole track (generated/pdf-preview/)
+```
+
+The drafting rules live in `.agents/skills/draft-system-design/` (skill plus
+`references/`). The diagnosis behind the October 2026 reset is in
+`docs/system-design-v2/DIAGNOSIS.md`.
+
 ## Prerequisites
 
 - Python 3.9 or newer
@@ -36,6 +56,8 @@ in `needs_human_review` until a human editor approves them.
 - Make
 - ReportLab and pypdf, installed through this project
 - Poppler (`pdftoppm` and `pdfinfo`) for visual PDF inspection
+- Graphviz (`dot`) for system-design diagrams (`brew install graphviz`)
+- pandoc, plus Playwright with Chromium, for `make sd-preview`
 
 Create an isolated Python environment:
 

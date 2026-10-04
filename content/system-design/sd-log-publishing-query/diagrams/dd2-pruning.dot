@@ -1,0 +1,14 @@
+// purpose: each stage of a query discards most of the data before anything is decoded
+// critical distinction: labels prune hosts; Bloom filters prune chunks; decoding happens last
+// forbidden implication: that Bloom filters never return false positives
+digraph dd2 {
+  rankdir=TB; nodesep=0.3; ranksep=0.35;
+  node [width=4.6];
+  a [label="2-minute window, whole fleet\n~600 M events · ~60 GB raw"];
+  b [label="Label filter: gateway, risk, strategy-7\n~60 M events · ~300 chunks"];
+  c [label="Bloom filter: order_id = 8812\n~10 chunks · ~40 MB", role=new];
+  d [label="Decode, filter, merge by time\n37 events", role=ok];
+  a -> b [label=" chunk index"];
+  b -> c [label=" per-chunk Bloom filters"];
+  c -> d [label=" read only these"];
+}

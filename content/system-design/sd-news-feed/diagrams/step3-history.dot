@@ -1,0 +1,20 @@
+// purpose: history is append-only revisions plus a search index; queries are as-of by default
+// critical distinction: received time decides what a backtest may see
+// forbidden implication: that a correction edits the original row
+digraph step3 {
+  rankdir=TB;
+  norm  [label="Normalizer"];
+  sw    [label="Store writer\nappend revision, never update", role=new];
+  store [label="Story store\nrevisions by story_id", role="store new"];
+  idx   [label="Search index\nsecurity, time, full text", role="store new"];
+  q     [label="Query API\nas_of = now by default", role=new];
+  users [label="Researchers, backtests,\nterminal backfill", role=ext];
+
+  norm  -> sw    [label=" 1."];
+  sw    -> store [label=" 2. append"];
+  sw    -> idx   [label=" 3. index"];
+  users -> q     [label=" 4. query (as_of)"];
+  q     -> idx   [label=" 5. candidates"];
+  q     -> store [label=" 6. revisions received ≤ as_of"];
+  {rank=same; store; idx;}
+}

@@ -76,51 +76,53 @@ def _normalize_text(text: str) -> str:
 
 def _markdown(question_type: str, title: str, prompt: str, question_id: str) -> str:
     if question_type == "system_design":
+        # Skeleton from .agents/skills/draft-system-design/references/chapter-skeleton.md
         return f"""# {title}
 
-## Interview prompt
+## The question
 
-{prompt}
+> {prompt}
 
-## What the interviewer is testing
+The drafting skill replaces this scaffold: state what the system is, who uses it,
+and the crux in one bold sentence.
 
-- Content drafting should identify the core system boundary and engineering invariants.
+## Requirements
 
-## Clarifying questions
+### Functional requirements
 
-- Which requirements, scale assumptions, and failure contracts should control the design?
+1. To be drafted from the source.
 
-## Requirements and assumptions
+### Non-functional requirements
 
-The source has been normalized; requirements remain subject to expert review.
+1. To be drafted with labelled workload assumptions.
 
-## Good solution
+## Core entities
+
+- To be drafted.
+
+## API
+
+To be drafted.
+
+## High-level design
 
 ![Normalized system context awaiting detailed drafting.](../../../generated/diagrams/{question_id}/context.svg)
 
-The package is ready for an invariant-led design draft.
+### What is still broken
 
-## Great solution improvements
+1. To be drafted.
 
-- Add only improvements justified by the agreed interview requirements.
+## Deep dives
 
-## Failure scenarios
+To be drafted from the non-functional requirements.
 
-- Identify failures after the good solution establishes ownership and state.
+## Interview calibration
 
-## Common pitfalls
+To be drafted.
 
-- Do not invent scale, latency, or reliability requirements absent from the source.
+## Follow-ups
 
-## Follow-up questions
-
-### Which component should the interview examine in depth?
-
-Choose after clarifying the system boundary and the interviewer's priorities.
-
-## Evaluation rubric
-
-Evaluation criteria will be calibrated during content drafting and human review.
+To be drafted.
 """
     if question_type == "coding":
         return f"""# {title}

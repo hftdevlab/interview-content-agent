@@ -1,0 +1,374 @@
+{
+  "schema_version": 1,
+  "description": "Reusable system-design moves. Each move is introduced (taught in full, with a Design move callout) by exactly one question. Other questions reuse it with a one- or two-sentence re-explanation and a link to the introducing question by title. Handbook IDs point at the companion handbook chapter that teaches the mechanism underneath the move.",
+  "moves": [
+    {
+      "id": "accept-then-work",
+      "label": "Accept durably, work asynchronously",
+      "rule": "Commit the request, reply, and do slow external work in the background.",
+      "cost": "The caller learns 'accepted', not 'done'; you now need status tracking.",
+      "introduced_in": "sd-notification-system",
+      "handbook": [
+        "a1-system-data-flow"
+      ]
+    },
+    {
+      "id": "idempotency-key",
+      "label": "Idempotency key",
+      "rule": "Let the caller name the operation once; a unique constraint turns retries into no-ops.",
+      "cost": "You must store keys for the whole retry window.",
+      "introduced_in": "sd-notification-system",
+      "handbook": [
+        "e1-idempotency-and-duplicates"
+      ]
+    },
+    {
+      "id": "retry-with-backoff",
+      "label": "Bounded retry with backoff",
+      "rule": "Retry with exponential backoff and jitter, then park the work where a human can see it.",
+      "cost": "Some work arrives late or not at all; an ambiguous timeout can still duplicate.",
+      "introduced_in": "sd-notification-system",
+      "handbook": [
+        "e1-idempotency-and-duplicates"
+      ]
+    },
+    {
+      "id": "priority-lanes",
+      "label": "Priority lanes",
+      "rule": "Give each traffic class its own queue and workers so bulk work cannot sit in front of urgent work.",
+      "cost": "Reserved capacity sits idle when its class is quiet.",
+      "introduced_in": "sd-notification-system",
+      "handbook": [
+        "d4-parsing-batching-backpressure",
+        "a3-latency-throughput"
+      ]
+    },
+    {
+      "id": "queue-buys-time",
+      "label": "A queue buys time, not capacity",
+      "rule": "Size buffers from burst arithmetic: drain time = backlog / spare capacity.",
+      "cost": "A sustained deficit still grows without bound; only capacity or admission control fixes it.",
+      "introduced_in": "sd-notification-system",
+      "handbook": [
+        "d4-parsing-batching-backpressure",
+        "a3-latency-throughput"
+      ]
+    },
+    {
+      "id": "hot-path-handoff",
+      "label": "Hand off the hot path",
+      "rule": "The latency-critical thread writes a small fixed-size record into a preallocated SPSC ring; another thread does the slow work.",
+      "cost": "The ring can fill; you must decide what happens then.",
+      "introduced_in": "sd-log-publishing-query",
+      "handbook": [
+        "b2-spsc-ring-buffer",
+        "c2-preallocation-and-pools",
+        "c4-thread-affinity"
+      ]
+    },
+    {
+      "id": "batch-to-amortize",
+      "label": "Batch to amortize fixed costs",
+      "rule": "Pay per-request overhead once per batch; close a batch on size or time, whichever comes first.",
+      "cost": "Each record waits up to the time bound.",
+      "introduced_in": "sd-log-publishing-query",
+      "handbook": [
+        "d4-parsing-batching-backpressure"
+      ]
+    },
+    {
+      "id": "partitioned-log",
+      "label": "Partitioned append-only log",
+      "rule": "Append records to a log split by key; consumers read at their own pace and order holds within a partition.",
+      "cost": "No global order across partitions; a hot key makes a hot partition.",
+      "introduced_in": "sd-log-publishing-query",
+      "handbook": [
+        "e4-deterministic-replay"
+      ]
+    },
+    {
+      "id": "index-for-the-query",
+      "label": "Store by time, index what people filter on",
+      "rule": "Partition storage by time, index only the fields queries filter on, and move old data to cheaper tiers.",
+      "cost": "Ad-hoc queries on unindexed fields become scans.",
+      "introduced_in": "sd-log-publishing-query",
+      "handbook": []
+    },
+    {
+      "id": "explicit-loss-policy",
+      "label": "Decide what may be lost",
+      "rule": "Under overload, drop or sample what is diagnostic and never drop what is authoritative; give each its own path.",
+      "cost": "Two paths to build and operate.",
+      "introduced_in": "sd-log-publishing-query",
+      "handbook": [
+        "d4-parsing-batching-backpressure",
+        "e4-deterministic-replay"
+      ]
+    },
+    {
+      "id": "normalize-at-the-edge",
+      "label": "Normalize at the edge, keep the raw",
+      "rule": "One adapter per source fills a small shared core at entry; vendor-specific fields stay in typed extensions, and the original bytes are kept.",
+      "cost": "Choosing and governing the core is a judgement call, and some fields have no honest mapping.",
+      "introduced_in": "sd-news-feed",
+      "handbook": [
+        "d1-market-data-and-protocols"
+      ]
+    },
+    {
+      "id": "content-dedup",
+      "label": "Deduplicate by identity, then by content",
+      "rule": "Collapse repeats with the source's own ID first, then with a content fingerprint across sources.",
+      "cost": "Fuzzy matching can merge two different stories; keep the evidence.",
+      "introduced_in": "sd-news-feed",
+      "handbook": [
+        "e1-idempotency-and-duplicates"
+      ]
+    },
+    {
+      "id": "point-in-time-timestamps",
+      "label": "Record when it happened and when you knew",
+      "rule": "Store event time and arrival time on every record and append corrections instead of overwriting.",
+      "cost": "More storage and a query API that defaults to as-of.",
+      "introduced_in": "sd-news-feed",
+      "handbook": [
+        "d5-clocks-and-timestamps",
+        "e4-deterministic-replay"
+      ]
+    },
+    {
+      "id": "push-vs-pull-fanout",
+      "label": "Push to machines, let humans pull",
+      "rule": "Push new items to latency-sensitive subscribers; serve human readers from a queryable store.",
+      "cost": "Two delivery paths with different freshness and failure behaviour.",
+      "introduced_in": "sd-news-feed",
+      "handbook": [
+        "d2-tcp-udp-multicast",
+        "d7-websocket-and-http"
+      ]
+    },
+    {
+      "id": "split-hot-and-reliable-paths",
+      "label": "Split the hot path from the reliable path",
+      "rule": "Keep the latency path to the minimum work that is safe; feed durable and slow work from the same input on a parallel path.",
+      "cost": "Two paths can disagree; you need a reconciliation story.",
+      "introduced_in": "sd-market-data-feed",
+      "handbook": [
+        "a1-system-data-flow",
+        "a3-latency-throughput"
+      ]
+    },
+    {
+      "id": "sequence-gap-recovery",
+      "label": "Sequence, detect gaps, recover",
+      "rule": "Number every message per stream; on a gap, mark state untrusted, buffer, and recover by retransmission or snapshot.",
+      "cost": "Recovery logic, buffers, and a period of publishing nothing.",
+      "introduced_in": "sd-market-data-feed",
+      "handbook": [
+        "d3-sequence-and-gap-recovery"
+      ]
+    },
+    {
+      "id": "redundant-feed-arbitration",
+      "label": "Arbitrate redundant feeds",
+      "rule": "Consume both copies of a feed and take the first arrival of each sequence number; one line fills the other's gaps.",
+      "cost": "Double the bandwidth and CPU on the receive side.",
+      "introduced_in": "sd-market-data-feed",
+      "handbook": [
+        "d3-sequence-and-gap-recovery",
+        "d2-tcp-udp-multicast"
+      ]
+    },
+    {
+      "id": "explicit-staleness",
+      "label": "Publish trust state as data",
+      "rule": "Tell consumers explicitly when data is stale or untrusted; never let silence look like health.",
+      "cost": "Every consumer needs a defined behaviour for 'untrusted'.",
+      "introduced_in": "sd-market-data-feed",
+      "handbook": [
+        "d3-sequence-and-gap-recovery"
+      ]
+    },
+    {
+      "id": "capture-for-replay",
+      "label": "Capture inputs at the boundary for replay",
+      "rule": "Record raw inputs with receive timestamps where they enter, so any decision can be replayed deterministically.",
+      "cost": "Storage and a capture path that must not slow the hot path.",
+      "introduced_in": "sd-market-data-feed",
+      "handbook": [
+        "e4-deterministic-replay"
+      ]
+    },
+    {
+      "id": "slow-consumer-isolation",
+      "label": "Isolate slow consumers",
+      "rule": "Give each consumer a bounded buffer; on overflow, cut it off and make it resync instead of slowing everyone.",
+      "cost": "The slow consumer pays with a resync; you need a snapshot path.",
+      "introduced_in": "sd-market-data-feed",
+      "handbook": [
+        "d4-parsing-batching-backpressure"
+      ]
+    },
+    {
+      "id": "versioned-state",
+      "label": "Version authoritative state",
+      "rule": "Give every change a monotonically increasing version per scope so consumers can detect gaps and order updates.",
+      "cost": "A single writer per scope, or a consensus step to assign versions.",
+      "introduced_in": "sd-risk-limit-fanout",
+      "handbook": [
+        "d3-sequence-and-gap-recovery"
+      ]
+    },
+    {
+      "id": "ack-at-enforcement",
+      "label": "Acknowledge where it is enforced",
+      "rule": "Sent is not applied: confirm a change only when the enforcing component reports the version it is using.",
+      "cost": "An extra feedback path from every consumer.",
+      "introduced_in": "sd-risk-limit-fanout",
+      "handbook": [
+        "e3-pretrade-risk-engine"
+      ]
+    },
+    {
+      "id": "freshness-lease",
+      "label": "Freshness lease",
+      "rule": "A consumer may use state only while it holds a recent proof that its version is current; silence expires the proof.",
+      "cost": "Heartbeat traffic and a clock-driven state transition on the hot path.",
+      "introduced_in": "sd-risk-limit-fanout",
+      "handbook": [
+        "d5-clocks-and-timestamps"
+      ]
+    },
+    {
+      "id": "fail-safe-default",
+      "label": "Fail safe, not open",
+      "rule": "When safety cannot be proven, restrict: block new risk and keep risk-reducing actions available.",
+      "cost": "False alarms stop trading; the policy needs an owner.",
+      "introduced_in": "sd-risk-limit-fanout",
+      "handbook": [
+        "e3-pretrade-risk-engine"
+      ]
+    },
+    {
+      "id": "atomic-swap",
+      "label": "Build aside, swap atomically",
+      "rule": "Build the new version off to the side and publish it with one pointer swap so readers see old or new, never a mix.",
+      "cost": "Two copies in memory and a rule for when the old copy can be freed.",
+      "introduced_in": "sd-risk-limit-fanout",
+      "handbook": [
+        "b1-cpp-memory-model"
+      ]
+    },
+    {
+      "id": "separate-when-from-who",
+      "label": "Separate when from who",
+      "rule": "Keep a durable index of work by due time, and move work into ready queues only when it is due; workers pull only from ready queues.",
+      "cost": "Two structures to keep consistent, and a promoter process to run.",
+      "introduced_in": "sd-task-scheduler",
+      "handbook": []
+    },
+    {
+      "id": "lease-and-fence",
+      "label": "Lease the work, fence the stale owner",
+      "rule": "Claim work with a time-bounded lease that carries a fencing token; an expired lease lets others reclaim the work, and the token stops the old owner from committing.",
+      "cost": "Work can run twice after an expiry, so its effects must be idempotent or fenced.",
+      "introduced_in": "sd-task-scheduler",
+      "handbook": [
+        "e1-idempotency-and-duplicates",
+        "d5-clocks-and-timestamps"
+      ]
+    },
+    {
+      "id": "priority-without-starvation",
+      "label": "Priority without starvation",
+      "rule": "Serve higher priority first, but guarantee lower priorities a share of capacity or raise their effective priority as they wait.",
+      "cost": "Urgent work occasionally waits behind old low-priority work.",
+      "introduced_in": "sd-task-scheduler",
+      "handbook": [
+        "b3-progress-guarantees"
+      ]
+    },
+    {
+      "id": "conflate-to-latest",
+      "label": "Conflate to the latest value",
+      "rule": "When a consumer only needs the current value, keep one slot per key, overwrite it on every update, and send the slot when the consumer is ready; the intermediates are dropped.",
+      "cost": "Consumers never see every update, so this is wrong for anything that must process each event.",
+      "introduced_in": "sd-live-price-dashboard",
+      "handbook": [
+        "d4-parsing-batching-backpressure"
+      ]
+    },
+    {
+      "id": "fan-out-in-tiers",
+      "label": "Fan out in tiers",
+      "rule": "Subscribe once per tier: each edge server holds one upstream subscription and serves many clients, so upstream load grows with edge servers, not with viewers.",
+      "cost": "Another hop of latency, and edge servers to operate.",
+      "introduced_in": "sd-live-price-dashboard",
+      "handbook": [
+        "d2-tcp-udp-multicast",
+        "d7-websocket-and-http"
+      ]
+    },
+    {
+      "id": "latency-budget",
+      "label": "Spend a latency budget",
+      "rule": "Split an end-to-end latency target into per-hop budgets, timestamp every hop, and spend the budget where it buys the most.",
+      "cost": "Measurement across machines needs clock discipline.",
+      "introduced_in": "sd-live-price-dashboard",
+      "handbook": [
+        "a3-latency-throughput",
+        "d5-clocks-and-timestamps"
+      ]
+    },
+    {
+      "id": "write-immutably-compact-later",
+      "label": "Write immutably, compact later",
+      "rule": "Never edit stored files in place: each write adds new immutable files, and a background process merges them so reads stay cheap.",
+      "cost": "Reads consult several files until compaction catches up, and compaction spends I/O rewriting data that did not change.",
+      "introduced_in": "sd-timeseries-storage",
+      "handbook": [
+        "c6-mmap-and-zero-copy"
+      ]
+    },
+    {
+      "id": "columnar-blocks",
+      "label": "Columnar blocks with statistics",
+      "rule": "Store each column in large compressed blocks with min/max statistics, so batch scans read only the columns and blocks they need.",
+      "cost": "Single-row lookups and small writes get more expensive.",
+      "introduced_in": "sd-timeseries-storage",
+      "handbook": [
+        "a5-cache-locality-and-layout"
+      ]
+    },
+    {
+      "id": "versioned-range-replace",
+      "label": "Overwrite by versioned range",
+      "rule": "Implement overwrite as a new version that covers a key range; reads take the newest version for each point; old versions are removed once no reader needs them.",
+      "cost": "Reads must resolve overlaps, and old versions occupy space until compaction.",
+      "introduced_in": "sd-timeseries-storage",
+      "handbook": [
+        "e4-deterministic-replay"
+      ]
+    },
+    {
+      "id": "merge-iterator",
+      "label": "Merge sorted sources lazily",
+      "rule": "Read several sorted sources through a lazy k-way merge that resolves overlaps by version and pulls only what the caller consumes.",
+      "cost": "Per-row merge overhead unless rows are processed in batches.",
+      "introduced_in": "sd-timeseries-storage",
+      "handbook": [
+        "b6-hot-path-dispatch"
+      ]
+    },
+    {
+      "id": "snapshot-reads",
+      "label": "Read from a pinned snapshot",
+      "rule": "Pin a long read to one immutable version of the data, so it sees a consistent state while writes continue.",
+      "cost": "Old files stay alive until the slowest reader finishes.",
+      "introduced_in": "sd-timeseries-storage",
+      "handbook": [
+        "e4-deterministic-replay"
+      ]
+    }
+  ]
+}

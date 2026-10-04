@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "id": "sd-log-publishing-query",
+  "type": "system_design",
+  "title": "Design a Log Publishing and Query System",
+  "status": "needs_human_review",
+  "difficulty": 3,
+  "expected_duration_minutes": 45,
+  "track_order": 3,
+  "categories": [
+    "data-pipeline",
+    "low-latency",
+    "storage-replay"
+  ],
+  "tags": [
+    "logging",
+    "lock-free-ring",
+    "batching",
+    "partitioning",
+    "indexing",
+    "time-series",
+    "backpressure",
+    "clock-sync"
+  ],
+  "design_moves": {
+    "introduces": [
+      "hot-path-handoff",
+      "batch-to-amortize",
+      "partitioned-log",
+      "index-for-the-query",
+      "explicit-loss-policy"
+    ],
+    "reuses": [
+      "accept-then-work",
+      "idempotency-key",
+      "retry-with-backoff",
+      "queue-buys-time",
+      "priority-lanes"
+    ]
+  },
+  "handbook_chapters": [
+    "b2-spsc-ring-buffer",
+    "b4-mpsc-and-contention",
+    "c2-preallocation-and-pools",
+    "c4-thread-affinity",
+    "d4-parsing-batching-backpressure",
+    "d5-clocks-and-timestamps",
+    "e4-deterministic-replay",
+    "c6-mmap-and-zero-copy"
+  ],
+  "prerequisites": [],
+  "related_questions": [
+    "sd-notification-system",
+    "sd-market-data-feed",
+    "sd-timeseries-storage"
+  ],
+  "source": {
+    "input_type": "text",
+    "confidentiality": "public",
+    "original_company_removed": false,
+    "original_files": [
+      "source/original.txt"
+    ]
+  },
+  "review": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "last_updated": "2026-10-04",
+  "content_file": "question.md",
+  "diagrams": [
+    {
+      "source_file": "diagrams/step1-in-process.dot",
+      "rendered_file": "step1-in-process.svg",
+      "caption": "Step 1: each hot thread copies a small binary record into its own ring; a logger thread on a housekeeping core drains the rings and appends to a local file.",
+      "alt_text": "Inside a trading process, the order thread and market-data thread each write a timestamp, format ID, and raw arguments into their own preallocated SPSC ring. A logger thread pinned to a housekeeping core drains both rings and appends binary records to a local append-only log file."
+    },
+    {
+      "source_file": "diagrams/step2-shipping.dot",
+      "rendered_file": "step2-shipping.svg",
+      "caption": "Step 2: agents tail local files, batch by size or time, and push over the management network; collectors append to Kafka and acknowledge the last sequence number.",
+      "alt_text": "On each trading host, processes append to local binary log files and a shipping agent tails them, batching up to 1 MB or 200 ms. The agent sends PushBatch with a sequence range to collectors over the management network; collectors append to Kafka partitioned by host and stream and acknowledge the last sequence number."
+    },
+    {
+      "source_file": "diagrams/step3-query.dot",
+      "rendered_file": "step3-query.svg",
+      "caption": "Step 3: indexers turn Kafka partitions into compressed chunks plus a small chunk index; the query service finds candidate chunks first, then fetches only those.",
+      "alt_text": "Indexers consume Kafka, write compressed time-bounded chunks to a chunk store on SSD and object storage, and write a chunk index entry with labels, time range, and a Bloom filter of order IDs. An engineer queries the query service, which consults the chunk index and then fetches and decodes matching chunks."
+    },
+    {
+      "source_file": "diagrams/dd2-pruning.dot",
+      "rendered_file": "dd2-pruning.svg",
+      "caption": "Deep dive 2: each stage discards most of the data before anything is decoded.",
+      "alt_text": "A two-minute fleet-wide window of about 600 million events is reduced by a label filter to about 300 chunks, then by per-chunk Bloom filters for order 8812 to about 10 chunks totalling 40 megabytes, which are decoded to 37 matching events."
+    }
+  ],
+  "short_title": "Log Publishing"
+}

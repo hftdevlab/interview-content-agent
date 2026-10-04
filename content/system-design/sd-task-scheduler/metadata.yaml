@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "id": "sd-task-scheduler",
+  "type": "system_design",
+  "title": "Design a Distributed Task Scheduler",
+  "short_title": "Task Scheduler",
+  "status": "needs_human_review",
+  "difficulty": 3,
+  "expected_duration_minutes": 45,
+  "track_order": 2,
+  "categories": [
+    "distributed-systems",
+    "reliability",
+    "trading-systems"
+  ],
+  "tags": [
+    "scheduling",
+    "leases",
+    "fencing",
+    "starvation",
+    "priority-lanes",
+    "idempotency",
+    "retries",
+    "heap"
+  ],
+  "design_moves": {
+    "introduces": [
+      "separate-when-from-who",
+      "lease-and-fence",
+      "priority-without-starvation"
+    ],
+    "reuses": [
+      "accept-then-work",
+      "idempotency-key",
+      "retry-with-backoff",
+      "priority-lanes"
+    ]
+  },
+  "handbook_chapters": [
+    "e1-idempotency-and-duplicates",
+    "d5-clocks-and-timestamps",
+    "b3-progress-guarantees"
+  ],
+  "prerequisites": [],
+  "related_questions": [
+    "sd-notification-system",
+    "sd-risk-limit-fanout"
+  ],
+  "source": {
+    "input_type": "text",
+    "confidentiality": "public",
+    "original_company_removed": false,
+    "original_files": [
+      "source/original.txt"
+    ]
+  },
+  "review": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "last_updated": "2026-10-04",
+  "content_file": "question.md",
+  "diagrams": [
+    {
+      "source_file": "diagrams/step1-submit.dot",
+      "rendered_file": "step1-submit.svg",
+      "caption": "Step 1: a task is accepted as a committed row under a unique idempotency key; the client gets its ID before anything runs.",
+      "alt_text": "A client posts a task to the scheduler API, which inserts it into Postgres as QUEUED with its due time and priority, or finds the existing task by its idempotency key, and replies 202 with the task ID. A job firer inserts tasks for recurring jobs the same way, keyed by job and fire time."
+    },
+    {
+      "source_file": "diagrams/step2-run.dot",
+      "rendered_file": "step2-run.svg",
+      "caption": "Step 2: workers pull due tasks by priority under a 30-second lease, renew it while running, and report; failures return with a backoff delay.",
+      "alt_text": "Two workers in a 2,000-slot fleet call the scheduler API to claim tasks, send heartbeats, and report completion. The API claims due tasks by priority from Postgres with a 30-second lease. In Postgres, a failure pushes the due time out by a backoff delay and an expired lease returns the task to QUEUED. A client queries task status through the API."
+    },
+    {
+      "source_file": "diagrams/dd1-when-who.dot",
+      "rendered_file": "dd1-when-who.svg",
+      "caption": "Deep dive 1: the timer side answers \"is it due?\"; the dispatcher answers \"who goes next?\" over due work only.",
+      "alt_text": "A new task due later is written as a SCHEDULED row indexed by due time. A promoter with a standby queries for due rows every 100 milliseconds and promotes them to READY in batches. READY rows are the durable record; a dispatcher with a standby loads them into in-memory queues per class and team, and hands tasks to long-polling workers by policy, committing them as RUNNING in batches."
+    },
+    {
+      "source_file": "diagrams/dd2-fencing.dot",
+      "rendered_file": "dd2-fencing.svg",
+      "caption": "Deep dive 2: attempts stage their effects; only the attempt the scheduler commits is posted to the ledger.",
+      "alt_text": "Worker W17, attempt 1, resumes after a 40-second stall. It stages its adjustments under task 9137 attempt 1 and reports completion, which matches zero rows because the task is now on attempt 2. Worker W22, attempt 2, stages its adjustments under attempt 2 and completes, which marks the task SUCCEEDED. The scheduler's commit posts only attempt 2's staged adjustments to the ledger."
+    }
+  ]
+}
