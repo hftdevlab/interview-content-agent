@@ -73,9 +73,11 @@ For risk managers:
 
 ```text
 PUT /scopes/{scope}/limits
-{ operationId, expectedVersion: 41, values: { ... }, reason }   ->  200 { version: 42 }
+    { operationId, expectedVersion: 41, values: { ... }, reason }
+    ->  200 { version: 42 }
 
-GET /scopes/{scope}/status   ->  { current: 42, consumers: [ { id, applied: 42, proofAgeMs } ] }
+GET /scopes/{scope}/status
+    ->  { current: 42, consumers: [{ id, applied: 42, proofAgeMs }] }
 ```
 
 Two fields protect the author. `operationId` is an idempotency key: the author's tool picks it once, and a unique constraint makes a retry after a timeout a no-op instead of a second change ([Design a Notification System](../sd-notification-system/question.md) builds this move in full). `expectedVersion` stops two people from silently overwriting each other: if someone else committed version 42 first, Maya gets `409 Conflict` and re-reads before trying again.
@@ -84,11 +86,11 @@ Between the service and strategy hosts, a binary protocol over one TCP session p
 
 ```text
 -> Hello    { consumer_ids[], scopes[], applied_versions[] }
-<- Snapshot { scope, version, values }                  // complete set: on start or after a gap
-<- Delta    { scope, version, base_version, values }    // base_version = version - 1
--> Applied  { consumer_id, scope, version }             // sent after the swap, not on receipt
+<- Snapshot { scope, version, values }        // full set: at start, after a gap
+<- Delta    { scope, version, base_version, values }  // base = version - 1
+-> Applied  { consumer_id, scope, version }   // after the swap, not on receipt
 -> Ping     { nonce }
-<- Proof    { nonce, epoch, scope -> current version }   // created by the authority
+<- Proof    { nonce, epoch, scope -> current version }  // from the authority
 ```
 
 ## High-level design
@@ -154,7 +156,9 @@ Each failure is a missing proof. The check needs a complete version; "delivered"
 3. Publish it with a single atomic store of the active-slot index.
 
 ```text
-shared memory, per strategy:   slots[2] of { version, limits },   active = index of the live slot
+shared memory, per strategy:
+    slots[2] of { version, limits }
+    active = index of the live slot
 
 host agent, per delta:
     next = 1 - active

@@ -74,8 +74,9 @@ POST /notifications  ->  202 Accepted { notificationId }
 The response is `202 Accepted` rather than `200 OK`. In our first version we will call providers inline, but once delivery moves off the request path, acceptance and delivery stop being the same event. Committing to `202` now saves changing the contract later.
 
 ```text
-GET /notifications/{id}          ->  { status, deliveries: [{ userId, channel, status, reason }] }
-PUT /users/{userId}/preferences  ->  { channels, quietHours }
+GET /notifications/{id}
+    ->  { status, deliveries: [{ userId, channel, status, reason }] }
+PUT /users/{userId}/preferences  { channels, quietHours }
 ```
 
 Two fields earn their place later: `idempotencyKey` in the second deep dive and `dedupKey` in the third.

@@ -75,15 +75,21 @@ POST /tasks  ->  202 Accepted { taskId }
   timeoutSeconds, maxAttempts
 }
 
-POST /jobs   { schedule: "0 6 * * MON-FRI", timezone: "Europe/London", calendar, taskTemplate }
-GET  /tasks/{id}  ->  { state, priority, attempts: [{ worker, startedAt, endedAt, outcome }] }
+POST /jobs  ->  { jobId }
+{ schedule: "0 6 * * MON-FRI", timezone: "Europe/London",
+  calendar, taskTemplate }
+
+GET /tasks/{id}
+    ->  { state, priority, attempts: [{ worker, startedAt, endedAt, outcome }] }
 ```
 
 Workers pull and report:
 
 ```text
-POST /claim                { workerId, freeSlots }  ->  [{ taskId, attempt, leaseUntil, payload }]
-POST /tasks/{id}/heartbeat { attempt }              ->  { leaseUntil }     // 409 if superseded
+POST /claim  { workerId, freeSlots }
+    ->  [{ taskId, attempt, leaseUntil, payload }]
+POST /tasks/{id}/heartbeat  { attempt }  ->  { leaseUntil }
+    409 Conflict if a newer attempt has taken the task over
 POST /tasks/{id}/complete  { attempt, outcome }
 ```
 
@@ -119,10 +125,14 @@ Recurring jobs need no new machinery. A small **job firer** wakes every minute a
 The claim is one statement — the same database-as-queue claim the notification system uses:
 
 ```sql
--- claim up to 4 due tasks, best priority first, skipping rows other workers hold
-UPDATE tasks SET state = 'RUNNING', attempt = attempt + 1, lease_until = now() + interval '30 seconds'
-WHERE id IN (SELECT id FROM tasks WHERE state = 'QUEUED' AND due_at <= now()
-             ORDER BY priority, due_at LIMIT 4 FOR UPDATE SKIP LOCKED)
+-- claim up to 4 due tasks, best priority first; skip rows others hold
+UPDATE tasks
+SET state = 'RUNNING', attempt = attempt + 1,
+    lease_until = now() + interval '30 seconds'
+WHERE id IN (SELECT id FROM tasks
+             WHERE state = 'QUEUED' AND due_at <= now()
+             ORDER BY priority, due_at
+             LIMIT 4 FOR UPDATE SKIP LOCKED)
 ```
 
 ![Workers claim due tasks by priority under a 30-second lease, renew it while running, and report the outcome; failures return to the queue with a backoff delay.](../../../generated/diagrams/sd-task-scheduler/step2-run.svg)

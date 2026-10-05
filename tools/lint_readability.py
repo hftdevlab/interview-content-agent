@@ -45,6 +45,8 @@ THRESHOLDS = {
     "min_figures": 2,
     # Code in a design chapter shows an interface, not an implementation.
     "code_block_lines_warn": 15,
+    # Wider lines wrap in the printed preview and break the alignment.
+    "code_line_chars_warn": 80,
 }
 
 # Language features that make a reader parse C++ instead of the design.
@@ -321,6 +323,9 @@ def lint_text(markdown: str, path: str = "<memory>", *, min_figures: Optional[in
             code_lines = [line for line in block.text.splitlines() if line.strip()]
             if len(code_lines) > THRESHOLDS["code_block_lines_warn"]:
                 report.findings.append(Finding("warn", block.line, f"code block has {len(code_lines)} lines (aim <= {THRESHOLDS['code_block_lines_warn']}); show the interface, not the implementation"))
+            widest = max((len(line) for line in code_lines), default=0)
+            if widest > THRESHOLDS["code_line_chars_warn"]:
+                report.findings.append(Finding("warn", block.line, f"code block has a {widest}-character line (aim <= {THRESHOLDS['code_line_chars_warn']}); it wraps in print, so break it or move the note below"))
             constructs = sorted(set(LANGUAGE_SPECIFIC_CODE.findall(block.text)))
             if constructs:
                 report.findings.append(Finding("warn", block.line, "code block uses language-specific constructs (" + ", ".join(c.strip() for c in constructs) + "); prefer pseudocode or a field list"))

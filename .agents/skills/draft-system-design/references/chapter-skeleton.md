@@ -77,10 +77,14 @@ programming language must never be the barrier to reading the design.
   ("one store with release ordering") and link the handbook for the mechanism.
 - When a memory layout *is* the design (a 64-byte event in shared memory),
   show it as a table of fields, sizes, and why — not as a struct.
-- Keep each block under about 12 lines. After it, a short list of the two to
-  four parameters that matter and the deep dive that uses each.
+- Keep each block under about 12 lines and each line within 80 characters;
+  wider lines wrap in print. Put a long response on its own indented `->`
+  line and a long note on the line below the call.
+- After the block, a short list of the two to four parameters that matter and
+  the deep dive that uses each.
 
-The lint warns on blocks over 15 lines and on language-specific constructs.
+The lint warns on blocks over 15 lines, lines over 80 characters, and
+language-specific constructs.
 
 ## `## High-level design` (required) — one `###` per functional requirement
 

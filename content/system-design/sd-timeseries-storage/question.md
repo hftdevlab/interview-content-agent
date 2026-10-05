@@ -82,12 +82,12 @@ Two calls carry the design. In pseudocode:
 
 ```text
 write(series, [t0, t1), rows, idempotency_key)  ->  version
-    replaces everything stored for the series in [t0, t1); every row lies inside the range
+    replaces all stored rows of the series in [t0, t1)
 write_batch([(series, [t0, t1), rows), ...], idempotency_key)  ->  version
-    many range writes committed as one version, such as a vendor's correction file
+    many range writes committed as one version
 
 read(series[], [t0, t1), columns[], as_of?, splits?)  ->  iterators
-    iterator.next()   ->  the next batch of rows, column by column; empty at the end
+    iterator.next()   ->  next batch of rows, column by column; empty at end
     iterator.version  ->  the version this iterator reads
 ```
 

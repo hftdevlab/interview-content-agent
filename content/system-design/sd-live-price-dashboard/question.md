@@ -78,7 +78,7 @@ Browsers talk to a gateway over one WebSocket:
 → subscribe  { tickers }
 ← snapshot   { prices: [{ ticker, bid, ask, age_ms, status }] }
 ← update     { seq, prices: [only the tickers that changed] }
-→ ack        { seq }                    sent when the page has handled the update
+→ ack        { seq }             sent once the page has handled the update
 ← heartbeat  { gateway_time }
 ```
 

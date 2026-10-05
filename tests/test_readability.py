@@ -74,6 +74,11 @@ class ReadabilityLintTests(unittest.TestCase):
         self.assertTrue(any("figures" in f.message for f in report.findings))
         self.assertEqual(0, lint_text("# Title\n\nOne paragraph.\n", min_figures=0).errors)
 
+    def test_wide_code_line_warns(self) -> None:
+        code = "```text\nGET /x  ->  { " + "field, " * 15 + "}\n```\n"
+        report = lint_text(GOOD + "\n" + code)
+        self.assertTrue(any("-character line" in f.message for f in report.findings))
+
     def test_code_blocks_and_comments_are_not_prose(self) -> None:
         text = GOOD + "\n```\n" + "code " * 300 + "\n```\n<!-- " + "note " * 300 + " -->\n"
         report = lint_text(text)

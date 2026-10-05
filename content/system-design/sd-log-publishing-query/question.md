@@ -63,20 +63,23 @@ Three interfaces serve three callers. Inside the trading process, the log call l
 
 ```text
 log_info("order {} acked px={} qty={}", order_id, px, qty)
-    at startup:    the format string is registered once, under a format_id
-    on each call:  the thread writes { timestamp, format_id, order_id, px, qty } into its own ring
+    at startup:    register the format string once, under a format_id
+    on each call:  append { timestamp, format_id, order_id, px, qty }
+                   to this thread's own ring
 ```
 
 Between a host and the platform, batches carry their own identity:
 
 ```text
-PushBatch { host, stream, first_seq, last_seq, compressed_events }  ->  Ack { last_seq }
+PushBatch { host, stream, first_seq, last_seq, compressed_events }
+    ->  Ack { last_seq }
 ```
 
 For engineers, a query and a live tail:
 
 ```text
-GET /logs?from=09:30:00&to=09:30:05&service=gateway&order_id=8812&level>=WARN&q="reject"
+GET /logs?service=gateway&from=09:30:00&to=09:30:05
+         &order_id=8812&level>=WARN&q="reject"
 GET /logs/tail?service=strategy-7
 ```
 
