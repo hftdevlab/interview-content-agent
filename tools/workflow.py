@@ -6,6 +6,7 @@ import argparse
 import datetime as dt
 import getpass
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -380,10 +381,47 @@ def submit_question(
     return package
 
 
+SYSTEM_DESIGN_DRAFT_RULES = (
+    "Follow the chapter skeleton and writing rules in the skill: the prompt verbatim "
+    "with at most ~120 words of framing and a bold crux; requirements with numbers; core "
+    "entities; an API written as short pseudocode or field lists followed by the parameters "
+    "an interviewer will probe (no class definitions, smart pointers, templates, or std:: "
+    "types); a high-level design built one functional requirement at a time with growing "
+    "Graphviz figures in diagrams/*.dot (replace the scaffold context diagram); 'What is "
+    "still broken'; two or three deep dives that start from a concrete scenario and show the "
+    "answers candidates give first, their costs, and the refinement, saying plainly when no "
+    "option is perfect; interview calibration; and at most three follow-ups. The chapter must "
+    "stand alone: re-explain reused design moves in a sentence and link their questions by "
+    "title, never by number. Record design_moves, track_order, short_title, and "
+    "handbook_chapters in metadata. Reuse moves from taxonomy/design-moves.yaml wherever one "
+    "fits; add at most three new moves there (introduced_in = this question) only when none "
+    "does. Add a row for the question to content/system-design/TRACK.md. Run "
+    "python -m tools.render_diagrams, python -m tools.validate --id {question_id}, and "
+    "python -m tools.lint_readability content/system-design/{question_id}/question.md until "
+    "both report zero errors."
+)
+GENERIC_DRAFT_RULES = (
+    "Generate the tested skills, natural reasoning, primary solution, concise improvements, "
+    "pitfalls, realistic follow-ups, and evaluation criteria according to the repository rules."
+)
+SYSTEM_DESIGN_REVIEW_RULES = (
+    "Run the system-design reader-experience gate from the skill: python -m tools.validate "
+    "--id {question_id}, python -m tools.lint_readability on the chapter, and every row of "
+    "the checklist. Recompute every number, replay each failure scenario against its fix, "
+    "confirm each simple option is given its strongest form before it is rejected, and "
+    "check that every code block reads as pseudocode a non-C++ reader can follow."
+)
+
+
 def _draft_prompt(
     root: Path, package: Path, metadata: Mapping[str, object]
 ) -> str:
     question_id = str(metadata["id"])
+    type_rules = (
+        SYSTEM_DESIGN_DRAFT_RULES.format(question_id=question_id)
+        if metadata["type"] == "system_design"
+        else GENERIC_DRAFT_RULES
+    )
     skill = SKILL_BY_METADATA_TYPE[str(metadata["type"])]
     practice = (
         " After the content contract is settled, use $build-practice-question to "
@@ -398,9 +436,7 @@ def _draft_prompt(
         "package source, expert notes, workflow.yaml, and deduplication.yaml. Keep the core "
         "idea while enriching incomplete wording to realistic interview standard. Do not "
         "invent a missing constraint that changes the problem; return needs_clarification "
-        "when that decision requires the human. Generate the tested skills, natural reasoning, "
-        "primary solution, concise improvements, pitfalls, realistic follow-ups, and evaluation "
-        f"criteria according to the repository rules.{practice} This run is controlled by "
+        f"when that decision requires the human. {type_rules}{practice} This run is controlled by "
         "contentctl: never edit workflow.yaml; keep metadata status draft and every review flag "
         "false. The controller owns lifecycle transitions, full PDF builds, and repository-wide "
         "gates. Run only targeted package validation and question-specific practice tests. "
@@ -439,12 +475,18 @@ def _review_prompt(
     root: Path, package: Path, metadata: Mapping[str, object]
 ) -> str:
     editorial_guidance = memory_prompt(root, str(metadata["type"]))
+    type_rules = (
+        " " + SYSTEM_DESIGN_REVIEW_RULES.format(question_id=metadata["id"])
+        if metadata["type"] == "system_design"
+        else ""
+    )
     return (
         f"Use $review-question to independently review {metadata['id']}. Do not edit any files. "
         "Read the preserved source, expert notes, deduplication report, question, metadata, "
         "and linked practice code. Judge source fidelity, interview realism, reasoning flow, "
         "technical correctness, page-budget discipline, follow-up quality, and runnable-code "
-        "consistency. A coding question cannot pass without a question-specific runnable package. "
+        "consistency. A coding question cannot pass without a question-specific runnable package."
+        f"{type_rules} "
         f"Also verify applicable approved guidance below:\n{editorial_guidance}\n"
         "Return blocking or important issues precisely; suggestions alone do not fail the review."
     )
@@ -565,6 +607,11 @@ def _run_deterministic_gates(root: Path, metadata: Mapping[str, object]) -> None
         metadata.get("runnable_experiment"), dict
     ):
         _run_gate(root, ("make", "practice-test"), "C++ practice gate")
+    if metadata.get("type") == "system_design":
+        _run_gate(root, ("make", "diagrams"), "diagram render gate")
+        _run_gate(root, ("make", "readability"), "readability gate")
+        if shutil.which("pandoc"):
+            _run_gate(root, ("make", "sd-preview"), "system-design preview gate")
     _run_gate(root, ("make", "pdf-preview"), "review PDF gate")
 
 
@@ -1027,7 +1074,14 @@ def recommended_next_action(
 def _review_path_allowed(path: str, package: Path, root: Path, question_id: str) -> bool:
     package_relative = package.relative_to(root).as_posix()
     return (
-        path in {"practice/CMakeLists.txt", "editorial-memory.yaml"}
+        path
+        in {
+            "practice/CMakeLists.txt",
+            "editorial-memory.yaml",
+            "taxonomy/design-moves.yaml",
+            "taxonomy/tags.yaml",
+            "content/system-design/TRACK.md",
+        }
         or path.startswith(f"{package_relative}/")
         or path.startswith(f"practice/questions/{question_id}/")
     )
@@ -1101,6 +1155,7 @@ def open_review_pr(*, root: Path, question_id: str, base: str = "main") -> str:
                 "make pdf-preview",
             ],
             "preview_artifacts": [
+                "generated/pdf-preview/system-design-track-preview.pdf",
                 "generated/pdf-preview/system-design-guide.pdf",
                 "generated/pdf-preview/coding-interview-guide.pdf",
                 "generated/pdf-preview/cpp-systems-guide.pdf",
@@ -1204,6 +1259,81 @@ def open_review_pr(*, root: Path, question_id: str, base: str = "main") -> str:
     return result.stdout.strip()
 
 
+def process_inbox(
+    *,
+    root: Path,
+    runner: Optional[AgentRunner],
+    process_all: bool = False,
+    create_branch: bool = True,
+    run_agent: bool = True,
+    open_pr: bool = False,
+) -> list[Path]:
+    """Submit inbox Markdown files as questions; one per run unless process_all.
+
+    Each question gets its own branch, so batch processing requires
+    ``create_branch=False``. Successfully submitted files move to
+    ``inbox/processed/``; a file that fails stays where it is.
+    """
+
+    from tools import inbox as inbox_tools
+
+    root = root.resolve()
+    items = inbox_tools.pending_items(root)
+    if not items:
+        return []
+    if process_all and create_branch and len(items) > 1:
+        raise WorkflowError(
+            "each question gets its own review branch; process one file per run, "
+            "or pass --no-branch to process them all on the current branch"
+        )
+    selected = items if process_all else items[:1]
+    packages: list[Path] = []
+    for item in selected:
+        with inbox_tools.temporary_directory() as scratch:
+            input_path = (
+                inbox_tools.write_prompt_only_copy(item, Path(scratch))
+                if item.needs_prompt_only_copy
+                else item.path
+            )
+            package = submit_question(
+                root=root,
+                question_kind=item.question_kind,
+                input_path=input_path,
+                runner=None,
+                question_id=item.question_id,
+                title=item.title,
+                expert_note=item.notes or None,
+                confidentiality=item.confidentiality,
+                company_removed=item.company_removed,
+                create_branch=create_branch,
+                run_agent=False,
+            )
+        if input_path != item.path:
+            archived = inbox_tools.archive_original(item, package)
+            metadata = dict(load_data(package / "metadata.yaml"))
+            source = dict(metadata.get("source", {}))
+            source["original_files"] = list(source.get("original_files", [])) + [archived]
+            metadata["source"] = source
+            _write_json(package / "metadata.yaml", metadata)
+        workflow = _load_workflow(package)
+        _event(
+            workflow,
+            "inbox_file_processed",
+            actor="system",
+            detail={"inbox_file": item.path.name, "notes": bool(item.notes)},
+        )
+        _save_workflow(package, workflow)
+        inbox_tools.mark_processed(root, item, package.name)
+        packages.append(package)
+        if run_agent and workflow.get("state") == "normalized":
+            if runner is None:
+                raise WorkflowError("agent execution was requested without an agent runner")
+            continue_question(root=root, question_id=package.name, runner=runner)
+            if open_pr:
+                print(open_review_pr(root=root, question_id=package.name))
+    return packages
+
+
 def _default_reviewer(root: Path) -> str:
     result = _git(root, "config", "user.name", check=False)
     return result.stdout.strip() or getpass.getuser()
@@ -1274,6 +1404,15 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     pr_parser.add_argument("--id", required=True, dest="question_id")
     pr_parser.add_argument("--base", default="main")
 
+    inbox_parser = subparsers.add_parser(
+        "inbox", help="submit Markdown questions dropped into inbox/<type>/"
+    )
+    inbox_parser.add_argument("--list", action="store_true", dest="list_only")
+    inbox_parser.add_argument("--all", action="store_true", dest="process_all")
+    inbox_parser.add_argument("--offline", action="store_true")
+    inbox_parser.add_argument("--no-branch", action="store_true")
+    inbox_parser.add_argument("--open-pr", action="store_true")
+
     memory_list = subparsers.add_parser(
         "memory-list", help="list proposed reusable feedback lessons"
     )
@@ -1321,6 +1460,29 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
             print(json.dumps(question_status(root=root, question_id=package.name), indent=2))
             if args.open_pr:
                 print(open_review_pr(root=root, question_id=package.name))
+        elif args.command == "inbox":
+            from tools import inbox as inbox_tools
+
+            items = inbox_tools.pending_items(root)
+            if args.list_only or not items:
+                if not items:
+                    print("inbox is empty: drop questions into inbox/system-design/*.md")
+                for item in items:
+                    print(inbox_tools.describe(item, root))
+                return 0
+            packages = process_inbox(
+                root=root,
+                runner=None if args.offline else _runner(),
+                process_all=args.process_all,
+                create_branch=not args.no_branch,
+                run_agent=not args.offline,
+                open_pr=args.open_pr,
+            )
+            for package in packages:
+                print(json.dumps(question_status(root=root, question_id=package.name), indent=2))
+            remaining = len(inbox_tools.pending_items(root))
+            if remaining:
+                print(f"{remaining} more file(s) waiting in the inbox")
         elif args.command == "status":
             print(json.dumps(question_status(root=root, question_id=args.question_id), indent=2))
         elif args.command == "next":
@@ -1436,7 +1598,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         EditorialMemoryError,
         OSError,
         RuntimeError,
-        WorkflowError,
+        ValueError,
         json.JSONDecodeError,
         subprocess.CalledProcessError,
     ) as exc:

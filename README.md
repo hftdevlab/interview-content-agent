@@ -28,6 +28,43 @@ packaging:
 The examples are gold-standard candidates, not published content. They remain
 in `needs_human_review` until a human editor approves them.
 
+## System design track
+
+System-design questions form a learning track (`content/system-design/TRACK.md`).
+Each chapter stands alone and teaches a few reusable **design moves** registered
+in `taxonomy/design-moves.yaml`; other chapters reuse them with a short
+re-explanation and a link by question title, and every chapter links the
+companion handbook by chapter number and title. Validation checks the graph:
+moves exist, each is introduced once with a callout, questions are referenced by
+title rather than number, and linked handbook chapters exist.
+
+```bash
+make readability     # paragraph length, prose runs, figures (tools/lint_readability.py)
+make track-map       # knowledge-graph figure + move matrix (generated/)
+make sd-preview      # reader-facing PDF of the whole track (generated/pdf-preview/)
+```
+
+The drafting rules live in `.agents/skills/draft-system-design/` (skill plus
+`references/`). The diagnosis behind the October 2026 reset is in
+`docs/system-design-v2/DIAGNOSIS.md`.
+
+### Adding a question through the inbox
+
+Drop one question per Markdown file into `inbox/system-design/` (or
+`inbox/coding/`, `inbox/fundamentals/`). A file can be just the prompt, or follow
+`templates/system-design/inbox-question.md`: optional front matter (`title`,
+`id`, `confidentiality`), a `## Prompt` section, and a `## Notes` section that
+becomes the package's `expert-notes.md`.
+
+```bash
+contentctl inbox --list      # what is waiting
+contentctl inbox --open-pr   # next file: intake, Codex draft, gates, independent review, draft PR
+contentctl inbox --offline   # next file: intake and question branch only (when you draft in-session)
+```
+
+Inside a Codex session, `$process-inbox` runs the same steps. See
+`inbox/README.md` for details.
+
 ## Prerequisites
 
 - Python 3.9 or newer
@@ -36,12 +73,16 @@ in `needs_human_review` until a human editor approves them.
 - Make
 - ReportLab and pypdf, installed through this project
 - Poppler (`pdftoppm` and `pdfinfo`) for visual PDF inspection
+- Graphviz (`dot`) for system-design diagrams (`brew install graphviz`)
+- pandoc, plus Playwright with Chromium, for `make sd-preview`
 
 Create an isolated Python environment:
 
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -e .
+# optional, for make sd-preview:
+.venv/bin/python -m pip install -e ".[preview]" && .venv/bin/python -m playwright install chromium
 ```
 
 Metadata files use JSON syntax, which is valid YAML, so the deterministic

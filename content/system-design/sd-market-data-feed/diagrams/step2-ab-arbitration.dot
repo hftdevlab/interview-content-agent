@@ -1,0 +1,21 @@
+// purpose: two copies of every packet; the first arrival wins; a hole on both lines is a gap
+// critical distinction: duplicates are discarded by one integer comparison; gaps go to a separate recovery thread
+// forbidden implication: that A/B arbitration makes gaps impossible
+digraph step2 {
+  rankdir=TB; ranksep=0.45;
+  a   [label="Line A\nchannel 7", role=ext];
+  b   [label="Line B\nchannel 7", role=ext];
+  arb [label="Arbitrate\nfirst copy of each sequence wins", role=new];
+  live[label="Decode, normalize, publish\n(step 1)"];
+  rec [label="Recovery thread\nretransmission or snapshot", role=new];
+  ven [label="Venue recovery services", role=ext];
+  st  [label="STATUS events to strategies\nRECOVERING / LIVE", role="warn"];
+
+  a -> arb [label=" seq 101, 102, 104"];
+  b -> arb [label=" seq 101, 103, 104"];
+  arb -> live [label=" 101, 102, 103, 104\n duplicates dropped"];
+  arb -> rec  [label=" only if both lines\n miss a sequence", role=warn];
+  rec -> ven  [label=" request", role=async];
+  rec -> live [label=" missing messages", role=async];
+  live -> st  [label=" trust state", role=warn];
+}

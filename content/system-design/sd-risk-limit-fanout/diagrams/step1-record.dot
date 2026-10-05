@@ -1,0 +1,13 @@
+// purpose: acceptance means committed with a version, not delivered
+// critical distinction: one writer per scope assigns versions
+// forbidden implication: that any strategy has the change yet
+digraph step1 {
+  rankdir=TB; ranksep=0.45;
+  maya [label="Risk manager's tool\n(or automated control)", role=ext];
+  ls   [label="Limit service (leader)\nvalidate, check expectedVersion,\nassign version 42", role=new];
+  log  [label="Replicated change log\nscope, version, values,\nauthor, reason", role="store new"];
+
+  maya -> ls  [label=" 1. PUT limits\n operationId, expectedVersion 41"];
+  ls   -> log [label=" 2. commit v42\n (replicated)"];
+  ls   -> maya [label=" 3. 200 { version: 42 }", role=async];
+}

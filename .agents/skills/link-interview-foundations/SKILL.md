@@ -1,52 +1,60 @@
 ---
 name: link-interview-foundations
-description: "Add concise prerequisite references from an interview question to the companion HFT engineer handbook or authoritative external sources. Use when a draft mentions C++ concurrency, memory, networking, market-data, low-latency, replay, or trading-system foundations that should be linked instead of retaught."
+description: "Link an interview question to the companion handbook (by chapter number and title), to earlier questions in the system-design track, or to authoritative external sources. Use when a draft relies on C++ concurrency, memory, networking, market-data, low-latency, replay, or trading-system foundations that should be applied rather than retaught."
 ---
 
 # Link Interview Foundations
 
-Use references to protect the question's page budget and keep its prose focused
-on interview decisions.
+The handbook teaches mechanisms. Interview questions apply them. A good link
+lets the chapter stay short *and* tells the reader exactly where the deeper
+explanation lives.
 
 ## Inputs
 
-- The selected question and the concepts it assumes.
-- The handbook catalog at `release1/handbook-markdown/INDEX.md`.
-- [Handbook topic map](references/foundations-map.md).
+- The selected question and the concepts it relies on.
+- [Handbook map](references/foundations-map.md): chapter numbers, display titles, IDs, and the sections worth pointing at.
+- `taxonomy/design-moves.yaml` and `content/system-design/TRACK.md` for links between questions.
 
-Read the map only for relevant concepts. Consult the handbook chapter when its
-exact scope or terminology matters.
+## Choosing the target
 
-## Source selection
+1. **An earlier question in the track** when the reader needs to recall a *design move* ("the idempotency key from Q1"). Link the question and name the move by its taxonomy label.
+2. **The handbook** when the reader needs the *mechanism* underneath (memory ordering, gap recovery, clock domains).
+3. **A primary source** (standard, specification, official documentation, a named paper) when the handbook does not cover it or an exact claim needs support.
+4. Wikipedia only for orientation on a stable general term — never as authority.
 
-1. Prefer the companion handbook when it covers the prerequisite.
-2. Prefer an existing related question when the reader needs interview practice
-   rather than foundational teaching.
-3. Use a primary specification, standard, official project documentation, or
-   authoritative publisher when the handbook lacks the topic or an exact claim
-   needs support.
-4. Use Wikipedia only as a concise orientation link for a stable general term,
-   not as authority for protocol, language, kernel, or performance guarantees.
+## Link format
 
-Add the link at the first useful mention or in a compact related-foundations
-sentence. Explain why the reference matters in this question. Do not append a
-generic bibliography or duplicate a handbook tutorial.
+Handbook links name the chapter the way a reader of the printed book knows it:
+
+```markdown
+[Handbook Ch 23 — *The Book That Is Silently Wrong*](../../../release1/handbook-markdown/chapters/d3-sequence-and-gap-recovery/chapter.md)
+```
+
+Point at a part when it helps: "Handbook Ch 31, Part 3". After the first full
+link in a chapter, "Handbook Ch 23" is enough.
+
+Question links use the short track name:
+
+```markdown
+[Q4 Market Data Feed](../sd-market-data-feed/question.md)
+```
+
+## Placement rules
+
+- Link at the point of use, in the same paragraph that applies the idea. Never in a closing bibliography.
+- One sentence of application per link: say what the reader will find and how it bears on *this* design.
+- The header block lists the three or four handbook chapters that matter most; the body links the rest.
+- Record handbook IDs in `metadata.yaml` `handbook_chapters`; the validator checks them against `curriculum.yaml`.
 
 ## Outputs and edit boundary
 
-Edit only the selected package's `question.md` and, when existing repository
-IDs justify it, `metadata.yaml` prerequisites or related questions. Preserve
-source files, expert notes, review decisions, and publication status. Do not
-edit the handbook, the topic map, or generated guides while applying links.
+Edit only the selected package's `question.md` and `metadata.yaml`
+(`handbook_chapters`, `prerequisites`, `related_questions`). Preserve sources,
+expert notes, review decisions, and status. Do not edit the handbook or generated guides.
 
 ## Validation
 
-Verify every local path and external destination, then run:
-
 ```bash
-python -m tools.validate --id <id>
-make pdf-preview
+python -m tools.validate --id <id>     # local links, handbook IDs, knowledge graph
+make sd-preview                        # links render as labelled references
 ```
-
-Inspect the rendered link text and pagination. Leave the package in
-human-review-required status.

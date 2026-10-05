@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tools.render_diagrams import graphviz_available, render_source
 from tools.validate import (
     ROOT,
     SchemaValidator,
@@ -69,6 +70,7 @@ class RepositoryGateTests(unittest.TestCase):
             mutation(root)
             return "\n".join(str(issue) for issue in validate_repository(root))
 
+    @unittest.skipUnless(graphviz_available(), "Graphviz is not installed")
     def test_unrenderable_diagram_is_rejected(self) -> None:
         def mutate(root: Path) -> None:
             diagram = (
@@ -77,14 +79,21 @@ class RepositoryGateTests(unittest.TestCase):
                 / "system-design"
                 / "sd-market-data-feed"
                 / "diagrams"
-                / "architecture.mmd"
+                / "step1-live-path.dot"
             )
-            diagram.write_text(
-                "stateDiagram-v2\n  [*] --> Live\n",
-                encoding="utf-8",
-            )
+            diagram.write_text("digraph broken { a -> ; }\n", encoding="utf-8")
 
-        self.assertIn("Mermaid source is not renderable", self._issues_after(mutate))
+        self.assertIn("Graphviz source is not renderable", self._issues_after(mutate))
+
+    @unittest.skipUnless(graphviz_available(), "Graphviz is not installed")
+    def test_clean_checkout_without_rendered_svgs_passes(self) -> None:
+        # generated/ is gitignored, so CI validates before anything is rendered.
+        messages = self._issues_after(lambda root: None)
+        self.assertNotIn("SVG", messages)
+
+    def test_unsupported_mermaid_is_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            render_source("stateDiagram-v2\n  [*] --> Live\n")
 
     def test_placeholder_and_broken_local_link_are_rejected(self) -> None:
         def mutate(root: Path) -> None:

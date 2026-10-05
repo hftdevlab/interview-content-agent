@@ -1,0 +1,15 @@
+// purpose: a new tab gets one snapshot of its watchlist from the shards
+// critical distinction: gateways hold connections; prices live in the shards
+// forbidden implication: that the browser talks to the price service directly
+digraph step2 {
+  rankdir=TB; nodesep=0.45; ranksep=0.45;
+  browser [label="Trader's browser\nwatchlist: 200 tickers", role=new];
+  lb  [label="Load balancer", role=new];
+  gw  [label="Gateway\nWebSocket sessions", role=new];
+  ps  [label="Price-service shards\nlatest price per ticker", role=store];
+  browser -> lb [label=" 1. open WebSocket"];
+  lb -> gw;
+  browser -> gw [label=" 2. subscribe", style=dashed, constraint=false];
+  gw -> ps [label=" 3. read latest"];
+  gw -> browser [label=" 4. snapshot", role=ok, constraint=false];
+}

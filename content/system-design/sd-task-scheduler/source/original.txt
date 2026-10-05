@@ -1,0 +1,1 @@
+Design a distributed task scheduler: it should be able to schedule tasks asynchronously. Support priority based scheduling. Clients can query the status of scheduled tasks.

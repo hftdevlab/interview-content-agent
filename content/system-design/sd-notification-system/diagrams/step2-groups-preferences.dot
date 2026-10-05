@@ -1,0 +1,19 @@
+// purpose: groups and preferences add lookups, not new moving parts
+// critical distinction: group membership resolves at send time
+// forbidden implication: that the provider call has left the request path
+digraph step2 {
+  rankdir=TB;
+  hr     [label="Firm directory +\non-call schedule", role=ext];
+  sender [label="Internal senders", role=ext];
+  api    [label="Notification API\nexpand group, check preferences"];
+  people [label="Recipients and groups\ncontacts, quiet hours,\ndesks, on-call rotation", role="store new"];
+  db     [label="Postgres\nnotifications, deliveries", role=store];
+  prov   [label="Providers", role=ext];
+
+  {rank=same; sender; hr;}
+  hr     -> people [label=" nightly sync", role=async];
+  sender -> api    [label=" 1. POST"];
+  api    -> people [label=" 2. expand group,\n read preferences"];
+  api    -> db     [label=" 3. PENDING, or\n SUPPRESSED + reason"];
+  api    -> prov   [label=" 4. send inline"];
+}

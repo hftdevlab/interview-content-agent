@@ -12,7 +12,7 @@ permissions:
 jobs:
   validate-build-test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Check out source
@@ -25,13 +25,18 @@ jobs:
           cache: pip
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake g++ make poppler-utils
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ make poppler-utils graphviz pandoc
 
       - name: Install project
-        run: python -m pip install -e .
+        run: |
+          python -m pip install -e ".[preview]"
+          python -m playwright install --with-deps chromium
 
       - name: Run complete CI gate
         run: make ci PYTHON=python
+
+      - name: Build the system-design track preview
+        run: make sd-preview PYTHON=python
 
       - name: Upload review PDFs
         if: always()

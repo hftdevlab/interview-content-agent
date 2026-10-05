@@ -1,0 +1,28 @@
+// purpose: the hot path delivers; the reliable path captures, stores, replays, and feeds research
+// critical distinction: both paths read the same packets; nothing on the reliable path can slow the hot path
+// forbidden implication: that durable storage or a broker sits between the feed handler and strategies
+digraph step3 {
+  rankdir=TB; ranksep=0.45; nodesep=0.5;
+  ex  [label="Venue: A + B lines", role=ext];
+  sw  [label="Colo switch", role=ext];
+  subgraph cluster_hot {
+    label="Hot path · microseconds"; role=zone;
+    fh    [label="Feed handlers\none thread per\nchannel group"];
+    rings [label="Shared-memory\nrings", role=store];
+    strat [label="Strategies"];
+  }
+  subgraph cluster_rel {
+    label="Reliable path · seconds to hours"; role=zone;
+    cap  [label="Capture writer\nraw packets +\nNIC timestamps", role=new];
+    disk [label="Local capture files", role="store new"];
+    cs   [label="Central capture store", role="store new"];
+    rp   [label="Replay and research\nversioned decoders", role=new];
+  }
+  ex -> sw;
+  sw -> fh  [label=" packets"];
+  fh -> rings -> strat;
+  sw -> cap [label=" mirror / tap", role=new];
+  cap -> disk;
+  disk -> cs [label=" ship later", role=async];
+  cs -> rp;
+}

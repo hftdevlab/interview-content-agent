@@ -1,0 +1,15 @@
+{
+  "question_id": "sd-timeseries-storage",
+  "checks": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "review_notes": [
+    "Plan. Crux: make huge scans fast while ranges keep being rewritten. Interpretation: research history store (ticks and features); range writes are vendor corrections and recomputes. Introduces: columnar-blocks, versioned-range-replace, write-immutably-compact-later, merge-iterator, snapshot-reads. Reuses: index-for-the-query, idempotency-key, batch-to-amortize, point-in-time-timestamps. Deep dives: bytes read and layout (NFR1), range overwrite and compaction (NFR2, NFR5), merge iterator and snapshots (NFR3). Finance lens: corrections are routine and backtests must be reproducible.",
+    "Deliberately lower-level than the other chapters, per the track owner: segment layout, encodings, the visibility rule, compaction versioning, merge with a fast path, and garbage collection under pinned snapshots.",
+    "Factual claims to verify in review: Parquet, ClickHouse, and kdb+ store data by column; the RUM trade-off (Athanassoulis et al., EDBT 2016); Iceberg and Delta Lake support copy-on-write and merge-on-read row changes. Compression ratio (6x) and scan rate (1 GB/s per node) are labelled assumptions.",
+    "Human review required: interpretation, interview realism, difficulty, and approval."
+  ]
+}

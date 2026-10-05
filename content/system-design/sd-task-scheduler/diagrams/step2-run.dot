@@ -1,0 +1,19 @@
+// purpose: workers pull due tasks by priority under a lease, and report outcomes
+// critical distinction: workers pull; a lease, not a lock, marks ownership
+// forbidden implication: that the scheduler pushes work to workers it cannot see
+digraph step2 {
+  rankdir=TB; nodesep=0.45; ranksep=0.45;
+  client [label="Client", role=ext];
+  api    [label="Scheduler API"];
+  db     [label="Postgres\ntasks + attempts", role=store];
+  subgraph cluster_fleet {
+    label="Worker fleet · 2,000 slots"; role=zone;
+    w1 [label="Worker", role=new];
+    w2 [label="Worker", role=new];
+  }
+  client -> api [label=" GET /tasks/{id}", role=async];
+  api -> db [label=" claim: due, by priority\n lease 30 s"];
+  w1 -> api [label=" 1. claim"];
+  w2 -> api [label=" 3. heartbeat\n 4. complete"];
+  db -> db [label=" 4. failure: due_at += backoff\n 5. expired lease: QUEUED again", role=warn];
+}

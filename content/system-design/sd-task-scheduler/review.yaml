@@ -1,0 +1,15 @@
+{
+  "question_id": "sd-task-scheduler",
+  "checks": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "review_notes": [
+    "Plan. Crux: decide when each task runs and who runs it, so urgent work goes first, nothing waits forever, and no task has two live owners. Interpretation: an internal batch scheduler at a trading firm; workload is a labelled assumption. Introduces: separate-when-from-who, lease-and-fence, priority-without-starvation. Reuses: accept-then-work, idempotency-key, retry-with-backoff, priority-lanes. Deep dives: timer vs ready queue (NFR2), fencing (NFR4), starvation and shares sized from deadlines (NFR3). Finance lens: market-set deadlines and the cost of double-booking.",
+    "Written 2026-10-04 for the track expansion. Deep dive 1 concedes that a tuned single table with per-priority probes works for strict priority at this scale, and argues for the timer/dispatcher split on policy and churn. Deep dive 2 shows that a fencing token at the target does not stop a stale write that lands first, and that keying by task still leaves a window; the fix is staging per attempt with the scheduler's fenced update as the single commit point.",
+    "Factual claims to verify in review: SQS maximum per-message delay of 15 minutes; Kafka has no per-message delay or priority; RabbitMQ priority queues and no cancel of a queued message; Sidekiq's scheduled set and ready queues; Postgres dead row versions and vacuum on a churning queue table.",
+    "Human review required: interpretation, interview realism, difficulty, and approval."
+  ]
+}

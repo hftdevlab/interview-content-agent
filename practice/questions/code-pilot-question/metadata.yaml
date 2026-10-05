@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "question_id": "code-pilot-question",
+  "language": "C++20",
+  "starter_target": "simple_vector_starter",
+  "solution_target": "simple_vector_solution",
+  "test_target": "simple_vector_test"
+}

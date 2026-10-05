@@ -5,13 +5,16 @@ BUILD_DIR ?= build/practice
 SANITIZER_BUILD_DIR ?= build/practice-ubsan
 VERSION ?= 0.1.0
 
-.PHONY: help lint validate test catalogs diagrams guides pdfs pdf-preview pdf-validate practice-configure practice-build practice-test practice-starter-check practice-sanitize docker-test release all ci clean
+.PHONY: help lint readability validate test catalogs diagrams track-map sd-preview guides pdfs pdf-preview pdf-validate practice-configure practice-build practice-test practice-starter-check practice-sanitize docker-test release all ci clean
 
 help: ## Show available developer commands
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z0-9_-]+:.*## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 lint: ## Run dependency-free Markdown integrity checks
 	$(PYTHON) -m tools.lint_markdown
+
+readability: ## Lint system-design chapters for paragraph length, prose runs, and figures
+	$(PYTHON) -m tools.lint_readability --quiet --skip-unstarted content/system-design/*/question.md
 
 validate: ## Validate schemas, taxonomy, content, references, and practice links
 	$(PYTHON) -m tools.validate
@@ -22,8 +25,14 @@ test: ## Run deterministic Python tooling tests
 catalogs: ## Generate all metadata-driven question catalogs
 	$(PYTHON) -m tools.generate_catalog
 
-diagrams: ## Render Mermaid sources into generated SVG files
+diagrams: ## Render Graphviz (.dot) and Mermaid (.mmd) sources into generated SVG files
 	$(PYTHON) -m tools.render_diagrams
+
+track-map: ## Generate the system-design track map and design-move matrix
+	$(PYTHON) -m tools.build_track_map
+
+sd-preview: diagrams track-map validate ## Build the reader-facing system-design track PDF (pandoc + Chromium)
+	$(PYTHON) -m tools.build_sd_preview
 
 guides: catalogs ## Build review-only combined Markdown guide previews
 	$(PYTHON) -m tools.build_guides
@@ -64,7 +73,7 @@ release: ## Build and package a versioned approved-content release
 
 all: test catalogs guides pdf-validate practice-test ## Run the complete deterministic source build
 
-ci: lint all pdf-preview ## Run every pull-request validation and preview build
+ci: lint readability all pdf-preview ## Run every pull-request validation and preview build
 
 clean: ## Remove the local C++ build directory
 	cmake -E remove_directory build

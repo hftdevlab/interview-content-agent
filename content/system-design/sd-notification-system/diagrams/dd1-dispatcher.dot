@@ -1,0 +1,20 @@
+// purpose: acceptance and delivery become separate moments
+// critical distinction: the API commits and replies; workers deliver later
+// forbidden implication: that a queue product is required at this scale
+digraph dd1 {
+  rankdir=TB; ranksep=0.45;
+  sender  [label="Internal senders", role=ext];
+  api     [label="Notification API"];
+  db      [label="Postgres\nnotification + deliveries\nin ONE transaction", role="store new"];
+  workers [label="Dispatcher workers\nclaim due rows under a lease", role=new];
+  prov    [label="Providers", role=ext];
+  failed  [label="FAILED + operational alert", role=warn];
+
+  sender  -> api     [label=" 1. POST"];
+  api     -> sender  [label=" 2. 202 Accepted", role=async];
+  api     -> db      [label=" commit"];
+  db      -> workers [label=" 3. claim due rows\n SKIP LOCKED, 30 s lease"];
+  workers -> prov    [label=" 4. send, no open\n transaction"];
+  workers -> db      [label=" 5. SENT, or retry at\n backoff + jitter", role=async, constraint=false];
+  workers -> failed  [label=" budget exhausted", role=warn];
+}

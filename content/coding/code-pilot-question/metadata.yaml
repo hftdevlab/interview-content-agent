@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "id": "code-pilot-question",
+  "type": "coding",
+  "title": "Implement a Move-Aware Vector",
+  "status": "approved",
+  "difficulty": 3,
+  "expected_duration_minutes": 45,
+  "categories": [
+    "api-design",
+    "cpp-language"
+  ],
+  "tags": [
+    "exception-safety",
+    "move-semantics",
+    "placement-new"
+  ],
+  "prerequisites": [],
+  "related_questions": [],
+  "source": {
+    "input_type": "text",
+    "confidentiality": "public",
+    "original_company_removed": false,
+    "original_files": [
+      "source/pilot.md"
+    ]
+  },
+  "review": {
+    "agent_reviewed": true,
+    "human_reviewed": true,
+    "technical_accuracy_reviewed": true,
+    "interview_realism_reviewed": true
+  },
+  "last_updated": "2026-08-12",
+  "content_file": "question.md",
+  "practice": {
+    "path": "practice/questions/code-pilot-question",
+    "cmake_target": "simple_vector_solution",
+    "test_target": "simple_vector_test"
+  }
+}

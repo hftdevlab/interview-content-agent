@@ -1,0 +1,16 @@
+{
+  "question_id": "sd-notification-system",
+  "checks": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "review_notes": [
+    "Plan. Crux: keep urgent alerts fast while bulk traffic surges, and never lose one. Interpretation: the firm's internal notification platform (risk, OMS, recon, reports). Introduces: accept-then-work, idempotency-key, retry-with-backoff, priority-lanes, queue-buys-time. Deep dives: never lose (NFR1), no double pages (NFR1 duplicates), critical within 5 s during a storm (NFR2/3). Finance lens: correlated bursts with market events; a notification informs and never controls trading.",
+    "Revised 2026-10-04 per track-owner feedback: chapter stands alone (header shows level and related questions by title; no question numbers); every reused move is re-explained in a sentence and linked by title; the closing design-moves recap and 'Next' line were removed.",
+    "Rewritten from scratch for the system-design track reset (2026-10-03) using the new draft-system-design skill. Supersedes the e2e pilot sd-e2e-notifications.",
+    "Workload numbers (400k/day, 100k-delivery storm, 500 sends/s provider ceiling) are labelled assumptions in the text. The Postgres capacity statement is phrased as typical, to be measured.",
+    "Human review required for interview realism, difficulty, and approval."
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "id": "sd-live-price-dashboard",
+  "type": "system_design",
+  "title": "Design a Live Price Dashboard",
+  "short_title": "Live Price Dashboard",
+  "status": "needs_human_review",
+  "difficulty": 3,
+  "expected_duration_minutes": 45,
+  "track_order": 5,
+  "categories": [
+    "networking",
+    "market-data",
+    "trading-systems"
+  ],
+  "tags": [
+    "websocket",
+    "conflation",
+    "fan-out",
+    "latency-budget",
+    "slow-consumer",
+    "snapshot",
+    "heartbeat",
+    "clock-sync"
+  ],
+  "design_moves": {
+    "introduces": [
+      "conflate-to-latest",
+      "fan-out-in-tiers",
+      "latency-budget"
+    ],
+    "reuses": [
+      "push-vs-pull-fanout",
+      "slow-consumer-isolation",
+      "explicit-staleness"
+    ]
+  },
+  "handbook_chapters": [
+    "d4-parsing-batching-backpressure",
+    "d7-websocket-and-http",
+    "d5-clocks-and-timestamps"
+  ],
+  "prerequisites": [],
+  "related_questions": [
+    "sd-market-data-feed",
+    "sd-news-feed",
+    "sd-timeseries-storage"
+  ],
+  "source": {
+    "input_type": "text",
+    "confidentiality": "public",
+    "original_company_removed": false,
+    "original_files": [
+      "source/original.txt"
+    ]
+  },
+  "review": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "last_updated": "2026-10-04",
+  "content_file": "question.md",
+  "diagrams": [
+    {
+      "source_file": "diagrams/step1-publish.dot",
+      "rendered_file": "step1-publish.svg",
+      "caption": "Step 1: hosts publish without waiting for anyone; each price-service shard overwrites the latest price per ticker.",
+      "alt_text": "A pricing engine and a strategy host, among 200 trading hosts, publish onto an internal bus with topics by ticker shard, no durability and no back-pressure. The bus delivers to eight price-service shards, each holding the latest price per ticker and overwriting it only when the host sequence number is newer."
+    },
+    {
+      "source_file": "diagrams/step2-snapshot.dot",
+      "rendered_file": "step2-snapshot.svg",
+      "caption": "Step 2: a new tab opens a WebSocket, subscribes to its watchlist, and gets one snapshot read from the shards.",
+      "alt_text": "The trader's browser, with a 200-ticker watchlist, opens a WebSocket through a load balancer to a gateway and sends a subscribe message. The gateway reads the latest prices from the price-service shards and returns one snapshot to the browser."
+    },
+    {
+      "source_file": "diagrams/step3-push.dot",
+      "rendered_file": "step3-push.svg",
+      "caption": "Step 3, the simplest version: subscriptions are per session, so every change goes out once per watching tab.",
+      "alt_text": "The gateway registers each session's tickers with a price-service shard fed by the bus. The shard sends every change once per session back through the gateway, which forwards it to tabs 1, 2, and so on up to tab 600."
+    },
+    {
+      "source_file": "diagrams/dd1-conflation.dot",
+      "rendered_file": "dd1-conflation.svg",
+      "caption": "Deep dive 1: updates overwrite one slot per ticker; a flush at most every 25 ms sends only the tickers that changed.",
+      "alt_text": "AAPL updates arrive 800 times a second and overwrite AAPL's slot in one session's table of slots, marking it dirty; MSFT is also dirty and 198 other tickers are unchanged. When the 25 millisecond window ends, or immediately if the session was idle, a flush sends one update message to the browser tab with only the dirty tickers, at most 40 messages a second, and waits while two flushes are unacknowledged; the tab acknowledges each message."
+    },
+    {
+      "source_file": "diagrams/dd2-tiers.dot",
+      "rendered_file": "dd2-tiers.svg",
+      "caption": "Deep dive 2: each tier subscribes once to what its children need, conflates, and fans out.",
+      "alt_text": "Two hundred hosts publish once to the bus, which carries 500,000 updates a second at the open and delivers each ticker once to the price service. The price service's eight shards conflate per gateway every 10 milliseconds, sending AAPL at most 100 times a second to each of 40 gateways that want it. Each gateway keeps a latest-price table, conflates per tab every 25 milliseconds, and serves 50 tabs."
+    }
+  ]
+}

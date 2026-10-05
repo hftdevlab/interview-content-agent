@@ -1,0 +1,1 @@
+Design a distributed storage system that supports read and write operations for time-series data optimized for large batch queries. Each write should overwrite all previous data in the same range. The read interface should be based on iterators.

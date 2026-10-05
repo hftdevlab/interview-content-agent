@@ -56,4 +56,5 @@ function(practice_configure_target target)
 endfunction()
 
 add_subdirectory(questions/code-multi-source-stream-merger)
+add_subdirectory(questions/code-pilot-question)
 add_subdirectory(questions/fund-sequence-lock)

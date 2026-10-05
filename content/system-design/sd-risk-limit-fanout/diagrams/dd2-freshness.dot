@@ -1,0 +1,23 @@
+// purpose: only the authority can renew a lease, and only for the latest nonce
+// critical distinction: the distributor relays proofs; it cannot create or replay them
+// forbidden implication: that a connected distributor means fresh limits
+digraph dd2 {
+  rankdir=TB; ranksep=0.55; nodesep=0.5;
+  ag   [label="Host risk agent\nPing(n) every 250 ms", role=new];
+  shm  [label="fresh_until in shared memory\n= now + 1 s on a valid proof", role="store new"];
+  dist [label="Distributor\nrelays only"];
+  ot   [label="S7 order thread\nnow > fresh_until  ->  STALE:\nblock new risk", role=warn];
+  ls   [label="Limit service (authority)\nanswers with current versions", role=new];
+  note [label="If the distributor loses the authority:\nno proofs, lease expires within 1 s,\nS7 stops adding risk by itself", role=note];
+
+  {rank=same; ag; shm;}
+  {rank=same; dist; ot;}
+  {rank=same; ls; note;}
+  ag   -> shm  [label=" nonce is the latest,\n v42 = applied version", role=ok];
+  shm  -> ot   [label=" checked on every order"];
+  ag   -> dist [label=" 1. Ping(9172)"];
+  dist -> ls   [label=" 2. forward"];
+  ls   -> dist [label=" 3. Proof(9172, S7: v42)", role=ok];
+  dist -> ag   [label=" 4. relay", role=ok];
+  ot -> note [style=invis];
+}

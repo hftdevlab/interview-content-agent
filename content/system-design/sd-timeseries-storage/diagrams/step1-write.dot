@@ -1,0 +1,20 @@
+// purpose: the simplest overwrite rewrites each touched partition and commits one catalog transaction
+// critical distinction: files are replaced, never edited; the catalog commit is the only mutable step
+// forbidden implication: that readers see a half-written range
+digraph step1 {
+  rankdir=TB; nodesep=0.45; ranksep=0.45;
+  client [label="Writer\nvendor loader, research job", role=ext];
+  coord  [label="Write coordinator\nsplice old rows outside the range\nwith the new rows", role=new];
+  subgraph cluster_nodes {
+    label="Storage nodes · 3 replicas per partition"; role=zone;
+    n1 [label="Node 4\nnew file", role="store new"];
+    n2 [label="Node 9\nnew file", role="store new"];
+    n3 [label="Node 17\nnew file", role="store new"];
+  }
+  cat [label="Catalog\npartition → file, version", role="store new"];
+  client -> coord [label=" 1. write(series, range, rows)"];
+  coord -> n1 [label=" 3–4. write the\n replacement"];
+  coord -> n2;
+  coord -> n3;
+  coord -> cat [label=" 2. find partitions\n 5. commit v812", constraint=false];
+}

@@ -1,0 +1,20 @@
+// purpose: one commit point: attempts stage effects; only the attempt the scheduler commits is posted
+// critical distinction: a fencing token at the ledger alone accepts a stale write that lands first
+// forbidden implication: that the paused worker can be prevented from running
+digraph dd2 {
+  rankdir=TB; nodesep=0.6; ranksep=0.6;
+  w17 [label="W17 · attempt 1\nresumed after a 40 s stall", role=warn];
+  w22 [label="W22 · attempt 2", role=new];
+  stage [label="Staging\nadjustments by (task, attempt)\nno reader looks here", role=store];
+  sched [label="Scheduler\ntask 9137: attempt = 2", role=store];
+  ledger [label="Ledger\nonly committed attempts", role="store new"];
+  { rank=same; w17; w22; }
+  { rank=same; stage; sched; }
+  w17 -> w22 [style=invis];
+
+  w17 -> stage [label=" stage (9137, 1)", role=warn];
+  w17 -> sched [label=" complete(1):\n 0 rows", role=warn];
+  w22 -> stage [label=" stage (9137, 2)"];
+  w22 -> sched [label=" complete(2):\n SUCCEEDED", role=ok];
+  sched -> ledger [label=" post attempt 2\n staging only", role=ok];
+}

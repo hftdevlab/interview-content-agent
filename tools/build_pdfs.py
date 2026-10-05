@@ -28,7 +28,7 @@ from tools.generate_catalog import category_counts, difficulty_counts
 try:
     from reportlab import rl_config
     from reportlab.graphics import renderPDF
-    from reportlab.graphics.shapes import Drawing, Line, Polygon, Rect, String
+    from reportlab.graphics.shapes import Drawing, Ellipse, Line, Path as RLPath, Polygon, Rect, String
     from reportlab.lib import colors
     from reportlab.lib.colors import HexColor
     from reportlab.lib.enums import TA_CENTER, TA_LEFT
@@ -266,19 +266,56 @@ def _svg_number(element: ET.Element, name: str, default: float = 0.0) -> float:
 def _paint(value: Optional[str], fallback: str = "#000000"):
     if value in (None, ""):
         value = fallback
-    if value == "none":
+    if value in ("none", "transparent"):
         return None
-    return HexColor(value)
+    if value.startswith("#"):
+        return HexColor(value)
+    return colors.toColor(value)
 
 
-def svg_drawing(path: Path, max_width: float) -> Drawing:
+def _svg_length(raw: str) -> float:
+    """Parse an SVG length such as '413pt' or '640' (pt and px treated alike)."""
+    return float(re.sub(r"(pt|px)$", "", raw.strip()))
+
+
+def _dash(element: ET.Element, scale: float):
+    raw = element.attrib.get("stroke-dasharray")
+    if not raw:
+        return None
+    return [float(item) * scale for item in re.split(r"[ ,]+", raw.strip()) if item]
+
+
+def _path_commands(d: str):
+    """Yield (command, [numbers]) for absolute M/L/C/Z path data (Graphviz output)."""
+    for command, body in re.findall(r"([MLCZmlcz])([^MLCZmlcz]*)", d):
+        numbers = [float(n) for n in re.findall(r"-?\d+(?:\.\d+)?(?:e-?\d+)?", body)]
+        yield command, numbers
+
+
+def svg_size(path: Path) -> tuple[float, float]:
+    root = ET.fromstring(path.read_text(encoding="utf-8"))
+    return _svg_length(root.attrib["width"]), _svg_length(root.attrib["height"])
+
+
+def svg_drawing(path: Path, max_width: float, max_height: Optional[float] = None) -> Drawing:
     """Translate the deterministic renderer's SVG subset into a vector Drawing."""
 
     root = ET.fromstring(path.read_text(encoding="utf-8"))
-    width = float(root.attrib["width"])
-    height = float(root.attrib["height"])
+    width = _svg_length(root.attrib["width"])
+    height = _svg_length(root.attrib["height"])
     scale = min(max_width / width, 1.0)
+    if max_height:
+        scale = min(scale, max_height / height)
     drawing = Drawing(width * scale, height * scale)
+
+    namespace = "{http://www.w3.org/2000/svg}"
+    # Graphviz wraps everything in one group translated into the viewBox.
+    offset_x = offset_y = 0.0
+    graph_group = root.find(f"{namespace}g")
+    if graph_group is not None:
+        match = re.search(r"translate\(([-\d.]+)[ ,]+([-\d.]+)\)", graph_group.attrib.get("transform", ""))
+        if match:
+            offset_x, offset_y = float(match.group(1)), float(match.group(2))
 
     def tx(value: float) -> float:
         return value * scale
@@ -286,10 +323,78 @@ def svg_drawing(path: Path, max_width: float) -> Drawing:
     def ty(value: float) -> float:
         return (height - value) * scale
 
-    namespace = "{http://www.w3.org/2000/svg}"
+    def gx(value: float) -> float:
+        return tx(value + offset_x)
+
+    def gy(value: float) -> float:
+        return ty(value + offset_y)
+
     for element in root.iter():
         tag = element.tag.removeprefix(namespace)
-        if tag == "rect":
+        if tag == "polygon":
+            values = [float(n) for n in re.findall(r"-?\d+(?:\.\d+)?", element.attrib.get("points", ""))]
+            points: list[float] = []
+            for x, y in zip(values[0::2], values[1::2]):
+                points.extend([gx(x), gy(y)])
+            if len(points) >= 6:
+                drawing.add(
+                    Polygon(
+                        points,
+                        fillColor=_paint(element.attrib.get("fill"), "none"),
+                        strokeColor=_paint(element.attrib.get("stroke"), "none"),
+                        strokeWidth=tx(_svg_number(element, "stroke-width", 1.0)),
+                        strokeDashArray=_dash(element, scale),
+                    )
+                )
+        elif tag == "path":
+            shape = RLPath(
+                fillColor=_paint(element.attrib.get("fill"), "none"),
+                strokeColor=_paint(element.attrib.get("stroke"), "none"),
+                strokeWidth=tx(_svg_number(element, "stroke-width", 1.0)),
+                strokeDashArray=_dash(element, scale),
+            )
+            for command, numbers in _path_commands(element.attrib.get("d", "")):
+                upper = command.upper()
+                if upper == "M" and len(numbers) >= 2:
+                    shape.moveTo(gx(numbers[0]), gy(numbers[1]))
+                    for x, y in zip(numbers[2::2], numbers[3::2]):
+                        shape.lineTo(gx(x), gy(y))
+                elif upper == "L":
+                    for x, y in zip(numbers[0::2], numbers[1::2]):
+                        shape.lineTo(gx(x), gy(y))
+                elif upper == "C":
+                    for i in range(0, len(numbers) - 5, 6):
+                        x1, y1, x2, y2, x3, y3 = numbers[i : i + 6]
+                        shape.curveTo(gx(x1), gy(y1), gx(x2), gy(y2), gx(x3), gy(y3))
+                elif upper == "Z":
+                    shape.closePath()
+            drawing.add(shape)
+        elif tag == "ellipse":
+            drawing.add(
+                Ellipse(
+                    gx(_svg_number(element, "cx")),
+                    gy(_svg_number(element, "cy")),
+                    tx(_svg_number(element, "rx")),
+                    tx(_svg_number(element, "ry")),
+                    fillColor=_paint(element.attrib.get("fill"), "none"),
+                    strokeColor=_paint(element.attrib.get("stroke"), "none"),
+                    strokeWidth=tx(_svg_number(element, "stroke-width", 1.0)),
+                )
+            )
+        elif tag == "text" and graph_group is not None and element in list(graph_group.iter()):
+            anchor = element.attrib.get("text-anchor", "start")
+            drawing.add(
+                String(
+                    gx(_svg_number(element, "x")),
+                    gy(_svg_number(element, "y")),
+                    _ascii("".join(element.itertext())),
+                    fontName="Helvetica",
+                    fontSize=tx(_svg_number(element, "font-size", 14.0)),
+                    fillColor=_paint(element.attrib.get("fill")),
+                    textAnchor={"middle": "middle", "end": "end"}.get(anchor, "start"),
+                )
+            )
+        elif tag == "rect":
             raw_width = element.attrib.get("width", "0")
             raw_height = element.attrib.get("height", "0")
             rect_width = width if raw_width.endswith("%") else float(raw_width)
@@ -346,7 +451,7 @@ def svg_drawing(path: Path, max_width: float) -> Drawing:
                         strokeColor=stroke,
                     )
                 )
-        elif tag == "text":
+        elif tag == "text" and graph_group is None:
             anchor = element.attrib.get("text-anchor", "start")
             text_anchor = {
                 "middle": "middle",
@@ -366,6 +471,11 @@ def svg_drawing(path: Path, max_width: float) -> Drawing:
             )
 
     return drawing
+
+
+def self_diagram_width(portrait_width: float) -> float:
+    """Usable width of the landscape diagram frame (A4 landscape minus margins)."""
+    return landscape(A4)[0] - 36 * mm
 
 
 def _join_markdown_lines(lines: Sequence[str]) -> str:
@@ -418,8 +528,25 @@ def markdown_flowables(
         if image:
             alt_text, raw_target = image.groups()
             image_path = (record.package_dir / raw_target).resolve()
-            drawing = svg_drawing(image_path, available_width)
             caption = diagram_captions.get(image_path.name, alt_text)
+            natural_width, natural_height = svg_size(image_path)
+            inline_max_height = available_width * 1.05
+            inline_scale = min(available_width / natural_width, inline_max_height / natural_height, 1.0)
+            if inline_scale >= 0.72:
+                # Compact figures stay in the reading flow, next to the prose
+                # that sets them up, instead of forcing a landscape page break.
+                flowables.append(
+                    KeepTogether(
+                        [
+                            Spacer(1, 2 * mm),
+                            svg_drawing(image_path, available_width, inline_max_height),
+                            Paragraph(_inline_markup(caption), styles["caption"]),
+                        ]
+                    )
+                )
+                index += 1
+                continue
+            drawing = svg_drawing(image_path, self_diagram_width(available_width), 440)
             # A diagram always starts a landscape page. Move any immediately
             # preceding heading chain with it so section titles are not left
             # alone on the portrait page before the diagram.

@@ -1,0 +1,20 @@
+// purpose: storage is organised by time and labels; the query service prunes before it reads
+// critical distinction: a small index of chunks, not an index of every word
+// forbidden implication: that free-text search over all history is cheap
+digraph step3 {
+  rankdir=TB;
+  kafka [label="Kafka", role=store];
+  idx   [label="Indexers\nbuild chunks per stream", role=new];
+  cidx  [label="Chunk index\nlabels, time range,\nBloom filter of order IDs", role="store new"];
+  store [label="Chunk store\ncompressed, by time\nSSD hot · object storage cold", role="store new"];
+  qs    [label="Query service", role=new];
+  eng   [label="Engineer\nsearch or live tail", role=ext];
+
+  kafka -> idx   [label=" 1. consume"];
+  idx   -> store [label=" 2. write chunk"];
+  idx   -> cidx  [label=" 3. index entry"];
+  eng   -> qs    [label=" 4. query"];
+  qs    -> cidx  [label=" 5. find candidate chunks"];
+  qs    -> store [label=" 6. fetch, decode, filter"];
+  {rank=same; cidx; store;}
+}

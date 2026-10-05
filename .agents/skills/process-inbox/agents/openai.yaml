@@ -1,0 +1,4 @@
+interface:
+  display_name: "Process Question Inbox"
+  short_description: "Turn inbox Markdown questions into reviewed drafts"
+  default_prompt: "Use $process-inbox to pick up the next question in the inbox."

@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "id": "sd-news-feed",
+  "type": "system_design",
+  "title": "Design a News Feed System",
+  "status": "needs_human_review",
+  "difficulty": 3,
+  "expected_duration_minutes": 45,
+  "track_order": 4,
+  "categories": [
+    "data-pipeline",
+    "trading-systems",
+    "storage-replay"
+  ],
+  "tags": [
+    "normalization",
+    "deduplication",
+    "point-in-time",
+    "entitlements",
+    "fan-out",
+    "schema-versioning"
+  ],
+  "design_moves": {
+    "introduces": [
+      "normalize-at-the-edge",
+      "content-dedup",
+      "point-in-time-timestamps",
+      "push-vs-pull-fanout"
+    ],
+    "reuses": [
+      "idempotency-key",
+      "accept-then-work",
+      "partitioned-log",
+      "index-for-the-query"
+    ]
+  },
+  "handbook_chapters": [
+    "d1-market-data-and-protocols",
+    "e1-idempotency-and-duplicates",
+    "e4-deterministic-replay",
+    "d5-clocks-and-timestamps",
+    "d7-websocket-and-http",
+    "d6-kernel-bypass"
+  ],
+  "prerequisites": [],
+  "related_questions": [
+    "sd-log-publishing-query",
+    "sd-market-data-feed"
+  ],
+  "source": {
+    "input_type": "text",
+    "confidentiality": "public",
+    "original_company_removed": false,
+    "original_files": [
+      "source/original.txt"
+    ]
+  },
+  "review": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "last_updated": "2026-10-04",
+  "content_file": "question.md",
+  "diagrams": [
+    {
+      "source_file": "diagrams/step1-ingest.dot",
+      "rendered_file": "step1-ingest.svg",
+      "caption": "Step 1: each source gets its own connector and adapter; raw bytes are kept with a receive time before parsing.",
+      "alt_text": "Wire A over TCP with XML, Wire B over WebSocket with JSON, and polled RSS and filing sources each feed their own connector or poller. Connectors stamp a receive time and append raw bytes to a raw log partitioned by source. Per-source adapters parse into canonical story revisions, and the normalizer maps vendor identifiers to firm security IDs using reference data."
+    },
+    {
+      "source_file": "diagrams/step2-deliver.dot",
+      "rendered_file": "step2-deliver.svg",
+      "caption": "Step 2: the router pushes matching, licensed revisions to strategies and terminals; terminals backfill from history.",
+      "alt_text": "The normalizer sends every revision to a router that applies subscription filters and entitlements, and in parallel to the story store. The router pushes to strategies over a low-latency bus and to a WebSocket terminal gateway that feeds traders' terminals, which backfill from the story store on connect."
+    },
+    {
+      "source_file": "diagrams/step3-history.dot",
+      "rendered_file": "step3-history.svg",
+      "caption": "Step 3: history is append-only revisions plus a search index; queries return what had been received by as_of.",
+      "alt_text": "A store writer appends each revision to the story store and indexes it by security, time, and full text. Researchers, backtests, and terminal backfill query the query API with an as_of time, which finds candidates in the index and returns revisions received at or before as_of."
+    },
+    {
+      "source_file": "diagrams/dd1-record-shape.dot",
+      "rendered_file": "dd1-record-shape.svg",
+      "caption": "Deep dive 1: one revision, three layers — a small shared core, a typed vendor extension, and the raw bytes — each read by a different consumer.",
+      "alt_text": "A StoryRevision drawn as three stacked layers. The core holds id, source, kind, headline, security IDs, source time and received time, and is read by strategies and by the platform for dedup, search and entitlements. The extension holds typed vendor-specific fields such as Wire A's 1 to 5 urgency and topic codes and Wire B's flash, alert or regular levels, and is read by vendor-specific research. The raw reference points to the exact bytes in the raw log, which a new adapter version re-parses."
+    },
+    {
+      "source_file": "diagrams/dd1-dedup.dot",
+      "rendered_file": "dd1-dedup.svg",
+      "caption": "Deep dive 2: identity first, content second; duplicates are linked and delivered, never delayed or deleted.",
+      "alt_text": "A new revision is checked for a previously seen source ID and revision; if seen it is dropped and counted. Otherwise its content is compared with other sources within ten minutes; a match is delivered immediately tagged with duplicate_of and cluster_id, and a non-match is delivered as a new event cluster."
+    }
+  ],
+  "short_title": "News Feed"
+}

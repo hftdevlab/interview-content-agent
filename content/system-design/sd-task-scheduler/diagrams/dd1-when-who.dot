@@ -1,0 +1,24 @@
+// purpose: the timer answers "is it due?", the dispatcher answers "who goes next?"
+// critical distinction: only due work reaches the dispatcher; policy is decided in memory, ownership committed in batches
+// forbidden implication: that one ORDER BY can express the dispatch policy
+digraph dd1 {
+  rankdir=TB; nodesep=0.4; ranksep=0.42;
+  submit [label="New task", role=ext];
+  subgraph cluster_when {
+    label="When: future work, ordered by time"; role=zone;
+    sched [label="SCHEDULED rows\nindex on due_at", role=store];
+    prom  [label="Promoter (leader + standby)\nevery 100 ms: due → READY", role=new];
+  }
+  subgraph cluster_who {
+    label="Who: due work only, chosen by policy"; role=zone;
+    ready [label="READY rows\nthe durable record", role=store];
+    disp  [label="Dispatcher (leader + standby)\nin-memory queues per class and team", role=new];
+  }
+  w [label="Workers\nlong-poll", role=ext];
+
+  submit -> sched [label=" 1. due later"];
+  sched -> prom [label=" 2. query due rows"];
+  prom -> ready [label=" promote in batches"];
+  ready -> disp [label=" 3. load"];
+  disp -> w [label=" 4. claim by policy,\n commit RUNNING in batches"];
+}

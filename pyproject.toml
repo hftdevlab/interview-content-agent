@@ -12,6 +12,10 @@ dependencies = [
     "reportlab==4.4.9",
 ]
 
+[project.optional-dependencies]
+# Reader-facing system-design preview (make sd-preview); also needs pandoc.
+preview = ["playwright>=1.40"]
+
 [project.scripts]
 contentctl = "tools.workflow:main"
 

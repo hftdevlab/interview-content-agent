@@ -1,0 +1,25 @@
+// purpose: each tier subscribes once to what its children need, conflates, and fans out
+// critical distinction: upstream load grows with gateways, not tabs
+// forbidden implication: that the price service tracks browser sessions
+digraph dd2 {
+  rankdir=TB; nodesep=0.35; ranksep=0.45;
+  hosts [label="200 hosts", role=ext];
+  bus [label="Bus · 500,000 updates/s at the open"];
+  subgraph cluster_ps {
+    label="Price service · 8 shards"; role=zone;
+    ps [label="Conflate per gateway, 10 ms\nAAPL: ≤ 100/s to each gateway", role=new];
+  }
+  subgraph cluster_gw {
+    label="40 gateways"; role=zone;
+    g1 [label="Gateway\nlatest table · conflate per tab, 25 ms", role=new];
+    g2 [label="Gateway", role=new];
+  }
+  t1 [label="50 tabs", role=ext];
+  t2 [label="50 tabs", role=ext];
+  hosts -> bus [label=" 1×"];
+  bus -> ps [label=" 1× per ticker"];
+  ps -> g1 [label=" once per gateway\n that wants the ticker"];
+  ps -> g2;
+  g1 -> t1 [label=" once per tab"];
+  g2 -> t2;
+}

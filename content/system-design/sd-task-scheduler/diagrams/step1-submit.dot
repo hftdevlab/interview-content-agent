@@ -1,0 +1,15 @@
+// purpose: accept a task durably and reply with an ID before any work runs
+// critical distinction: acceptance is a committed row; running happens later
+// forbidden implication: that the client waits for the task to run
+digraph step1 {
+  rankdir=TB; nodesep=0.5; ranksep=0.45;
+  client [label="Client\nservice or researcher", role=ext];
+  firer  [label="Job firer\nrecurring jobs, every minute", role=new];
+  api    [label="Scheduler API", role=new];
+  db     [label="Postgres\ntasks: QUEUED, due_at, priority\nunique (client, idempotency_key)", role="store new"];
+
+  client -> api [label=" 1. POST /tasks"];
+  firer  -> api [label=" key = (job, fire_time)", role=async];
+  api -> db  [label=" 2–3. insert, or find\n existing by key"];
+  api -> client [label=" 4. 202 { taskId }", role=ok, constraint=false];
+}

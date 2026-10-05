@@ -1,0 +1,21 @@
+// purpose: the hot thread only copies a small binary record; formatting and I/O happen elsewhere
+// critical distinction: one SPSC ring per hot thread, one logger thread on a housekeeping core
+// forbidden implication: that the ring can never fill
+digraph step1 {
+  rankdir=TB;
+  subgraph cluster_proc {
+    label="Trading process"; role=zone;
+    ot   [label="Order thread\n(isolated core)"];
+    mt   [label="Market-data thread\n(isolated core)"];
+    r1   [label="SPSC ring\npreallocated", role=new];
+    r2   [label="SPSC ring\npreallocated", role=new];
+    lg   [label="Logger thread\n(housekeeping core)", role=new];
+  }
+  file [label="Local binary log file\nappend-only, one per process", role="store new"];
+
+  ot -> r1 [label=" 1. TSC + format id\n + raw args"];
+  mt -> r2 [label=" 1."];
+  r1 -> lg [label=" 2. drain"];
+  r2 -> lg;
+  lg -> file [label=" 3. append"];
+}

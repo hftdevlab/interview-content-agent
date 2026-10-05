@@ -1,0 +1,16 @@
+// purpose: the simplest working path for one notification to one person
+// critical distinction: everything happens inside one request
+// forbidden implication: that this design is durable (it is not yet)
+digraph step1 {
+  rankdir=TB;
+  sender [label="Risk service (any sender)", role=ext];
+  api    [label="Notification API", role=new];
+  dir    [label="Contact points\nsynced from directory", role=store];
+  db     [label="Postgres\nnotifications, deliveries", role="store new"];
+  prov   [label="Chat, email, SMS,\npager providers", role=ext];
+
+  sender -> api  [label=" 1. POST /notifications"];
+  api    -> dir  [label=" 2. contacts"];
+  api    -> db   [label=" 3. insert PENDING\n 5. mark SENT / FAILED"];
+  api    -> prov [label=" 4. send inline"];
+}

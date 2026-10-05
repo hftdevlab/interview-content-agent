@@ -1,0 +1,18 @@
+// purpose: a columnar segment: compressed blocks per column, statistics in a footer
+// critical distinction: a reader fetches the footer, then only the needed columns and blocks
+// forbidden implication: that rows are stored together
+digraph dd1 {
+  rankdir=LR; nodesep=0.4; ranksep=0.8;
+  seg [shape=plain, label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td colspan="4" bgcolor="#f3f4f6"><b>Segment</b> — AAPL trades, October 2026, version 700</td></tr>
+      <tr><td bgcolor="#dbeafe" color="#1a6fb5"><b>time</b> block 0</td><td bgcolor="#dbeafe" color="#1a6fb5">block 1</td><td bgcolor="#dbeafe" color="#1a6fb5">block 2</td><td bgcolor="#dbeafe" color="#1a6fb5">…</td></tr>
+      <tr><td port="price" bgcolor="#dbeafe" color="#1a6fb5"><b>price</b> block 0</td><td bgcolor="#dbeafe" color="#1a6fb5">block 1</td><td bgcolor="#dbeafe" color="#1a6fb5">block 2</td><td bgcolor="#dbeafe" color="#1a6fb5">…</td></tr>
+      <tr><td bgcolor="#dbeafe" color="#1a6fb5"><b>size</b> block 0</td><td bgcolor="#dbeafe" color="#1a6fb5">block 1</td><td bgcolor="#dbeafe" color="#1a6fb5">block 2</td><td bgcolor="#dbeafe" color="#1a6fb5">…</td></tr>
+      <tr><td bgcolor="#ffffff" color="#9aa4b2">bid, ask, …</td><td bgcolor="#ffffff" color="#9aa4b2">5 more columns</td><td bgcolor="#ffffff" color="#9aa4b2">never read</td><td bgcolor="#ffffff" color="#9aa4b2">…</td></tr>
+      <tr><td colspan="4" port="footer" bgcolor="#e3f1e8" color="#2f7a4f"><b>Footer</b>: per column, per block — offset, length,<br/>first/last time, min/max</td></tr>
+    </table>>];
+  reader [label="Reader", role=ext];
+  reader -> seg:footer:w [label="1. read footer"];
+  reader -> seg:price:w [label="2. fetch only the\nblocks it needs,\n3 columns", role=ok];
+}

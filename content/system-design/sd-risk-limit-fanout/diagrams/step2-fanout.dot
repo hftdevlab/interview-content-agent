@@ -1,0 +1,27 @@
+// purpose: one connection per host, a bounded queue per connection, limits in shared memory per strategy
+// critical distinction: the distributor holds no truth; the log does
+// forbidden implication: that delivery to the host means the order check is using the change
+digraph step2 {
+  rankdir=TB; ranksep=0.45;
+  log  [label="Replicated change log", role=store];
+  dist [label="Distributors (stateless)\ntail the log", role=new];
+  q1   [label="bounded queue\nhost 1", role=new];
+  q2   [label="bounded queue\nhost 2", role=new];
+  subgraph cluster_h1 {
+    label="Trading host 1"; role=zone;
+    ag1 [label="Host risk agent", role=new];
+    sh1 [label="Limit tables\nshared memory", role=store];
+    s7  [label="Strategy S7\norder thread"];
+    s8  [label="Strategy S8\norder thread"];
+  }
+  more [label="... 99 more hosts", role=ext];
+
+  log  -> dist [label=" 1. tail"];
+  dist -> q1;
+  dist -> q2;
+  q1 -> ag1 [label=" 2. Delta(scope, v42, base v41)"];
+  q2 -> more;
+  ag1 -> sh1 [label=" 3. apply"];
+  sh1 -> s7 [label=" read"];
+  sh1 -> s8 [label=" read"];
+}

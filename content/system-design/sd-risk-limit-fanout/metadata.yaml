@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "id": "sd-risk-limit-fanout",
+  "type": "system_design",
+  "title": "Design a Risk-Limit Update Fan-Out Service",
+  "status": "needs_human_review",
+  "difficulty": 4,
+  "expected_duration_minutes": 45,
+  "track_order": 7,
+  "categories": [
+    "trading-systems",
+    "distributed-systems",
+    "reliability",
+    "low-latency"
+  ],
+  "tags": [
+    "versioning",
+    "heartbeat",
+    "fail-safe",
+    "atomic-publication",
+    "snapshot-resync",
+    "slow-consumer",
+    "idempotency",
+    "memory-ordering",
+    "fan-out"
+  ],
+  "design_moves": {
+    "introduces": [
+      "versioned-state",
+      "ack-at-enforcement",
+      "freshness-lease",
+      "fail-safe-default",
+      "atomic-swap"
+    ],
+    "reuses": [
+      "idempotency-key",
+      "accept-then-work",
+      "push-vs-pull-fanout",
+      "sequence-gap-recovery",
+      "explicit-staleness",
+      "slow-consumer-isolation",
+      "capture-for-replay"
+    ]
+  },
+  "handbook_chapters": [
+    "e3-pretrade-risk-engine",
+    "b1-cpp-memory-model",
+    "d5-clocks-and-timestamps",
+    "b7-testing-concurrent-code",
+    "d3-sequence-and-gap-recovery",
+    "e4-deterministic-replay"
+  ],
+  "prerequisites": [],
+  "related_questions": [
+    "sd-market-data-feed",
+    "sd-notification-system",
+    "fund-sequence-lock"
+  ],
+  "source": {
+    "input_type": "text",
+    "confidentiality": "public",
+    "original_company_removed": false,
+    "original_files": [
+      "source/risk-limit-fanout.md"
+    ]
+  },
+  "review": {
+    "agent_reviewed": true,
+    "human_reviewed": false,
+    "technical_accuracy_reviewed": false,
+    "interview_realism_reviewed": false
+  },
+  "last_updated": "2026-10-04",
+  "content_file": "question.md",
+  "diagrams": [
+    {
+      "source_file": "diagrams/step1-record.dot",
+      "rendered_file": "step1-record.svg",
+      "caption": "Step 1: the limit service validates the change, checks the expected version, assigns version 42, commits, and only then replies.",
+      "alt_text": "A risk manager's tool sends PUT limits with an operation ID and expected version 41 to the limit service leader, which validates the change, assigns version 42, commits it to a replicated change log with author and reason, and replies with version 42."
+    },
+    {
+      "source_file": "diagrams/step2-fanout.dot",
+      "rendered_file": "step2-fanout.svg",
+      "caption": "Step 2: stateless distributors send deltas through a bounded queue per host; a host risk agent applies them to limit tables in shared memory.",
+      "alt_text": "Stateless distributors tail the replicated change log and place deltas on one bounded queue per trading host. On host 1 a risk agent applies Delta S7 version 42 with base version 41 to limit tables in shared memory, which the order threads of strategies S7 and S8 read. Ninety-nine more hosts receive their own queues."
+    },
+    {
+      "source_file": "diagrams/dd1-atomic-swap.dot",
+      "rendered_file": "dd1-atomic-swap.svg",
+      "caption": "Deep dive 1: build v42 in the inactive slot, publish it with one release store, and only then send Applied.",
+      "alt_text": "When delta version 42 arrives, the host agent copies version 41 into the inactive slot B, applies all fields, and validates. One release store sets the active index to B. The S7 order thread acquire-loads the index once per order, so orders before the swap see version 41 in slot A and orders after see version 42. Applied for S7 version 42 is sent after the swap."
+    },
+    {
+      "source_file": "diagrams/dd2-freshness.dot",
+      "rendered_file": "dd2-freshness.svg",
+      "caption": "Deep dive 2: only the authority's proof for the latest nonce renews the lease that the order thread checks on every order.",
+      "alt_text": "The host risk agent sends Ping with nonce 9172 every 250 milliseconds to the distributor, which forwards it to the limit service. The limit service answers Proof 9172 with S7 at version 42, the distributor relays it, and the agent sets fresh_until to now plus one second in shared memory when the nonce is the latest and the version matches. The S7 order thread blocks new risk when now exceeds fresh_until. If the distributor loses the authority, no proofs arrive and the lease expires within one second."
+    }
+  ],
+  "short_title": "Risk-Limit Fan-Out"
+}
