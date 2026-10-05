@@ -85,6 +85,12 @@ class RepositoryGateTests(unittest.TestCase):
 
         self.assertIn("Graphviz source is not renderable", self._issues_after(mutate))
 
+    @unittest.skipUnless(graphviz_available(), "Graphviz is not installed")
+    def test_clean_checkout_without_rendered_svgs_passes(self) -> None:
+        # generated/ is gitignored, so CI validates before anything is rendered.
+        messages = self._issues_after(lambda root: None)
+        self.assertNotIn("SVG", messages)
+
     def test_unsupported_mermaid_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             render_source("stateDiagram-v2\n  [*] --> Live\n")

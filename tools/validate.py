@@ -810,11 +810,14 @@ def _dot_diagram_issues(
     generated_path: Path,
     rendered_name: str,
 ) -> List[ValidationIssue]:
-    """Check a Graphviz source and its committed SVG.
+    """Check a Graphviz source and, when one exists, its rendered SVG.
 
-    Graphviz layout can differ between versions, so exact staleness is only
-    checked when the local Graphviz version matches the one recorded in the SVG.
-    Without Graphviz installed, the committed SVG is still required and parsed.
+    Rendered SVGs live under ``generated/`` and are not committed, so a clean
+    checkout has none: with Graphviz installed, the source is rendered in
+    memory and a missing SVG is fine. Graphviz layout can differ between
+    versions, so exact staleness is only checked when the local Graphviz
+    version matches the one recorded in the SVG. Without Graphviz, the source
+    cannot be checked, so a rendered SVG is required and parsed instead.
     """
     issues: List[ValidationIssue] = []
     location = str(source_path.relative_to(root))
@@ -829,12 +832,14 @@ def _dot_diagram_issues(
             issues.append(ValidationIssue(location, f"Graphviz source is not renderable: {exc}"))
             return issues
     if not generated_path.is_file():
-        issues.append(
-            ValidationIssue(
-                str(generated_path.relative_to(root)),
-                "generated SVG is missing; run `make diagrams`",
+        if expected_svg is None:
+            issues.append(
+                ValidationIssue(
+                    location,
+                    "Graphviz is not installed and no rendered SVG exists; "
+                    "install Graphviz and run `make diagrams`",
+                )
             )
-        )
         return issues
     actual_svg = generated_path.read_text(encoding="utf-8")
     try:
